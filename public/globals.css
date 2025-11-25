@@ -1,0 +1,32 @@
+/* ---------- PROMPT (ไทย/อังกฤษ) ---------- */
+@font-face {
+    font-family: "Prompt";
+    src: url("/fonts/Prompt-Regular.ttf") format("ttf");
+    font-weight: 400;
+  }
+  @font-face {
+    font-family: "Prompt";
+    src: url("/fonts/Prompt-Medium.ttf") format("ttf");
+    font-weight: 500;
+  }
+  @font-face {
+    font-family: "Prompt";
+    src: url("/fonts/Prompt-Bold.ttf") format("ttf");
+    font-weight: 700;
+  }
+  
+  /* ---------- SAWARABI GOTHIC (ญี่ปุ่น) ---------- */
+  @font-face {
+    font-family: "SawarabiGothic";
+    src: url("/fonts/SawarabiGothic-Regular.ttf") format("ttf");
+    font-weight: 400;
+  }
+  
+  body {
+    font-family: "Prompt", sans-serif;
+  }
+  
+  /* ถ้าภาษาญี่ปุ่น → ใช้ Sawarabi Gothic */
+:lang(ja) {
+    font-family: "SawarabiGothic", sans-serif;
+  }
