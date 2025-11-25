@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const promptFont = localFont({
@@ -177,11 +177,17 @@ export default function ExhibitorDashboardPage() {
 
   // Fetch data from Firebase userPanelSubmissions
   useEffect(() => {
-    const fetchSummaryData = async () => {
+    const fetchSummaryData = async (currentUsername) => {
       try {
         // Fetch userPanelSubmissions
         const submissionsRef = collection(db, 'userPanelSubmissions');
-        const submissionsQuery = query(submissionsRef);
+
+        const submissionsQuery = query(
+              submissionsRef, 
+              where('username', '==', currentUsername) 
+        );
+        
+        // const submissionsQuery = query(submissionsRef);
         const submissionsSnapshot = await getDocs(submissionsQuery);
         
         const submissions = [];
