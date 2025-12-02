@@ -1,5 +1,7 @@
 'use client';
 
+// PDPA Content Modal
+
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import localFont from 'next/font/local';
