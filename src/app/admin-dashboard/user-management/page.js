@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import jsPDF from 'jspdf';
+import ExportButtons from '@/app/components/ExportButtons';
 
 const promptFont = localFont({
   src: [
@@ -23,7 +25,7 @@ const sawarabiFont = localFont({
 const translations = {
   TH: {
     dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management', 'PDPA Management'],
+    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management'],
     searchPlaceholder: 'Search...',
     userManagement: 'User Management',
     totalParticipants: 'จำนวนผู้เข้างานทั้งหมด',
@@ -82,70 +84,9 @@ const translations = {
     previewContact: 'ช่องทางติดต่อ',
     previewNoData: 'ไม่พบข้อมูลการลงทะเบียน',
   },
-  EN: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management', 'PDPA Management'],
-    searchPlaceholder: 'Search...',
-    userManagement: 'User Management',
-    totalParticipants: 'Total Participants',
-    totalVisitors: 'Total Visitors',
-    totalExhibitors: 'Total Exhibitors',
-    logout: 'Logout',
-    export: 'Export',
-    tableNo: 'No.',
-    tableUsername: 'Username',
-    tableRole: 'Role',
-    tableCreatedAt: 'Created At',
-    tableActions: 'Actions',
-    filterAllUsers: 'All',
-    filterVisitors: 'Visitors',
-    filterExhibitors: 'Exhibitors',
-    loading: 'Loading...',
-    noUsers: 'No users found',
-    deleteTitle: 'Delete user?',
-    deleteMessage: 'Are you sure you want to delete this user? Once deleted, all associated data will be permanently lost.',
-    deleteConfirm: 'Yes, Delete',
-    deleteCancel: 'Cancel',
-    editProfileTitle: 'Edit Profile Information',
-    editProfileDescription: 'Update company information and expertise categories',
-    editLoading: 'Loading profile...',
-    editSave: 'Save Changes',
-    editCancel: 'Cancel',
-    companyName: 'Company Name',
-    taxId: 'Tax ID',
-    branchId: 'Branch ID',
-    companyPhone: 'Company Phone',
-    companyEmail: 'Company Email',
-    companyWebsite: 'Company Website',
-    companyLogo: 'Company Logo',
-    companyDescription: 'Company Description',
-    tagsTitle: 'Expertise Categories',
-    selectCategory: 'Select problem category',
-    uploadLogo: 'Upload Logo',
-    logoRequirements: 'Supports image files up to 5MB',
-    validationCompany: 'Please enter a company name',
-    validationCategory: 'Please select at least one expertise category',
-    editSuccess: 'Profile information updated successfully',
-    logoSizeError: 'Image file must be 5MB or smaller',
-    logoTypeError: 'Please upload an image file',
-    visitorFullName: 'Full Name',
-    visitorCompanyName: 'Organization / Company Name',
-    visitorContact: 'Contact (Email or Phone)',
-    visitorCategoriesLabel: 'Interested Problem Categories',
-    visitorValidationFullName: 'Please enter a full name',
-    visitorValidationCompany: 'Please enter an organization or company name',
-    visitorValidationCategory: 'Please select at least one interested problem',
-    visitorSaveSuccess: 'Visitor information updated successfully',
-    visitorSaveError: 'Unable to update visitor information',
-    previewTitle: 'Registration Details',
-    previewExhibitorSection: 'Exhibitor Information',
-    previewVisitorSection: 'Visitor Information',
-    previewContact: 'Contact',
-    previewNoData: 'No registration data available',
-  },
   JP: {
     dashboard: 'ダッシュボード',
-    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理', 'PDPA管理'],
+    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理'],
     searchPlaceholder: '検索...',
     userManagement: 'ユーザー管理',
     totalParticipants: '総参加者数',
@@ -230,7 +171,6 @@ export default function UserManagementPage() {
   const router = useRouter();
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
@@ -267,6 +207,13 @@ export default function UserManagementPage() {
   const [previewUserId, setPreviewUserId] = useState(null);
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [problemTags, setProblemTags] = useState([]);
+  const getTagOptions = (currentValue) => {
+    if (!currentValue) {
+      return problemTags;
+    }
+    return problemTags.includes(currentValue) ? problemTags : [currentValue, ...problemTags];
+  };
 
   useEffect(() => {
     const storedLanguage =
@@ -292,6 +239,23 @@ export default function UserManagementPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    const fetchProblemTags = async () => {
+      try {
+        const tagsSnapshot = await getDocs(collection(db, 'problemTags'));
+        const tags = tagsSnapshot.docs
+          .map((docSnap) => docSnap.data()?.name?.trim())
+          .filter((name, index, self) => name && self.indexOf(name) === index);
+        setProblemTags(tags);
+      } catch (error) {
+        console.error('Error loading problem tags:', error);
+      }
+    };
+
+    fetchProblemTags();
+  }, []);
+
 
   // Fetch summary data from Firebase
   useEffect(() => {
@@ -376,6 +340,8 @@ export default function UserManagementPage() {
           }
         });
 
+        const matchedSubmissionIds = new Set();
+
         const usersList = usersSnapshot.docs.map((docSnap) => {
           const data = docSnap.data();
           const email = normalizeContact(data.email);
@@ -393,6 +359,7 @@ export default function UserManagementPage() {
 
           let userRole = data.role || '-';
           if (matchedSubmission) {
+            matchedSubmissionIds.add(matchedSubmission.id);
             userRole = 'visitor';
           }
 
@@ -405,11 +372,34 @@ export default function UserManagementPage() {
             fullName: data.fullName || data.username || '-',
             visitorSubmissionId: matchedSubmission?.id || null,
             visitorSubmissionData: matchedSubmission?.data || null,
+            isVisitorOnly: false,
           };
         });
 
+        const visitorOnlyEntries = submissionsSnapshot.docs
+          .filter((docSnap) => !matchedSubmissionIds.has(docSnap.id))
+          .map((docSnap) => {
+            const data = docSnap.data() || {};
+            return {
+              id: `visitor-${docSnap.id}`,
+              username: data.fullName || data.companyName || data.contact || '-',
+              role: 'visitor',
+              createdAt: data.createdAt
+                ? data.createdAt.toDate
+                  ? data.createdAt.toDate()
+                  : new Date(data.createdAt)
+                : null,
+              email: data.contact || '-',
+              fullName: data.fullName || data.companyName || 'Visitor',
+              visitorSubmissionId: docSnap.id,
+              visitorSubmissionData: data,
+              isVisitorOnly: true,
+            };
+          });
+
         // Sort by createdAt (newest first)
-        usersList.sort((a, b) => {
+        const combinedUsers = [...usersList, ...visitorOnlyEntries];
+        combinedUsers.sort((a, b) => {
           if (!a.createdAt && !b.createdAt) return 0;
           if (!a.createdAt) return 1;
           if (!b.createdAt) return -1;
@@ -417,7 +407,7 @@ export default function UserManagementPage() {
         });
 
         setUsersData({
-          users: usersList,
+          users: combinedUsers,
           loading: false,
         });
       } catch (error) {
@@ -462,6 +452,179 @@ export default function UserManagementPage() {
     } else if (targetTab === 'pdpaManagement') {
       router.push('/admin-dashboard/pdpa-management');
     }
+  };
+
+  const handleExportPDF = () => {
+    // Use English translations for PDF export
+    const pdfT = translations.EN;
+    
+    // Calculate filtered users for export
+    const filteredUsersForExport = usersData.users.filter((user) => {
+      if (roleFilter === 'visitors') return user.role === 'visitor';
+      if (roleFilter === 'exhibitors') return user.role === 'exhibitor';
+      return true;
+    });
+    
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    let yPosition = 20;
+    const margin = 20;
+    const lineHeight = 7;
+    const sectionSpacing = 15;
+    const cardHeight = 25;
+    const cardSpacing = 10;
+
+    // Helper function to add new page if needed
+    const checkNewPage = (requiredSpace) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = 20;
+        return true;
+      }
+      return false;
+    };
+
+    // Title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(pdfT.userManagement, margin, yPosition);
+    yPosition += lineHeight + 8;
+
+    // Date (English format)
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    pdf.text(`Date: ${currentDate}`, margin, yPosition);
+    yPosition += sectionSpacing + 5;
+
+    // Summary Cards Section (3 cards in a row)
+    checkNewPage(cardHeight + 10);
+    const cardWidth = (pageWidth - margin * 2 - cardSpacing * 2) / 3;
+    const summaryCards = [
+      { label: pdfT.totalParticipants, value: summaryData.totalParticipants.toLocaleString() },
+      { label: pdfT.totalVisitors, value: summaryData.totalVisitors.toLocaleString() },
+      { label: pdfT.totalExhibitors, value: summaryData.totalExhibitors.toLocaleString() },
+    ];
+
+    summaryCards.forEach((card, index) => {
+      const xPos = margin + index * (cardWidth + cardSpacing);
+      
+      // Draw card background
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setFillColor(255, 255, 255);
+      pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, 'FD');
+      
+      // Card content
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(card.value, xPos + 5, yPosition + 10);
+      
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
+      pdf.text(labelLines, xPos + 5, yPosition + 16);
+    });
+    yPosition += cardHeight + sectionSpacing;
+
+    // Filter information
+    checkNewPage(lineHeight + 5);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const filterText = roleFilter === 'all' 
+      ? pdfT.filterAllUsers 
+      : roleFilter === 'visitors' 
+      ? pdfT.filterVisitors 
+      : pdfT.filterExhibitors;
+    pdf.text(`Filter: ${filterText}`, margin, yPosition);
+    yPosition += sectionSpacing;
+
+    // Table Section
+    if (filteredUsersForExport.length > 0) {
+      checkNewPage(sectionSpacing + lineHeight * 3);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('User List', margin, yPosition);
+      yPosition += lineHeight + 5;
+
+      // Table Header with background
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, lineHeight + 4, 'F');
+      
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      const colWidths = [15, 60, 50, 60];
+      const headers = [pdfT.tableNo, pdfT.tableUsername, pdfT.tableRole, pdfT.tableCreatedAt];
+      let xPosition = margin + 3;
+
+      headers.forEach((header, index) => {
+        pdf.text(header, xPosition, yPosition);
+        xPosition += colWidths[index];
+      });
+      yPosition += lineHeight + 3;
+
+      // Table Rows
+      pdf.setFont('helvetica', 'normal');
+      pdf.setDrawColor(220, 220, 220);
+      filteredUsersForExport.forEach((user, index) => {
+        checkNewPage(lineHeight + 3);
+        
+        // Draw row border
+        pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+        
+        xPosition = margin + 3;
+        
+        // No.
+        pdf.text(String(index + 1), xPosition, yPosition);
+        xPosition += colWidths[0];
+
+        // Username
+        const username = user.username.length > 25 ? user.username.substring(0, 22) + '...' : user.username;
+        pdf.text(username, xPosition, yPosition);
+        xPosition += colWidths[1];
+
+        // Role
+        const roleText = user.role === 'visitor' ? 'Visitors' : user.role === 'exhibitor' ? 'Exhibitor' : user.role;
+        pdf.text(roleText, xPosition, yPosition);
+        xPosition += colWidths[2];
+
+        // Created At
+        let createdAtText = '-';
+        if (user.createdAt) {
+          const date = user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
+          createdAtText = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        }
+        pdf.text(createdAtText, xPosition, yPosition);
+        
+        yPosition += lineHeight + 2;
+      });
+    } else {
+      checkNewPage(sectionSpacing + lineHeight * 3);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('User List', margin, yPosition);
+      yPosition += lineHeight + 5;
+      
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(150, 150, 150);
+      pdf.text('No data available', margin, yPosition);
+      pdf.setTextColor(0, 0, 0);
+    }
+
+    // Save PDF
+    const fileName = `user-management-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
   };
 
   const t = translations[selectedLanguage.code];
@@ -828,7 +991,11 @@ export default function UserManagementPage() {
     const userId = deleteTarget.id;
     try {
       setDeletingUserId(userId);
-      await deleteDoc(doc(db, 'users', userId));
+      if (deleteTarget.isVisitorOnly && deleteTarget.visitorSubmissionId) {
+        await deleteDoc(doc(db, 'userPanelSubmissions', deleteTarget.visitorSubmissionId));
+      } else {
+        await deleteDoc(doc(db, 'users', userId));
+      }
 
       setUsersData((prev) => ({
         ...prev,
@@ -876,7 +1043,7 @@ export default function UserManagementPage() {
           <nav className="flex-1 px-4 py-4">
             <div className="flex flex-col gap-2">
               {t.tabs.map((tab, idx) => {
-                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'homepageManagement', 'pdpaManagement'];
+                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'homepageManagement'];
                 const targetTab = tabKeys[idx] || 'dashboard';
                 
                 // Icon mapping
@@ -979,21 +1146,16 @@ export default function UserManagementPage() {
             <div className="flex items-end justify-end w-full">
               <div className="relative" ref={languageDropdownRef}>
                 <div className="flex items-end justify-end gap-3 cursor-pointer">
-                  <button
-                    type="button"
-                    className="bg-gray-800 text-white rounded-lg px-3 h-[36px] flex items-center justify-center gap-2 hover:bg-gray-700 transition"
-                    aria-label={t.export}
-                    title={t.export}
-                  >
-                    <Image
-                      src="/import-export.png"
-                      alt={t.export}
-                      width={18}
-                      height={18}
-                      className="w-[18px] h-[18px] brightness-0 invert"
-                    />
-                    <span className="text-sm">{t.export}</span>
-                  </button>
+                  <ExportButtons 
+                    exportPdfLabel={`${t.export} PDF`}
+                    exportExcelLabel={`${t.export} Excel`}
+                    summaryData={summaryData}
+                    usersData={usersData.users}
+                    roleFilter={roleFilter}
+                    translations={translations}
+                    selectedLanguage={selectedLanguage}
+                    exportType="userManagement"
+                  />
                   <button
                     type="button"
                     onClick={() => setIsLanguageOpen((prev) => !prev)}
@@ -1189,13 +1351,13 @@ export default function UserManagementPage() {
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                           {t.tableNo}
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-2/5 min-w-[220px]">
                           {t.tableUsername}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                           {t.tableRole}
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-28 min-w-[100px]">
                           {t.tableCreatedAt}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
@@ -1210,7 +1372,7 @@ export default function UserManagementPage() {
                             <td className="py-3 px-4 text-sm text-gray-900">
                               {index + 1}
                             </td>
-                            <td className="py-3 px-4 text-sm text-gray-900">
+                            <td className="py-3 px-4 text-sm text-gray-900 w-2/5 min-w-[220px] whitespace-normal break-words">
                               {user.username}
                             </td>
                             <td className="py-3 px-4 text-sm text-gray-900">
@@ -1234,7 +1396,7 @@ export default function UserManagementPage() {
                                   : user.role}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-sm text-gray-600">
+                            <td className="py-3 px-4 text-sm text-gray-600 w-28 min-w-[100px] whitespace-nowrap">
                               {user.createdAt
                                 ? user.createdAt.toLocaleString(
                                     selectedLanguage.code === 'TH'
@@ -1478,20 +1640,26 @@ export default function UserManagementPage() {
                         {t.visitorCategoriesLabel}
                       </label>
                       <div className="space-y-2">
-                        {[0, 1, 2].map((index) => (
-                          <select
-                            key={`visitor-category-${index}`}
-                            value={visitorFormData.categories[index] || ''}
-                            onChange={(e) => handleVisitorCategoryChange(index, e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white"
-                            disabled={editSaving}
-                          >
-                            <option value="">{t.selectCategory}</option>
-                            <option value="category1">Category 1</option>
-                            <option value="category2">Category 2</option>
-                            <option value="category3">Category 3</option>
-                          </select>
-                        ))}
+                        {[0, 1, 2].map((index) => {
+                          const currentValue = visitorFormData.categories[index] || '';
+                          const availableTags = getTagOptions(currentValue);
+                          return (
+                            <select
+                              key={`visitor-category-${index}`}
+                              value={currentValue}
+                              onChange={(e) => handleVisitorCategoryChange(index, e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white"
+                              disabled={editSaving}
+                            >
+                              <option value="">{t.selectCategory}</option>
+                              {availableTags.map((tag) => (
+                                <option key={`visitor-tag-${index}-${tag}`} value={tag}>
+                                  {tag}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1636,20 +1804,26 @@ export default function UserManagementPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-2">{t.tagsTitle}</label>
                       <div className="space-y-2">
-                        {[0, 1, 2].map((index) => (
-                          <select
-                            key={`edit-category-${index}`}
-                            value={editCategories[index] || ''}
-                            onChange={(e) => handleEditCategoryChange(index, e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white"
-                            disabled={editSaving}
-                          >
-                            <option value="">{t.selectCategory}</option>
-                            <option value="category1">Category 1</option>
-                            <option value="category2">Category 2</option>
-                            <option value="category3">Category 3</option>
-                          </select>
-                        ))}
+                        {[0, 1, 2].map((index) => {
+                          const currentValue = editCategories[index] || '';
+                          const availableTags = getTagOptions(currentValue);
+                          return (
+                            <select
+                              key={`edit-category-${index}`}
+                              value={currentValue}
+                              onChange={(e) => handleEditCategoryChange(index, e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white"
+                              disabled={editSaving}
+                            >
+                              <option value="">{t.selectCategory}</option>
+                              {availableTags.map((tag) => (
+                                <option key={`edit-tag-${index}-${tag}`} value={tag}>
+                                  {tag}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

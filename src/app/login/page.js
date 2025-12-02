@@ -42,25 +42,6 @@ const translations = {
       general: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง',
     },
   },
-  EN: {
-    loginTitle: 'Sign in',
-    loginDescription: 'Please enter your username or email, and password to continue.',
-    usernameLabel: 'Username / Email',
-    usernamePlaceholder: 'Enter username or email',
-    passwordLabel: 'Password',
-    passwordPlaceholder: 'Enter your password',
-    rememberMe: 'Remember my login',
-    forgotPassword: 'Forgot password?',
-    forgotPasswordAlert: 'Forgot password feature is not available yet.',
-    loginButton: 'Sign in',
-    loadingButton: 'Signing in...',
-    registerQuestion: "Don't have an account?",
-    registerCTA: 'Register',
-    errors: {
-      invalidCredentials: 'Incorrect username or password.',
-      general: 'Something went wrong. Please try again.',
-    },
-  },
   JP: {
     loginTitle: 'ログイン',
     loginDescription: 'ユーザー名またはメールアドレスとパスワードを入力してください。',
@@ -91,7 +72,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
@@ -224,10 +204,10 @@ export default function LoginPage() {
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
   return (
-    <div className={`min-h-screen bg-white flex items-center justify-center p-4 ${currentFontClass}`}>
-      <div className="w-full max-w-[390px] min-h-screen md:min-h-[600px] bg-white flex flex-col relative">
+    <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
+      <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none">
         {/* Header with Logo and Language Selector */}
-        <div className="w-full min-h-[64px] flex justify-between items-center px-4 py-[10px]">
+        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px]">
           {/* Logo - Top Left */}
           <button
             type="button"
@@ -240,7 +220,7 @@ export default function LoginPage() {
               alt="alt design office" 
               width={80} 
               height={39}
-              className="w-[80px] h-[39px]"
+              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
               priority
             />
           </button>
@@ -248,7 +228,7 @@ export default function LoginPage() {
           <div className="relative" ref={languageDropdownRef}>
             <button
               type="button"
-              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
+              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
               onClick={() => setIsLanguageOpen((prev) => !prev)}
               aria-haspopup="listbox"
               aria-expanded={isLanguageOpen}
@@ -266,7 +246,7 @@ export default function LoginPage() {
             </button>
             {isLanguageOpen && (
               <ul
-                className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
+                className="absolute right-0 mt-2 w-32 md:w-36 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
                 role="listbox"
                 aria-label="เลือกภาษา"
               >
@@ -274,7 +254,7 @@ export default function LoginPage() {
                   <li key={option.code}>
                     <button
                       type="button"
-                      className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
+                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
                         selectedLanguage.code === option.code
                           ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-700 hover:bg-gray-50'
@@ -294,18 +274,18 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form - Centered */}
-        <div className="flex-1 flex items-top justify-center px-4 py-8 md:py-12">
+        <div className="flex-1 flex items-start sm:items-center justify-center px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-md flex flex-col gap-4"
+            className="w-full max-w-md flex flex-col gap-3 sm:gap-4"
           >
             <div className="text-center">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{t.loginTitle}</h2>
-              <p className="text-sm text-gray-500">{t.loginDescription}</p>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">{t.loginTitle}</h2>
+              <p className="text-xs sm:text-sm text-gray-500 px-2">{t.loginDescription}</p>
             </div>
 
-            <div className="mt-4 md:mt-6">
-              <label htmlFor="username" className="block text-sm text-gray-700 mb-1.5">
+            <div className="mt-3 sm:mt-4 md:mt-6">
+              <label htmlFor="username" className="block text-xs sm:text-sm text-gray-700 mb-1.5">
                 {t.usernameLabel}
               </label>
               <input
@@ -313,7 +293,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm md:text-base"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base"
                 placeholder={t.usernamePlaceholder}
                 required
                 autoComplete="username"
@@ -321,7 +301,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm text-gray-700 mb-1.5">
+              <label htmlFor="password" className="block text-xs sm:text-sm text-gray-700 mb-1.5">
                 {t.passwordLabel}
               </label>
               <div className="relative">
@@ -330,7 +310,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm md:text-base pr-12"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base pr-10 sm:pr-12"
                   placeholder={t.passwordPlaceholder}
                   required
                   autoComplete="current-password"
@@ -338,27 +318,27 @@ export default function LoginPage() {
                 <button
                   type="button"
                   tabIndex={-1}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label="แสดงรหัสผ่าน"
                 >
                   {showPassword ? (
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                    <svg width="18" height="18" className="sm:w-5 sm:h-5" fill="none" viewBox="0 0 20 20">
                       <path d="M1.667 10S4.167 4.167 10 4.167 18.333 10 18.333 10 15.833 15.833 10 15.833 1.667 10 1.667 10z" stroke="currentColor" strokeWidth="1.5"/>
                       <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
                     </svg>
                   ) : (
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                    <svg width="18" height="18" className="sm:w-5 sm:h-5" fill="none" viewBox="0 0 20 20">
                       <path d="M1.667 10S4.167 4.167 10 4.167c1.53 0 2.87.29 4.01.77M18.333 10s-2.5 5.833-8.333 5.833c-1.53 0-2.87-.29-4.01-.77M7.5 7.5l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                       <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
                     </svg>
                   )}
                 </button>
               </div>
-              <div className="flex justify-start mt-1  ">
+              <div className="flex justify-start mt-1">
                 <button
                   type="button"
-                  className="text-gray-700 hover:text-gray-900 hover:underline text-sm"
+                  className="text-gray-700 hover:text-gray-900 hover:underline text-xs sm:text-sm"
                   tabIndex={-1}
                   onClick={() => alert(t.forgotPasswordAlert)}
                 >
@@ -367,18 +347,18 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 text-sm">
+            <div className="flex flex-col gap-2 text-xs sm:text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input 
                   type="checkbox" 
-                  className="w-4 h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 cursor-pointer" 
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 cursor-pointer" 
                 />
                 <span className="text-gray-700">{t.rememberMe}</span>
               </label>
             </div>
 
             {errorKey && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm mt-3 sm:mt-4">
                 {t.errors[errorKey] || ''}
               </div>
             )}
@@ -386,12 +366,12 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold text-sm md:text-base hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed mt-1 sm:mt-2"
             >
               {isLoading ? t.loadingButton : t.loginButton}
             </button>
 
-            <div className="w-full text-center text-sm text-gray-500 mt-4 pb-4">
+            <div className="w-full text-center text-xs sm:text-sm text-gray-500 mt-3 sm:mt-4 pb-3 sm:pb-4">
               {t.registerQuestion}{' '}
               <button
                 type="button"

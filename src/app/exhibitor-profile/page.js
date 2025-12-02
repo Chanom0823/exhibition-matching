@@ -5,7 +5,7 @@ import Image from 'next/image';
 import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const promptFont = localFont({
@@ -53,39 +53,6 @@ const translations = {
     companyWebsite: 'เว็บไซต์บริษัท',
     companyDescription: 'รายละเอียดเพิ่มเติม',
     companyLogo: 'โลโก้บริษัท',
-  },
-  EN: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'Profile'],
-    searchPlaceholder: 'Search...',
-    logout: 'Logout',
-    export: 'Export',
-    profileTitle: 'Profile',
-    basicInfo: 'Basic Information',
-    contactInfo: 'Contact',
-    tagsTitle: 'Expertise Tags',
-    selectCategory: 'Select problem category',
-    descriptionTitle: 'Additional Details',
-    address: 'Address',
-    company: 'Company',
-    phone: 'Phone',
-    email: 'Email',
-    userInformation: 'Company Information',
-    passwordSection: 'Password',
-    saveNow: 'Save Now',
-    currentPassword: 'Current Password',
-    newPassword: 'New Password',
-    confirmNewPassword: 'Confirm New Password',
-    closeAccount: 'Close Account',
-    rating: 'Rating',
-    companyName: 'Company Name',
-    taxId: 'Tax ID',
-    branchId: 'Branch ID',
-    companyEmail: 'Company Email',
-    companyPhone: 'Company Phone',
-    companyWebsite: 'Company Website',
-    companyDescription: 'Details',
-    companyLogo: 'Company Logo',
   },
   JP: {
     dashboard: 'ダッシュボード',
@@ -141,7 +108,6 @@ export default function ExhibitorProfilePage() {
   const router = useRouter();
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
@@ -199,6 +165,7 @@ export default function ExhibitorProfilePage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [categories, setCategories] = useState(['', '', '']);
+  const [problemTags, setProblemTags] = useState([]);
   const [formData, setFormData] = useState({
     companyName: '',
     taxId: '',
@@ -215,6 +182,13 @@ export default function ExhibitorProfilePage() {
   const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
   const [isEditMode, setIsEditMode] = useState(true); // Start in edit mode
   const [isProfileSaved, setIsProfileSaved] = useState(false); // Track if profile has been saved
+
+  const getTagOptions = (currentValue) => {
+    if (!currentValue) {
+      return problemTags;
+    }
+    return problemTags.includes(currentValue) ? problemTags : [currentValue, ...problemTags];
+  };
 
   const handleCategoryChange = (index, value) => {
     if (!isEditMode) return; // Prevent changes when not in edit mode
@@ -263,6 +237,22 @@ export default function ExhibitorProfilePage() {
     }
   };
 
+  useEffect(() => {
+    const fetchProblemTags = async () => {
+      try {
+        const tagsSnapshot = await getDocs(collection(db, 'problemTags'));
+        const tags = tagsSnapshot.docs
+          .map((docSnap) => docSnap.data()?.name?.trim())
+          .filter((name, index, self) => name && self.indexOf(name) === index);
+        setProblemTags(tags);
+      } catch (error) {
+        console.error('Error loading problem tags:', error);
+      }
+    };
+
+    fetchProblemTags();
+  }, []);
+
   // Load existing profile data from Firebase
   useEffect(() => {
     const loadProfileData = async () => {
@@ -297,9 +287,42 @@ export default function ExhibitorProfilePage() {
           // If profile exists, it's been saved before
           setIsProfileSaved(true);
           setIsEditMode(false); // Start in view mode if profile exists
+        } else {
+          // New account - ensure form is completely empty
+          setFormData({
+            companyName: '',
+            taxId: '',
+            companyPhone: '',
+            branchId: '',
+            companyEmail: '',
+            website: '',
+            companyDescription: '',
+            logo: null,
+            logoPreview: null,
+            logoUrl: '',
+          });
+          setCategories(['', '', '']);
+          setIsProfileSaved(false);
+          setIsEditMode(true); // Start in edit mode for new accounts
         }
       } catch (error) {
         console.error('Error loading profile:', error);
+        // On error, also ensure form is empty for new accounts
+        setFormData({
+          companyName: '',
+          taxId: '',
+          companyPhone: '',
+          branchId: '',
+          companyEmail: '',
+          website: '',
+          companyDescription: '',
+          logo: null,
+          logoPreview: null,
+          logoUrl: '',
+        });
+        setCategories(['', '', '']);
+        setIsProfileSaved(false);
+        setIsEditMode(true);
       }
     };
 
@@ -336,9 +359,9 @@ export default function ExhibitorProfilePage() {
       if (formData.logo) {
         try {
           setSaveMessage({ type: '', text: 'กำลังอัปโหลดรูปภาพ...' });
-          const logoRef = ref(storage, `exhibitors/${userId}/logo/${Date.now()}_${formData.logo.name}`);
-          await uploadBytes(logoRef, formData.logo);
-          logoUrl = await getDownloadURL(logoRef);
+        const logoRef = ref(storage, `exhibitors/${userId}/logo/${Date.now()}_${formData.logo.name}`);
+        await uploadBytes(logoRef, formData.logo);
+        logoUrl = await getDownloadURL(logoRef);
           setSaveMessage({ type: '', text: 'กำลังบันทึกข้อมูล...' });
         } catch (uploadError) {
           console.error('Error uploading logo:', uploadError);
@@ -481,21 +504,6 @@ export default function ExhibitorProfilePage() {
             <div className="flex items-end justify-end w-full">
               <div className="relative" ref={languageDropdownRef}>
                 <div className="flex items-end justify-end gap-3 cursor-pointer">
-                  <button
-                    type="button"
-                    className="bg-gray-800 text-white rounded-lg px-3 h-[36px] flex items-center justify-center gap-2 hover:bg-gray-700 transition"
-                    aria-label={t.export}
-                    title={t.export}
-                  >
-                    <Image
-                      src="/import-export.png"
-                      alt={t.export}
-                      width={18}
-                      height={18}
-                      className="w-[18px] h-[18px] brightness-0 invert"
-                    />
-                    <span className="text-sm">{t.export}</span>
-                  </button>
                   <button
                     type="button"
                     onClick={() => setIsLanguageOpen((prev) => !prev)}
@@ -751,15 +759,18 @@ export default function ExhibitorProfilePage() {
                 <section>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.tagsTitle}</h2>
                   <div className="flex flex-col gap-2">
-                    {[0, 1, 2].map((index) => (
+                    {[0, 1, 2].map((index) => {
+                      const currentValue = categories[index] || '';
+                      const availableTags = getTagOptions(currentValue);
+                      return (
                       <select
                         key={index}
-                        value={categories[index]}
+                          value={currentValue}
                         onChange={(e) => handleCategoryChange(index, e.target.value)}
-                        disabled={!isEditMode}
-                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm appearance-none ${
-                          !isEditMode ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'
-                        }`}
+                          disabled={!isEditMode}
+                          className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm appearance-none ${
+                            !isEditMode ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'
+                          }`}
                         style={{
                           backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
                           backgroundPosition: 'right 0.5rem center',
@@ -769,11 +780,14 @@ export default function ExhibitorProfilePage() {
                         }}
                       >
                         <option value="">{t.selectCategory}</option>
-                        <option value="category1">Category 1</option>
-                        <option value="category2">Category 2</option>
-                        <option value="category3">Category 3</option>
+                          {availableTags.map((tag) => (
+                            <option key={`profile-tag-${index}-${tag}`} value={tag}>
+                              {tag}
+                            </option>
+                          ))}
                       </select>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
                 
@@ -790,14 +804,14 @@ export default function ExhibitorProfilePage() {
                     </div>
                   )}
                   {isEditMode ? (
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={isSaving}
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isSaving}
                       className={`px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition flex items-center gap-2 ${
-                        isSaving ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
+                      isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
                       {isSaving && (
                         <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -813,7 +827,7 @@ export default function ExhibitorProfilePage() {
                       className="px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition"
                     >
                       {selectedLanguage.code === 'TH' ? 'แก้ไข' : selectedLanguage.code === 'EN' ? 'Edit' : '編集'}
-                    </button>
+                  </button>
                   )}
                 </section>
 

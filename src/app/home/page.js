@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import localFont from 'next/font/local';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const promptFont = localFont({
   src: [
@@ -17,20 +19,13 @@ const sawarabiFont = localFont({
   src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
 
-const translations = {
+const defaultTranslations = {
   TH: {
     heading: 'ยินดีต้อนรับสู่ alt design office',
     description:
       'ส่งเสริมประสบการณ์นิทรรศการผ่านการจับคู่ที่ใช่ สำรวจงานและผู้จัดได้จากที่นี่',
     exploreButton: 'สำรวจงานนิทรรศการ',
     loginCta: 'เข้าสู่ระบบ',
-  },
-  EN: {
-    heading: 'Welcome to alt design office',
-    description:
-      'Enhance exhibition experiences with the perfect match. Discover featured events here.',
-    exploreButton: 'Explore Exhibitions',
-    loginCta: 'Login',
   },
   JP: {
     heading: 'alt design office へようこそ',
@@ -44,12 +39,13 @@ const translations = {
 export default function HomePage() {
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
+  const [translations, setTranslations] = useState(defaultTranslations);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const storedLanguage = typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
@@ -73,6 +69,40 @@ export default function HomePage() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
+  }, []);
+
+  // Load homepage content from Firebase
+  useEffect(() => {
+    const loadHomepageContent = async () => {
+      try {
+        setIsLoading(true);
+        const docRef = doc(db, 'homepageContent', 'main');
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.content) {
+            // Merge with default translations to ensure all fields exist
+            setTranslations({
+              TH: {
+                ...defaultTranslations.TH,
+                ...(data.content.TH || {}),
+              },
+              JP: {
+                ...defaultTranslations.JP,
+                ...(data.content.JP || {}),
+              },
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading homepage content:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadHomepageContent();
   }, []);
 
   const handleLanguageSelect = (option) => {
@@ -106,7 +136,7 @@ export default function HomePage() {
     <div className={`min-h-screen bg-white flex items-center justify-center ${currentFontClass}`}>
       <div className="w-full max-w-[390px] md:max-w-full h-[844px] md:h-screen bg-white flex flex-col relative">
         {/* Navbar */}
-        <div className="w-full max-w-[390px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px]">
+        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px]">
           <div className="flex items-center">
             <Image
               src="/logo.svg"

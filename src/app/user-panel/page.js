@@ -29,7 +29,7 @@ const translations = {
     companyNamePlaceholder: 'ชื่อบริษัท',
     contactInfo: 'อีเมล / เบอร์โทรศัพท์ (อย่างน้อย 1 ช่องทาง)',
     contactPlaceholder: 'อีเมล / เบอร์โทรศัพท์',
-    problemCategory: 'หมวดปัญหา (เลือกได้สูงสุด 3 ข้อ)*',
+    problemCategory: 'หมวดปัญหา (เลือกได้สูงสุด 2 ข้อ)*',
     selectCategory: 'เลือกหมวดหมู่ปัญหา',
     pdpa: 'ข้าพเจ้ายินยอมตามนโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
     readPolicy: 'อ่านนโยบายได้ที่',
@@ -38,25 +38,6 @@ const translations = {
     categoryRequired: 'กรุณาเลือกหมวดหมู่ปัญหาอย่างน้อย 1 ข้อ',
     submitSuccess: 'ส่งข้อมูลสำเร็จแล้ว',
     submitError: 'เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่',
-  },
-  EN: {
-    title: 'Welcome',
-    instruction: 'Fill in the required information to continue',
-    fullName: 'First-Last name*',
-    fullNamePlaceholder: 'First-Last name',
-    companyName: 'Company name*',
-    companyNamePlaceholder: 'Company name',
-    contactInfo: 'Email / Phone number (at least 1 channel)',
-    contactPlaceholder: 'Email / Phone number',
-    problemCategory: 'Problem category (select up to 3 items)*',
-    selectCategory: 'Select problem category',
-    pdpa: 'I agree to the Personal Data Protection Policy (PDPA)',
-    readPolicy: 'Read policy at',
-    register: 'Register',
-    pdpaRequired: 'Please accept the PDPA policy before submitting',
-    categoryRequired: 'Please select at least 1 problem category',
-    submitSuccess: 'Information submitted successfully',
-    submitError: 'Something went wrong while submitting. Please try again.',
   },
   JP: {
     title: 'ようこそ',
@@ -67,7 +48,7 @@ const translations = {
     companyNamePlaceholder: '会社名',
     contactInfo: 'メール / 電話番号 (少なくとも1つの連絡先)',
     contactPlaceholder: 'メール / 電話番号',
-    problemCategory: '問題カテゴリ (最大3つまで選択)*',
+    problemCategory: '問題カテゴリ (最大2つまで選択)*',
     selectCategory: '問題カテゴリを選択',
     pdpa: '個人情報保護方針（PDPA）に同意します',
     readPolicy: 'ポリシーを読む',
@@ -79,11 +60,40 @@ const translations = {
   },
 };
 
+const japaneseTagLabels = {
+  'ด้านสิ่งแวดล้อม และการดำเนินงานตามหลัก ESG': '環境・ESG',
+  'การจัดการด้านสิ่งแวดล้อม / การประหยัดพลังงาน / การตอบโจทย์ ESG ยังดำเนินไปไม่ดี':
+    '環境・省エネ・ESG対応が進まない',
+  'การนำข้อมูลมาใช้งานให้เกิดประโยชน์': 'データ活用',
+  'ข้อมูลกระจัดกระจาย ไม่สามารถนำมาใช้งานได้จริง': 'データがバラバラで活用できない',
+  'การควบคุมคุณภาพ': '品質管理',
+  'มีปัญหาในการควบคุมคุณภาพและความปลอดภัย': '品質・安全管理に課題がある',
+  'การผูกงานไว้กับตัวบุคคล': '属人化',
+  'การทำงานที่พึ่งพาตัวบุคคลมากเกินไป และไม่สามารถลดความผิดพลาดได้':
+    '業務の属人化・ミスが減らない',
+  'บุคลากรและการมาตรฐานงาน': '人材・標準化',
+  'ขาดแคลนบุคลากร / การฝึกสอนหรือการส่งต่องานทำได้ไม่เพียงพอ':
+    '人材不足・教育／引き継ぎができない',
+  'การวางแผนการผลิต': '生産計画',
+  'การวางแผนการผลิต / การควบคุมกระบวนการ ทำได้ไม่ดี':
+    '生産計画／工程管理がうまくいかない',
+  'ลดการใช้กระดาษและ Excel': '紙・Excel削減',
+  'มีงานกระดาษ / Excel / งานแบบอนาล็อกจำนวนมาก': '紙・Excel・アナログ作業が多い',
+  'การทำให้มองเห็นได้ชัดเจน': '見える化',
+  'การมองเห็นภาพรวมของหน้างาน': '現場の「見える化」ができていない',
+};
+
+const getTagLabelByLanguage = (name, languageCode) => {
+  if (languageCode === 'JP') {
+    return japaneseTagLabels[name] || name;
+  }
+  return name;
+};
+
 export default function UserPanelPage() {
   const router = useRouter();
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
@@ -94,13 +104,19 @@ export default function UserPanelPage() {
     fullName: '',
     companyName: '',
     contact: '',
-    categories: ['', '', ''],
+    categories: ['', ''],
   });
   const [pdpaAgreed, setPdpaAgreed] = useState(false);
   const [hasAcceptedPDPA, setHasAcceptedPDPA] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
-  const fallbackProblemTags = ['Smart Farming', 'Green Energy', 'Healthcare', 'Supply Chain', 'Smart City'];
+  const fallbackProblemTags = [
+    { name: 'Smart Farming', description: '' },
+    { name: 'Green Energy', description: '' },
+    { name: 'Healthcare', description: '' },
+    { name: 'Supply Chain', description: '' },
+    { name: 'Smart City', description: '' },
+  ];
   const [problemTags, setProblemTags] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(true);
 
@@ -132,11 +148,19 @@ export default function UserPanelPage() {
     const fetchProblemTags = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'problemTags'));
-        const names = snapshot.docs
-          .map((docSnap) => docSnap.data().name)
-          .filter((name) => typeof name === 'string' && name.trim() !== '');
-        const uniqueNames = [...new Set(names.map((name) => name.trim()))];
-        setProblemTags(uniqueNames.length > 0 ? uniqueNames : fallbackProblemTags);
+        const tagsMap = new Map();
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const name = data.name?.trim();
+          if (name) {
+            tagsMap.set(name, {
+              name: name,
+              description: data.description?.trim() || '',
+            });
+          }
+        });
+        const uniqueTags = Array.from(tagsMap.values());
+        setProblemTags(uniqueTags.length > 0 ? uniqueTags : fallbackProblemTags);
       } catch (error) {
         console.error('Error fetching problem tags:', error);
         setProblemTags(fallbackProblemTags);
@@ -215,23 +239,39 @@ export default function UserPanelPage() {
     setIsSubmitting(true);
     setSubmitMessage('');
 
+    const trimmedFullName = formData.fullName.trim();
+    const trimmedCompanyName = formData.companyName.trim();
+    const trimmedContact = formData.contact.trim();
+    const username = typeof window !== 'undefined' ? localStorage.getItem('username') : null;
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    const userEmail = typeof window !== 'undefined' ? localStorage.getItem('userEmail') : null;
+    const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+
     try {
       await addDoc(collection(db, 'userPanelSubmissions'), {
-        fullName: formData.fullName,
-        companyName: formData.companyName,
-        contact: formData.contact,
-        categories: formData.categories.filter((item) => item),
+        fullName: trimmedFullName,
+        companyName: trimmedCompanyName,
+        contact: trimmedContact,
+        categories: selectedCategories,
         language: selectedLanguage.code,
         pdpaAccepted: true,
+        username: username || null,
+        userId: userId || null,
+        userEmail: userEmail || null,
+        userRole: userRole || 'visitor',
         createdAt: serverTimestamp(),
       });
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('userInterests', JSON.stringify(selectedCategories));
+      }
 
       setSubmitMessage(t.submitSuccess);
       setFormData({
         fullName: '',
         companyName: '',
         contact: '',
-        categories: ['', '', ''],
+        categories: ['', ''],
       });
       setPdpaAgreed(true);
       router.push('/usermatching');
@@ -248,10 +288,10 @@ export default function UserPanelPage() {
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
   return (
-    <div className={`min-h-screen bg-white flex items-center justify-center ${currentFontClass}`}>
-      <div className="w-[390px] h-[844px] bg-white flex flex-col relative overflow-y-auto">
+    <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
+      <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
         {/* Header with Logo and Language Selector */}
-        <div className="w-full h-[64px] flex justify-between items-center px-4 py-[10px] flex-shrink-0">
+        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px] flex-shrink-0">
           {/* Logo - Top Left */}
           <button
             type="button"
@@ -264,7 +304,7 @@ export default function UserPanelPage() {
               alt="alt design office" 
               width={80} 
               height={39}
-              className="w-[80px] h-[39px]"
+              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
               priority
             />
           </button>
@@ -272,7 +312,7 @@ export default function UserPanelPage() {
           <div className="relative" ref={languageDropdownRef}>
             <button
               type="button"
-              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
+              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
               onClick={() => setIsLanguageOpen((prev) => !prev)}
               aria-haspopup="listbox"
               aria-expanded={isLanguageOpen}
@@ -290,7 +330,7 @@ export default function UserPanelPage() {
             </button>
             {isLanguageOpen && (
               <ul
-                className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
+                className="absolute right-0 mt-2 w-32 md:w-36 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
                 role="listbox"
                 aria-label="เลือกภาษา"
               >
@@ -298,7 +338,7 @@ export default function UserPanelPage() {
                   <li key={option.code}>
                     <button
                       type="button"
-                      className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
+                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
                         selectedLanguage.code === option.code
                           ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-700 hover:bg-gray-50'
@@ -318,19 +358,19 @@ export default function UserPanelPage() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col px-4 py-4 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+        <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3 sm:gap-4">
             {/* Title */}
             <div className="text-center mb-2">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t.title}</h1>
-              <p className="text-sm text-gray-600">{t.instruction}</p>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">{t.title}</h1>
+              <p className="text-xs sm:text-sm text-gray-600 px-2">{t.instruction}</p>
             </div>
 
             {/* Form Fields */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
               {/* Full Name */}
               <div>
-                <label htmlFor="fullName" className="block text-sm text-gray-700 mb-1.5 font-medium">
+                <label htmlFor="fullName" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
                   {t.fullName}
                 </label>
                 <input
@@ -339,7 +379,7 @@ export default function UserPanelPage() {
                   type="text"
                   value={formData.fullName}
                   onChange={handleTextInput}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-base"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base"
                   placeholder={t.fullNamePlaceholder}
                   required
                 />
@@ -347,7 +387,7 @@ export default function UserPanelPage() {
 
               {/* Company Name */}
               <div>
-                <label htmlFor="companyName" className="block text-sm text-gray-700 mb-1.5 font-medium">
+                <label htmlFor="companyName" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
                   {t.companyName}
                 </label>
                 <input
@@ -356,7 +396,7 @@ export default function UserPanelPage() {
                   type="text"
                   value={formData.companyName}
                   onChange={handleTextInput}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-base"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base"
                   placeholder={t.companyNamePlaceholder}
                   required
                 />
@@ -364,7 +404,7 @@ export default function UserPanelPage() {
 
               {/* Contact Info */}
               <div>
-                <label htmlFor="contact" className="block text-sm text-gray-700 mb-1.5 font-medium">
+                <label htmlFor="contact" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
                   {t.contactInfo}
                 </label>
                 <input
@@ -373,41 +413,51 @@ export default function UserPanelPage() {
                   type="text"
                   value={formData.contact}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-base"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base"
                   placeholder={t.contactPlaceholder}
                 />
               </div>
 
               {/* Problem Categories */}
               <div>
-                <label className="block text-sm text-gray-700 mb-1.5 font-medium">
+                <label className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
                   {t.problemCategory}
                 </label>
                 <div className="flex flex-col gap-2">
-                  {[0, 1, 2].map((index) => (
-                    <select
-                      key={index}
-                      value={formData.categories[index]}
-                      onChange={(e) => handleCategoryChange(index, e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-base appearance-none bg-white"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                        backgroundPosition: 'right 0.5rem center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundSize: '1.5em 1.5em',
-                        paddingRight: '2.5rem',
-                      }}
-                    >
-                      <option value="">
-                        {tagsLoading && problemTags.length === 0 ? 'Loading...' : t.selectCategory}
-                      </option>
-                      {problemTags.map((tag) => (
-                        <option key={`${tag}-${index}`} value={tag}>
-                          {tag}
-                        </option>
-                      ))}
-                    </select>
-                  ))}
+                  {[0, 1].map((index) => {
+                    const selectedCategory = formData.categories[index];
+                    const selectedTag = problemTags.find((tag) => tag.name === selectedCategory);
+                    return (
+                      <div key={index} className="flex flex-col gap-1.5">
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => handleCategoryChange(index, e.target.value)}
+                          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base appearance-none bg-white"
+                          style={{
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 0.5rem center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '1.5em 1.5em',
+                            paddingRight: '2.5rem',
+                          }}
+                        >
+                          <option value="">
+                            {tagsLoading && problemTags.length === 0 ? 'Loading...' : t.selectCategory}
+                          </option>
+                          {problemTags.map((tag) => (
+                            <option key={`${tag.name}-${index}`} value={tag.name}>
+                              {getTagLabelByLanguage(tag.name, selectedLanguage.code)}
+                            </option>
+                          ))}
+                        </select>
+                        {selectedTag && selectedTag.description && (
+                          <p className="text-xs sm:text-sm text-gray-600 px-3 sm:px-4 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                            {selectedTag.description}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -419,14 +469,14 @@ export default function UserPanelPage() {
                     checked={pdpaAgreed}
                     disabled={!hasAcceptedPDPA}
                     onChange={(e) => setPdpaAgreed(e.target.checked)}
-                    className={`mt-1 w-4 h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 ${
+                    className={`mt-1 w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 ${
                       hasAcceptedPDPA ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => router.push('/pdpa')}
-                    className="text-sm text-gray-700 hover:text-gray-900 hover:underline text-left"
+                    className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 hover:underline text-left"
                   >
                     {t.pdpa}
                   </button>
@@ -438,13 +488,13 @@ export default function UserPanelPage() {
               <button
                 type="submit"
                 disabled={isSubmitting || !pdpaAgreed}
-                className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold text-base mt-4 hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base mt-3 sm:mt-4 hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? '...' : t.register}
               </button>
               {submitMessage && (
                 <p
-                  className={`text-sm mt-2 ${
+                  className={`text-xs sm:text-sm mt-2 ${
                     submitMessage === t.submitSuccess ? 'text-green-600' : 'text-red-600'
                   }`}
                 >
