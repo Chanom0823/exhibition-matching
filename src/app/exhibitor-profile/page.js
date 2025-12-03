@@ -164,7 +164,7 @@ export default function ExhibitorProfilePage() {
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [categories, setCategories] = useState(['', '']);
+  const [categories, setCategories] = useState(['', '', '']);
   const [problemTags, setProblemTags] = useState([]);
   const [formData, setFormData] = useState({
     companyName: '',
@@ -301,7 +301,7 @@ export default function ExhibitorProfilePage() {
             logoPreview: null,
             logoUrl: '',
           });
-          setCategories(['', '']);
+          setCategories(['', '', '']);
           setIsProfileSaved(false);
           setIsEditMode(true); // Start in edit mode for new accounts
         }
@@ -320,7 +320,7 @@ export default function ExhibitorProfilePage() {
           logoPreview: null,
           logoUrl: '',
         });
-        setCategories(['', '']);
+        setCategories(['', '', '']);
         setIsProfileSaved(false);
         setIsEditMode(true);
       }
@@ -604,7 +604,7 @@ export default function ExhibitorProfilePage() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1.5 justify-center w-full">
-                  {categories.filter((cat) => cat).slice(0, 2).map((category, index) => (
+                  {categories.filter((cat) => cat).slice(0, 3).map((category, index) => (
                     <span
                       key={index}
                       className="px-4 py-1 text-[11px] bg-gray-100 text-gray-700 rounded-full border border-gray-200 flex items-center justify-center"
@@ -759,7 +759,7 @@ export default function ExhibitorProfilePage() {
                 <section>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.tagsTitle}</h2>
                   <div className="flex flex-col gap-2">
-                    {[0, 1].map((index) => {
+                    {[0, 1, 2].map((index) => {
                       const currentValue = categories[index] || '';
                       const availableTags = getTagOptions(currentValue);
                       return (

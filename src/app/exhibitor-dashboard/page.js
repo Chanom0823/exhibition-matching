@@ -1,14 +1,11 @@
 'use client';
 
-// PDPA Content Modal
-
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc, where, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
-import {signOut } from 'firebase/auth';
+import { db } from '@/lib/firebase';
 
 const promptFont = localFont({
   src: [
@@ -25,7 +22,7 @@ const sawarabiFont = localFont({
 const translations = {
   TH: {
     dashboard: 'Dashboard',
-    tabs: ['Dashboard', 'Profile'],
+    tabs: ['DashBoard', 'Profile'],
     searchPlaceholder: 'Search...',
     totalInterests: 'ผู้เข้าร่วมงานทั้งหมด',
     totalInterestsValue: '3,256',
@@ -288,7 +285,7 @@ export default function ExhibitorDashboardPage() {
     setIsLanguageOpen(false);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('username');
@@ -296,8 +293,7 @@ export default function ExhibitorDashboardPage() {
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userRole');
     }
-    await signOut(auth);
-    router.replace('/login')
+    router.push('/login');
   };
 
   // Load PDPA content from Firebase or use default

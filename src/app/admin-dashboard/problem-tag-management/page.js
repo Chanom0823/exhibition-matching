@@ -16,7 +16,6 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import translations from '@/app/components/translations';
 
 const promptFont = localFont({
   src: [
@@ -29,6 +28,65 @@ const promptFont = localFont({
 const sawarabiFont = localFont({
   src: [{ path: '../../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
+
+const translations = {
+  TH: {
+    dashboard: 'Dashboard',
+    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management'],
+    searchPlaceholder: 'Search...',
+    logout: 'ออกจากระบบ',
+    export: 'Export',
+    pageTitle: 'Problem Tag Management',
+    description: 'จัดการแท็กของปัญหาเพื่อช่วยให้ระบบจับคู่ได้แม่นยำยิ่งขึ้น',
+    createTagTitle: 'เพิ่มแท็กใหม่',
+    tagNameLabel: 'ชื่อแท็ก',
+    tagNamePlaceholder: 'เช่น Smart Farming, FinTech',
+    tagDescriptionLabel: 'คำอธิบายเพิ่มเติม',
+    tagDescriptionPlaceholder: 'กรอกคำอธิบายเกี่ยวกับแท็กนี้ (ไม่บังคับ)',
+    tagNameRequired: 'กรุณากรอกชื่อแท็ก',
+    tagAddError: 'ไม่สามารถเพิ่มแท็กได้ กรุณาลองใหม่',
+    saveButton: 'เพิ่มแท็ก',
+    tagListTitle: 'รายการแท็กทั้งหมด',
+    emptyState: 'ยังไม่มีแท็ก กรุณาเพิ่มแท็กใหม่',
+    loading: 'กำลังโหลด...',
+    tagNameRequired: 'กรุณากรอกชื่อแท็ก',
+    tagAddError: 'ไม่สามารถเพิ่มแท็กได้ กรุณาลองใหม่',
+    tagDuplicate: 'แท็กนี้มีอยู่แล้ว',
+    editButton: 'แก้ไข',
+    updateButton: 'บันทึก',
+    cancelButton: 'ยกเลิก',
+    tagUpdateSuccess: 'บันทึกการแก้ไขแท็กสำเร็จ',
+    tagUpdateError: 'ไม่สามารถบันทึกการแก้ไขแท็กได้ กรุณาลองใหม่',
+  },
+  JP: {
+    dashboard: 'ダッシュボード',
+    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理'],
+    searchPlaceholder: '検索...',
+    logout: 'ログアウト',
+    export: 'Export',
+    pageTitle: '問題タグ管理',
+    description: 'マッチングの精度を高めるためにタグを管理します。',
+    createTagTitle: '新しいタグを追加',
+    tagNameLabel: 'タグ名',
+    tagNamePlaceholder: '例）スマート農業、フィンテック',
+    tagDescriptionLabel: '追加説明',
+    tagDescriptionPlaceholder: 'このタグに関する説明を入力（任意）',
+    tagNameRequired: 'タグ名を入力してください',
+    tagAddError: 'タグを追加できません。もう一度お試しください。',
+    saveButton: 'タグを追加',
+    tagListTitle: 'タグ一覧',
+    emptyState: 'タグがまだありません。新しいタグを追加してください。',
+    loading: '読み込み中...',
+    tagNameRequired: 'タグ名を入力してください',
+    tagAddError: 'タグを追加できません。もう一度お試しください。',
+    tagDuplicate: 'このタグは既に存在します',
+    editButton: '編集',
+    updateButton: '保存',
+    cancelButton: 'キャンセル',
+    tagUpdateSuccess: 'タグの変更を保存しました',
+    tagUpdateError: 'タグの変更を保存できませんでした。もう一度お試しください。',
+  },
+};
 
 export default function ProblemTagManagementPage() {
   const router = useRouter();
@@ -146,14 +204,14 @@ export default function ProblemTagManagementPage() {
   const handleAddTag = async () => {
     const trimmed = newTagName.trim();
     if (!trimmed) {
-      setTagMessage({ type: 'error', text: t.tagNameRequiredProblemTagManagement });
+      setTagMessage({ type: 'error', text: t.tagNameRequired });
       return;
     }
     const duplicate = tags.some(
       (tag) => tag.name.toLowerCase() === trimmed.toLowerCase()
     );
     if (duplicate) {
-      setTagMessage({ type: 'error', text: t.tagDuplicateProblemTagManagement });
+      setTagMessage({ type: 'error', text: t.tagDuplicate });
       return;
     }
 
@@ -167,11 +225,11 @@ export default function ProblemTagManagementPage() {
       });
       setNewTagName('');
       setNewTagDescription('');
-      setTagMessage({ type: 'success', text: t.saveButtonProblemTagManagement });
+      setTagMessage({ type: 'success', text: t.saveButton });
       setTimeout(() => setTagMessage({ type: '', text: '' }), 2000);
     } catch (error) {
       console.error('Error adding tag:', error);
-      setTagMessage({ type: 'error', text: t.tagAddErrorProblemTagManagement });
+      setTagMessage({ type: 'error', text: t.tagAddError });
     } finally {
       setAddingTag(false);
     }
@@ -195,7 +253,7 @@ export default function ProblemTagManagementPage() {
     if (!editingTagId) return;
     const trimmed = editingName.trim();
     if (!trimmed) {
-      setTagMessage({ type: 'error', text: t.tagNameRequiredProblemTagManagement });
+      setTagMessage({ type: 'error', text: t.tagNameRequired });
       return;
     }
 
@@ -204,7 +262,7 @@ export default function ProblemTagManagementPage() {
         tag.id !== editingTagId && tag.name.toLowerCase() === trimmed.toLowerCase()
     );
     if (duplicate) {
-      setTagMessage({ type: 'error', text: t.tagDuplicateProblemTagManagement });
+      setTagMessage({ type: 'error', text: t.tagDuplicate });
       return;
     }
 
@@ -214,14 +272,14 @@ export default function ProblemTagManagementPage() {
         name: trimmed,
         description: editingDescription.trim() || '',
       });
-      setTagMessage({ type: 'success', text: t.tagUpdateSuccessProblemTagManagement });
+      setTagMessage({ type: 'success', text: t.tagUpdateSuccess });
       setEditingTagId(null);
       setEditingName('');
       setEditingDescription('');
       setTimeout(() => setTagMessage({ type: '', text: '' }), 2000);
     } catch (error) {
       console.error('Error updating tag:', error);
-      setTagMessage({ type: 'error', text: t.tagUpdateErrorProblemTagManagement});
+      setTagMessage({ type: 'error', text: t.tagUpdateError });
     }
   };
 
@@ -299,7 +357,7 @@ export default function ProblemTagManagementPage() {
 
         <div className="flex-1 flex flex-col">
           <header className="px-4 md:px-10 py-4 flex items-center justify-between">
-            <h1 className="text-4xl font-bold text-gray-900 whitespace-nowrap">{t.pageTitleProblemTagManagement}</h1>
+            <h1 className="text-4xl font-bold text-gray-900 whitespace-nowrap">{t.pageTitle}</h1>
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -377,7 +435,7 @@ export default function ProblemTagManagementPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 order-2 md:order-2 min-h-[340px] flex flex-col md:sticky md:top-4 md:self-start">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">{t.createTagTitle}</h2>
-                <p className="text-sm text-gray-500 mb-5">{t.descriptionProblemTagManagement }</p>
+                <p className="text-sm text-gray-500 mb-5">{t.description}</p>
                 <div className="space-y-4 flex-1">
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="tag-name">
@@ -424,14 +482,14 @@ export default function ProblemTagManagementPage() {
                     addingTag ? 'opacity-60 cursor-not-allowed' : ''
                   }`}
                 >
-                  {addingTag ? '...' : t.saveButtonProblemTagManagement}
+                  {addingTag ? '...' : t.saveButton}
                 </button>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 order-1 md:order-1">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.tagListTitle}</h2>
                 {tagsLoading ? (
-                  <p className="text-sm text-gray-500">{t.loadingProblemTagManagement}</p>
+                  <p className="text-sm text-gray-500">{t.loading}</p>
                 ) : tags.length === 0 ? (
                   <p className="text-sm text-gray-500">{t.emptyState}</p>
                 ) : (
@@ -510,14 +568,14 @@ export default function ProblemTagManagementPage() {
                                   onClick={handleUpdateTag}
                                   className="px-3 py-1 rounded-full bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800 transition"
                                 >
-                                  {t.updateButtonProblemTagManagement}
+                                  {t.updateButton}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={cancelEditTag}
                                   className="px-3 py-1 rounded-full border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50 transition"
                                 >
-                                  {t.cancelButtonProblemTagManagement}
+                                  {t.cancelButton}
                                 </button>
                               </>
                             ) : (
@@ -527,14 +585,14 @@ export default function ProblemTagManagementPage() {
                                   onClick={() => startEditTag(tag)}
                                   className="text-xs font-medium text-gray-700 hover:text-gray-900"
                                 >
-                                  {t.editButtonProblemTagManagement}
+                                  {t.editButton}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteTag(tag.id)}
                                   className="text-xs font-medium text-red-500 hover:text-red-600"
                                 >
-                                  {t.deleteButtonProblemTagManagement}
+                                  Delete
                                 </button>
                               </>
                             )}

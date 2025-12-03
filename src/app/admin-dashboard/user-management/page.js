@@ -9,7 +9,6 @@ import { db, storage } from '@/lib/firebase';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import jsPDF from 'jspdf';
 import ExportButtons from '@/app/components/ExportButtons';
-import translations from '@/app/components/translations';
 
 const promptFont = localFont({
   src: [
@@ -22,6 +21,131 @@ const promptFont = localFont({
 const sawarabiFont = localFont({
   src: [{ path: '../../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
+
+const translations = {
+  TH: {
+    dashboard: 'Dashboard',
+    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management'],
+    searchPlaceholder: 'Search...',
+    userManagement: 'User Management',
+    totalParticipants: 'จำนวนผู้เข้างานทั้งหมด',
+    totalVisitors: 'จำนวนผู้เข้าชม',
+    totalExhibitors: 'จำนวน exhibitors',
+    logout: 'ออกจากระบบ',
+    export: 'Export',
+    tableNo: 'ลำดับ',
+    tableUsername: 'ชื่อผู้ใช้งาน',
+    tableRole: 'สิทธิ์การใช้งาน',
+    tableCreatedAt: 'เวลาที่กรอกข้อมูล',
+    tableActions: 'จัดการข้อมูล',
+    filterAllUsers: 'ทั้งหมด',
+    filterVisitors: 'Visitors',
+    filterExhibitors: 'Exhibitors',
+    loading: 'กำลังโหลด...',
+    noUsers: 'ไม่พบข้อมูลผู้ใช้',
+    deleteTitle: 'ลบผู้ใช้งาน?',
+    deleteMessage: 'คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานคนนี้? เมื่อยืนยันแล้วข้อมูลที่เกี่ยวข้องทั้งหมดจะถูกลบถาวร',
+    deleteConfirm: 'ใช่, ลบผู้ใช้งาน',
+    deleteCancel: 'ยกเลิก',
+    editProfileTitle: 'แก้ไขข้อมูลโปรไฟล์',
+    editProfileDescription: 'ปรับปรุงข้อมูลบริษัทและหมวดหมู่ความเชี่ยวชาญ',
+    editLoading: 'กำลังโหลดข้อมูล...',
+    editSave: 'บันทึกการเปลี่ยนแปลง',
+    editCancel: 'ยกเลิก',
+    companyName: 'ชื่อบริษัท',
+    taxId: 'เลขประจำตัวผู้เสียภาษี',
+    branchId: 'รหัสสาขา',
+    companyPhone: 'เบอร์โทรบริษัท',
+    companyEmail: 'อีเมลบริษัท',
+    companyWebsite: 'เว็บไซต์บริษัท',
+    companyLogo: 'โลโก้บริษัท',
+    companyDescription: 'รายละเอียดเพิ่มเติม',
+    tagsTitle: 'หมวดหมู่ความเชี่ยวชาญ',
+    selectCategory: 'เลือกหมวดหมู่ปัญหา',
+    uploadLogo: 'อัปโหลดโลโก้',
+    logoRequirements: 'รองรับไฟล์ภาพสูงสุด 5MB',
+    validationCompany: 'กรุณากรอกชื่อบริษัท',
+    validationCategory: 'กรุณาเลือกหมวดหมู่ความเชี่ยวชาญอย่างน้อย 1 หมวด',
+    editSuccess: 'บันทึกข้อมูลโปรไฟล์สำเร็จ',
+    logoSizeError: 'ไฟล์รูปภาพต้องมีขนาดไม่เกิน 5MB',
+    logoTypeError: 'กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น',
+    visitorFullName: 'ชื่อ-นามสกุล',
+    visitorCompanyName: 'ชื่อองค์กร/บริษัท',
+    visitorContact: 'ข้อมูลติดต่อ (อีเมลหรือเบอร์โทร)',
+    visitorCategoriesLabel: 'หมวดหมู่ปัญหาที่สนใจ',
+    visitorValidationFullName: 'กรุณากรอกชื่อ-นามสกุล',
+    visitorValidationCompany: 'กรุณากรอกชื่อองค์กรหรือบริษัท',
+    visitorValidationCategory: 'กรุณาเลือกปัญหาที่สนใจอย่างน้อย 1 หมวด',
+    visitorSaveSuccess: 'บันทึกข้อมูลผู้เข้าชมสำเร็จ',
+    visitorSaveError: 'ไม่สามารถบันทึกข้อมูลผู้เข้าชมได้',
+    previewTitle: 'รายละเอียดการลงทะเบียน',
+    previewExhibitorSection: 'ข้อมูล Exhibitor',
+    previewVisitorSection: 'ข้อมูลผู้เข้าชม',
+    previewContact: 'ช่องทางติดต่อ',
+    previewNoData: 'ไม่พบข้อมูลการลงทะเบียน',
+  },
+  JP: {
+    dashboard: 'ダッシュボード',
+    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理'],
+    searchPlaceholder: '検索...',
+    userManagement: 'ユーザー管理',
+    totalParticipants: '総参加者数',
+    totalVisitors: '総訪問者数',
+    totalExhibitors: '出展者数',
+    logout: 'ログアウト',
+    export: 'Export',
+    tableNo: '番号',
+    tableUsername: 'ユーザー名',
+    tableRole: '役割',
+    tableCreatedAt: '作成日時',
+    tableActions: '管理',
+    filterAllUsers: 'すべて',
+    filterVisitors: '訪問者',
+    filterExhibitors: '出展者',
+    loading: '読み込み中...',
+    noUsers: 'ユーザーが見つかりません',
+    deleteTitle: 'ユーザーを削除しますか？',
+    deleteMessage: 'このユーザーを削除してもよろしいですか？削除すると、関連するすべてのデータが永久に失われます。',
+    deleteConfirm: '削除する',
+    deleteCancel: 'キャンセル',
+    editProfileTitle: 'プロフィール情報を編集',
+    editProfileDescription: '会社情報と専門カテゴリを更新します',
+    editLoading: 'プロフィールを読み込み中...',
+    editSave: '変更を保存',
+    editCancel: 'キャンセル',
+    companyName: '会社名',
+    taxId: '税番号',
+    branchId: '支店ID',
+    companyPhone: '会社電話',
+    companyEmail: '会社メール',
+    companyWebsite: '会社ウェブサイト',
+    companyLogo: '会社ロゴ',
+    companyDescription: '詳細情報',
+    tagsTitle: '専門カテゴリ',
+    selectCategory: '問題カテゴリを選択',
+    uploadLogo: 'ロゴをアップロード',
+    logoRequirements: '最大5MBの画像ファイルに対応',
+    validationCompany: '会社名を入力してください',
+    validationCategory: '少なくとも1つの専門カテゴリを選択してください',
+    editSuccess: 'プロフィール情報を更新しました',
+    logoSizeError: '画像ファイルは5MB以下にしてください',
+    logoTypeError: '画像ファイルをアップロードしてください',
+    visitorFullName: '氏名',
+    visitorCompanyName: '所属 / 会社名',
+    visitorContact: '連絡先（メールまたは電話）',
+    visitorCategoriesLabel: '興味のある課題カテゴリ',
+    visitorValidationFullName: '氏名を入力してください',
+    visitorValidationCompany: '所属または会社名を入力してください',
+    visitorValidationCategory: '少なくとも1つの課題カテゴリを選択してください',
+    visitorSaveSuccess: '訪問者情報を更新しました',
+    visitorSaveError: '訪問者情報を更新できませんでした',
+    previewTitle: '登録情報の詳細',
+    previewExhibitorSection: '出展者情報',
+    previewVisitorSection: '訪問者情報',
+    previewContact: '連絡先',
+    previewNoData: '登録情報が見つかりません',
+  },
+};
 
 const getInitialProfileForm = () => ({
   companyName: '',
@@ -40,7 +164,7 @@ const getInitialVisitorForm = () => ({
   fullName: '',
   companyName: '',
   contact: '',
-  categories: ['', ''],
+  categories: ['', '', ''],
 });
 
 export default function UserManagementPage() {
@@ -75,7 +199,7 @@ export default function UserManagementPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [editFormData, setEditFormData] = useState(getInitialProfileForm());
-  const [editCategories, setEditCategories] = useState(['', '']);
+  const [editCategories, setEditCategories] = useState(['', '', '']);
   const [visitorFormData, setVisitorFormData] = useState(getInitialVisitorForm());
   const [editLoading, setEditLoading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
@@ -656,6 +780,7 @@ export default function UserManagementPage() {
               categories: [
                 submissionData.categories?.[0] || '',
                 submissionData.categories?.[1] || '',
+                submissionData.categories?.[2] || '',
               ],
             });
           } else {
@@ -663,7 +788,7 @@ export default function UserManagementPage() {
               fullName: user.fullName || user.username || '',
               companyName: '',
               contact: user.email || '',
-              categories: ['', ''],
+              categories: ['', '', ''],
             });
           }
         } else {
@@ -671,7 +796,7 @@ export default function UserManagementPage() {
             fullName: user.fullName || user.username || '',
             companyName: '',
             contact: user.email || '',
-            categories: ['', ''],
+            categories: ['', '', ''],
           });
         }
         setEditLoading(false);
@@ -696,10 +821,10 @@ export default function UserManagementPage() {
         });
         if (data.categories && Array.isArray(data.categories)) {
           const filledCategories = [...data.categories];
-          while (filledCategories.length < 2) {
+          while (filledCategories.length < 3) {
             filledCategories.push('');
           }
-          setEditCategories(filledCategories.slice(0, 2));
+          setEditCategories(filledCategories.slice(0, 3));
         }
       } else {
         setEditFormData((prev) => ({
@@ -1185,7 +1310,7 @@ export default function UserManagementPage() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {selectedLanguage.code === 'TH' ? t.filterAllUsers : t.filterAllUsersJP}
+                  {t.filterAllUsers}
                 </button>
                 <button
                   type="button"
@@ -1196,7 +1321,7 @@ export default function UserManagementPage() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {selectedLanguage.code === 'TH' ? t.filterVisitors : t.filterVisitorsJP}
+                  {t.filterVisitors}
                 </button>
                 <button
                   type="button"
@@ -1207,36 +1332,36 @@ export default function UserManagementPage() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {selectedLanguage.code === 'TH' ? t.filterExhibitors : t.filterExhibitorsJP}
+                  {t.filterExhibitors}
                 </button>
               </div>
               <div className="overflow-x-auto">
                 {usersData.loading ? (
                   <div className="text-center py-8 text-gray-500">
-                    {selectedLanguage.code === 'TH' ? t.loading : t.loadingJP}
+                    {t.loading}
                   </div>
                 ) : filteredUsers.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    {selectedLanguage.code === 'TH' ? t.noUsers : t.noUsersJP}
+                    {t.noUsers}
                   </div>
                 ) : (
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          {selectedLanguage.code === 'TH' ? t.tableNo : t.tableNoJP}
+                          {t.tableNo}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-2/5 min-w-[220px]">
-                          {selectedLanguage.code === 'TH' ? t.tableUsername : t.tableUsernameJP}
+                          {t.tableUsername}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          {selectedLanguage.code === 'TH' ? t.tableRole : t.tableRoleJP}
+                          {t.tableRole}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-28 min-w-[100px]">
-                          {selectedLanguage.code === 'TH' ? t.tableCreatedAt : t.tableCreatedAtJP}
+                          {t.tableCreatedAt}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          {selectedLanguage.code === 'TH' ? t.tableActions : t.tableActionsJP}
+                          {t.tableActions}
                         </th>
                       </tr>
                     </thead>
@@ -1343,27 +1468,27 @@ export default function UserManagementPage() {
                             <tr className="border-b border-gray-100">
                               <td colSpan={5} className="bg-gray-50 px-4 py-4">
                                 {previewLoading ? (
-                                  <div className="text-sm text-gray-500">{selectedLanguage.code === 'TH' ? t.loading : t.loadingJP}</div>
+                                  <div className="text-sm text-gray-500">{t.loading}</div>
                                 ) : !previewData ? (
                                   <div className="text-sm text-gray-500">{t.previewNoData}</div>
                                 ) : previewData.type === 'visitor' ? (
                                   <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">{selectedLanguage.code === 'TH' ? t.previewVisitorSection : t.previewVisitorSectionJP  }</h4>
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">{t.previewVisitorSection}</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
                                       <div>
-                                        <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorFullName : t.visitorFullNameJP}</p>
+                                        <p className="text-gray-500">{t.visitorFullName}</p>
                                         <p className="font-medium">{previewData.payload?.fullName || '-'}</p>
                                       </div>
                                       <div>
-                                        <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorCompanyName : t.visitorCompanyNameJP}</p>
+                                        <p className="text-gray-500">{t.visitorCompanyName}</p>
                                         <p className="font-medium">{previewData.payload?.companyName || '-'}</p>
                                       </div>
                                       <div>
-                                        <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.previewContact : t.previewContactJP}</p>
+                                        <p className="text-gray-500">{t.previewContact}</p>
                                         <p className="font-medium">{previewData.payload?.contact || '-'}</p>
                                       </div>
                                       <div>
-                                        <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorCategoriesLabel : t.visitorCategoriesLabelJP}</p>
+                                        <p className="text-gray-500">{t.visitorCategoriesLabel}</p>
                                         <div className="flex flex-wrap gap-1 mt-1">
                                           {(previewData.payload?.categories || []).length > 0 ? (
                                             previewData.payload.categories.map((category, idx) => (
@@ -1383,33 +1508,33 @@ export default function UserManagementPage() {
                                   </div>
                                 ) : (
                                   <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">{selectedLanguage.code === 'TH' ? t.previewExhibitorSection : t.previewExhibitorSectionJP}</h4>
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">{t.previewExhibitorSection}</h4>
                                     {previewData.payload ? (
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
                                         <div>
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyName : t.companyNameJP}</p>
+                                          <p className="text-gray-500">{t.companyName}</p>
                                           <p className="font-medium">{previewData.payload.companyName || '-'}</p>
                                         </div>
                                         <div>
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyEmail : t.companyEmailJP}</p>
+                                          <p className="text-gray-500">{t.companyEmail}</p>
                                           <p className="font-medium">{previewData.payload.companyEmail || '-'}</p>
                                         </div>
                                         <div>
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyPhone : t.companyPhoneJP}</p>
+                                          <p className="text-gray-500">{t.companyPhone}</p>
                                           <p className="font-medium">{previewData.payload.companyPhone || '-'}</p>
                                         </div>
                                         <div>
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyWebsite : t.companyWebsiteJP}</p>
+                                          <p className="text-gray-500">{t.companyWebsite}</p>
                                           <p className="font-medium">{previewData.payload.website || '-'}</p>
                                         </div>
                                         <div className="md:col-span-2">
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyDescription : t.companyDescriptionJP}</p>
+                                          <p className="text-gray-500">{t.companyDescription}</p>
                                           <p className="font-medium mt-1 text-gray-700">
                                             {previewData.payload.companyDescription || '-'}
                                           </p>
                                         </div>
                                         <div className="md:col-span-2">
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.tagsTitle : t.tagsTitleJP}</p>
+                                          <p className="text-gray-500">{t.tagsTitle}</p>
                                           <div className="flex flex-wrap gap-1 mt-1">
                                             {(previewData.payload.categories || []).length > 0 ? (
                                               previewData.payload.categories.map((category, idx) => (
@@ -1427,7 +1552,7 @@ export default function UserManagementPage() {
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="text-sm text-gray-500">{selectedLanguage.code === 'TH' ? t.previewNoData : t.previewNoDataJP}</div>
+                                      <div className="text-sm text-gray-500">{t.previewNoData}</div>
                                     )}
                                   </div>
                                 )}
@@ -1515,7 +1640,7 @@ export default function UserManagementPage() {
                         {t.visitorCategoriesLabel}
                       </label>
                       <div className="space-y-2">
-                        {[0, 1].map((index) => {
+                        {[0, 1, 2].map((index) => {
                           const currentValue = visitorFormData.categories[index] || '';
                           const availableTags = getTagOptions(currentValue);
                           return (
@@ -1679,7 +1804,7 @@ export default function UserManagementPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-2">{t.tagsTitle}</label>
                       <div className="space-y-2">
-                        {[0, 1].map((index) => {
+                        {[0, 1, 2].map((index) => {
                           const currentValue = editCategories[index] || '';
                           const availableTags = getTagOptions(currentValue);
                           return (
