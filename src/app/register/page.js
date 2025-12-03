@@ -7,6 +7,7 @@ import localFont from 'next/font/local';
 import { auth, db } from '@/lib/firebase';
 import { collection, doc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import AuthNavbar from '../components/AuthNavbar';
 
 const promptFont = localFont({
   src: [
@@ -339,71 +340,11 @@ export default function RegisterPage() {
     <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none">
         {/* Navbar */}
-        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px]">
-          <button
-            type="button"
-            className="flex items-center"
-            onClick={() => router.push('/')}
-            aria-label="กลับไปหน้าแรก"
-          >
-            <Image
-              src="/logo.svg"
-              alt="alt design office"
-              width={80}
-              height={39}
-              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
-              priority
-            />
-          </button>
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="relative" ref={languageDropdownRef}>
-              <button
-                type="button"
-                className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
-                onClick={() => setIsLanguageOpen((prev) => !prev)}
-                aria-haspopup="listbox"
-                aria-expanded={isLanguageOpen}
-              >
-                {selectedLanguage.code}{' '}
-                <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
-                  <path
-                    d="M1 1l5 5 5-5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {isLanguageOpen && (
-                <ul
-                  className="absolute right-0 mt-2 w-32 md:w-36 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
-                  role="listbox"
-                  aria-label="เลือกภาษา"
-                >
-                  {languageOptions.map((option) => (
-                    <li key={option.code}>
-                      <button
-                        type="button"
-                        className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
-                          selectedLanguage.code === option.code
-                            ? 'bg-gray-100 text-gray-900'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                        onClick={() => handleLanguageSelect(option)}
-                        role="option"
-                        aria-selected={selectedLanguage.code === option.code}
-                      >
-                        <span>{option.label}</span>
-                        <span className="font-semibold">{option.code}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
+        <AuthNavbar
+          languageOptions={languageOptions}
+          selectedLanguage={selectedLanguage}
+          onLanguageSelect={handleLanguageSelect}
+        />
 
         <div className="px-3 sm:px-4 md:px-6 py-[10px]">
           <button

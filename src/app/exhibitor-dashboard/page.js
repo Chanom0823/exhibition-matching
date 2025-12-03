@@ -24,7 +24,7 @@ const sawarabiFont = localFont({
 const translations = {
   TH: {
     dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'Profile'],
+    tabs: ['Dashboard', 'Profile'],
     searchPlaceholder: 'Search...',
     totalInterests: 'ผู้เข้าร่วมงานทั้งหมด',
     totalInterestsValue: '3,256',
