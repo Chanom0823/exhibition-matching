@@ -5,7 +5,8 @@ import Image from 'next/image';
 import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import {signOut } from 'firebase/auth';
 import jsPDF from 'jspdf';
 import ExportButtons from '@/app/components/ExportButtons';
 import translations from '@/app/components/translations';
@@ -189,7 +190,7 @@ export default function AdminDashboardPage() {
     setIsLanguageOpen(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('username');
@@ -197,7 +198,8 @@ export default function AdminDashboardPage() {
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userRole');
     }
-    router.push('/login');
+    await signOut(auth);
+    router.replace('/login')
   };
 
   const toggleRow = (rowId) => {

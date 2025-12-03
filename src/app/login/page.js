@@ -110,95 +110,6 @@ export default function LoginPage() {
     setIsLanguageOpen(false);
   };
 
-  /*const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorKey(null);
-    setIsLoading(true);
-
-    // กรณีเจ้าของระบบ (owner) ใช้ credential พิเศษ
-    if (username === 'owner1' && password === '12345') {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('username', username);
-      localStorage.setItem('userRole', 'owner');
-      localStorage.setItem('userId', 'owner');
-      localStorage.setItem('userEmail', 'owner@example.com');
-      router.push('/owner-dashboard');
-      setIsLoading(false);
-      return;
-    }
-
-    // กรณี admin / organizer
-    if (username === 'admin' && password === '12345') {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('username', username);
-      localStorage.setItem('userRole', 'organizer');
-      localStorage.setItem('userId', 'admin');
-      localStorage.setItem('userEmail', 'admin@example.com');
-      router.push('/organizer-dashboard');
-      setIsLoading(false);
-      return;
-    }
-
-    // กรณี admin dashboard
-    if (username === 'admin1234' && password === '123456@') {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('username', username);
-      localStorage.setItem('userRole', 'admin');
-      localStorage.setItem('userId', 'admin1234');
-      localStorage.setItem('userEmail', 'admin1234@example.com');
-      router.push('/admin-dashboard');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      let identifier = username.trim();
-      let exhibitorProfile = null;
-
-      if (!identifier.includes('@')) {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('usernameLower', '==', identifier.toLowerCase()));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          setErrorKey('invalidCredentials');
-          setIsLoading(false);
-          return;
-        }
-
-        exhibitorProfile = querySnapshot.docs[0].data();
-        identifier = exhibitorProfile.email;
-      }
-
-      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
-
-      if (!exhibitorProfile) {
-        const profileSnap = await getDoc(doc(db, 'users', userCredential.user.uid));
-        if (profileSnap.exists()) {
-          exhibitorProfile = profileSnap.data();
-        }
-      }
-
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('username', exhibitorProfile?.username || identifier);
-      localStorage.setItem('userId', userCredential.user.uid);
-      localStorage.setItem('userEmail', exhibitorProfile?.email || identifier);
-      localStorage.setItem('userRole', exhibitorProfile?.role || 'user');
-      
-      setIsLoading(false);
-      // Redirect ไปหน้า exhibitor dashboard
-      router.push('/exhibitor-dashboard');
-    } catch (error) {
-      console.error('Error logging in:', error);
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
-        setErrorKey('invalidCredentials');
-      } else {
-        setErrorKey('general');
-      }
-      setIsLoading(false);
-    }
-  };*/
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorKey(null);
@@ -207,26 +118,31 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, username, password);
       const user = userCredential.user;
-     
       const docRef = doc(db, "users", user.uid); 
       const docSnap = await getDoc(docRef);
-      console.log("ขอมูล", docSnap )
       if (docSnap.exists()) {
         const userData = docSnap.data();
-        console.log("ข้อมูลจาก DB:", userData);
         if (userData.role === 'exhibitor' || userData.role === 'admin') {
           localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('username', user.displayName || user.username);
           localStorage.setItem('userRole', userData.role);
           localStorage.setItem('userId', user.uid);
           localStorage.setItem('userEmail', user.email);
-          router.push('/exhibitor-dashboard');
+          if(userData.role === 'exhibitor'){
+            router.push('/exhibitor-dashboard');
+          }else{
+            router.push('/admin-dashboard');
+          }
           setIsLoading(false);
         } else {
           alert(selectedLanguage.code === 'TH' ? "ขออภัยคุณไม่มีสิทธิ์เข้าถึง" : "申し訳ございませんが、アクセス権限がありません");
           await signOut(auth);
           setIsLoading(false);
         }
+      }else{
+        alert("ไม่พบข้อมูลผู้ใช้ในระบบฐานข้อมูล (โปรดติดต่อเจ้าหน้าที่)");
+        await signOut(auth);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error logging in:', error);
