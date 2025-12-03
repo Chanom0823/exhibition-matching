@@ -13,8 +13,10 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import translations from '@/app/components/translations';
 
 const promptFont = localFont({
   src: [
@@ -28,77 +30,10 @@ const sawarabiFont = localFont({
   src: [{ path: '../../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
 
-const translations = {
-  TH: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management', 'PDPA Management'],
-    searchPlaceholder: 'Search...',
-    logout: 'ออกจากระบบ',
-    export: 'Export',
-    pageTitle: 'Problem Tag Management',
-    description: 'จัดการแท็กของปัญหาเพื่อช่วยให้ระบบจับคู่ได้แม่นยำยิ่งขึ้น',
-    createTagTitle: 'เพิ่มแท็กใหม่',
-    tagNameLabel: 'ชื่อแท็ก',
-    tagNamePlaceholder: 'เช่น Smart Farming, FinTech',
-    tagNameRequired: 'กรุณากรอกชื่อแท็ก',
-    tagAddError: 'ไม่สามารถเพิ่มแท็กได้ กรุณาลองใหม่',
-    saveButton: 'เพิ่มแท็ก',
-    tagListTitle: 'รายการแท็กทั้งหมด',
-    emptyState: 'ยังไม่มีแท็ก กรุณาเพิ่มแท็กใหม่',
-    loading: 'กำลังโหลด...',
-    tagNameRequired: 'กรุณากรอกชื่อแท็ก',
-    tagAddError: 'ไม่สามารถเพิ่มแท็กได้ กรุณาลองใหม่',
-    tagDuplicate: 'แท็กนี้มีอยู่แล้ว',
-  },
-  EN: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management', 'PDPA Management'],
-    searchPlaceholder: 'Search...',
-    logout: 'Logout',
-    export: 'Export',
-    pageTitle: 'Problem Tag Management',
-    description: 'Manage problem tags to keep the matching experience consistent.',
-    createTagTitle: 'Create New Tag',
-    tagNameLabel: 'Tag name',
-    tagNamePlaceholder: 'e.g. Smart Farming, FinTech',
-    tagNameRequired: 'Please enter a tag name',
-    tagAddError: 'Unable to add tag, please try again',
-    saveButton: 'Add tag',
-    tagListTitle: 'All Tags',
-    emptyState: 'No tags yet, please add a new tag.',
-    loading: 'Loading...',
-    tagNameRequired: 'Please enter a tag name',
-    tagAddError: 'Unable to add tag, please try again',
-    tagDuplicate: 'This tag already exists',
-  },
-  JP: {
-    dashboard: 'ダッシュボード',
-    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理', 'PDPA管理'],
-    searchPlaceholder: '検索...',
-    logout: 'ログアウト',
-    export: 'Export',
-    pageTitle: '問題タグ管理',
-    description: 'マッチングの精度を高めるためにタグを管理します。',
-    createTagTitle: '新しいタグを追加',
-    tagNameLabel: 'タグ名',
-    tagNamePlaceholder: '例）スマート農業、フィンテック',
-    tagNameRequired: 'タグ名を入力してください',
-    tagAddError: 'タグを追加できません。もう一度お試しください。',
-    saveButton: 'タグを追加',
-    tagListTitle: 'タグ一覧',
-    emptyState: 'タグがまだありません。新しいタグを追加してください。',
-    loading: '読み込み中...',
-    tagNameRequired: 'タグ名を入力してください',
-    tagAddError: 'タグを追加できません。もう一度お試しください。',
-    tagDuplicate: 'このタグは既に存在します',
-  },
-};
-
 export default function ProblemTagManagementPage() {
   const router = useRouter();
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
 
@@ -111,8 +46,12 @@ export default function ProblemTagManagementPage() {
   const [tags, setTags] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(true);
   const [newTagName, setNewTagName] = useState('');
+  const [newTagDescription, setNewTagDescription] = useState('');
   const [addingTag, setAddingTag] = useState(false);
   const [tagMessage, setTagMessage] = useState({ type: '', text: '' });
+  const [editingTagId, setEditingTagId] = useState(null);
+  const [editingName, setEditingName] = useState('');
+  const [editingDescription, setEditingDescription] = useState('');
 
   const t = translations[selectedLanguage.code];
   const currentFontClass =
@@ -188,6 +127,7 @@ export default function ProblemTagManagementPage() {
           return {
             id: docSnap.id,
             name: data.name || '-',
+            description: data.description || '',
             createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : null,
           };
         });
@@ -206,14 +146,14 @@ export default function ProblemTagManagementPage() {
   const handleAddTag = async () => {
     const trimmed = newTagName.trim();
     if (!trimmed) {
-      setTagMessage({ type: 'error', text: t.tagNameRequired });
+      setTagMessage({ type: 'error', text: t.tagNameRequiredProblemTagManagement });
       return;
     }
     const duplicate = tags.some(
       (tag) => tag.name.toLowerCase() === trimmed.toLowerCase()
     );
     if (duplicate) {
-      setTagMessage({ type: 'error', text: t.tagDuplicate });
+      setTagMessage({ type: 'error', text: t.tagDuplicateProblemTagManagement });
       return;
     }
 
@@ -222,16 +162,66 @@ export default function ProblemTagManagementPage() {
       setTagMessage({ type: '', text: '' });
       await addDoc(collection(db, 'problemTags'), {
         name: trimmed,
+        description: newTagDescription.trim() || '',
         createdAt: serverTimestamp(),
       });
       setNewTagName('');
-      setTagMessage({ type: 'success', text: t.saveButton });
+      setNewTagDescription('');
+      setTagMessage({ type: 'success', text: t.saveButtonProblemTagManagement });
       setTimeout(() => setTagMessage({ type: '', text: '' }), 2000);
     } catch (error) {
       console.error('Error adding tag:', error);
-      setTagMessage({ type: 'error', text: t.tagAddError });
+      setTagMessage({ type: 'error', text: t.tagAddErrorProblemTagManagement });
     } finally {
       setAddingTag(false);
+    }
+  };
+
+  const startEditTag = (tag) => {
+    setEditingTagId(tag.id);
+    setEditingName(tag.name || '');
+    setEditingDescription(tag.description || '');
+    setTagMessage({ type: '', text: '' });
+  };
+
+  const cancelEditTag = () => {
+    setEditingTagId(null);
+    setEditingName('');
+    setEditingDescription('');
+    setTagMessage({ type: '', text: '' });
+  };
+
+  const handleUpdateTag = async () => {
+    if (!editingTagId) return;
+    const trimmed = editingName.trim();
+    if (!trimmed) {
+      setTagMessage({ type: 'error', text: t.tagNameRequiredProblemTagManagement });
+      return;
+    }
+
+    const duplicate = tags.some(
+      (tag) =>
+        tag.id !== editingTagId && tag.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (duplicate) {
+      setTagMessage({ type: 'error', text: t.tagDuplicateProblemTagManagement });
+      return;
+    }
+
+    try {
+      setTagMessage({ type: '', text: '' });
+      await updateDoc(doc(db, 'problemTags', editingTagId), {
+        name: trimmed,
+        description: editingDescription.trim() || '',
+      });
+      setTagMessage({ type: 'success', text: t.tagUpdateSuccessProblemTagManagement });
+      setEditingTagId(null);
+      setEditingName('');
+      setEditingDescription('');
+      setTimeout(() => setTagMessage({ type: '', text: '' }), 2000);
+    } catch (error) {
+      console.error('Error updating tag:', error);
+      setTagMessage({ type: 'error', text: t.tagUpdateErrorProblemTagManagement});
     }
   };
 
@@ -265,7 +255,7 @@ export default function ProblemTagManagementPage() {
           <nav className="flex-1 px-4 py-4">
             <div className="flex flex-col gap-2">
               {t.tabs.map((tab, idx) => {
-                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'homepageManagement', 'pdpaManagement'];
+                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'homepageManagement'];
                 const targetTab = tabKeys[idx] || 'dashboard';
 
                 const getIcon = (index) => {
@@ -309,7 +299,7 @@ export default function ProblemTagManagementPage() {
 
         <div className="flex-1 flex flex-col">
           <header className="px-4 md:px-10 py-4 flex items-center justify-between">
-            <h1 className="text-4xl font-bold text-gray-900 whitespace-nowrap">{t.pageTitle}</h1>
+            <h1 className="text-4xl font-bold text-gray-900 whitespace-nowrap">{t.pageTitleProblemTagManagement}</h1>
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -385,9 +375,9 @@ export default function ProblemTagManagementPage() {
 
           <main className="flex-1 overflow-auto p-4 md:p-4 bg-[#f5f5f5]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 order-2 md:order-2 min-h-[340px] flex flex-col">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 order-2 md:order-2 min-h-[340px] flex flex-col md:sticky md:top-4 md:self-start">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">{t.createTagTitle}</h2>
-                <p className="text-sm text-gray-500 mb-5">{t.description}</p>
+                <p className="text-sm text-gray-500 mb-5">{t.descriptionProblemTagManagement }</p>
                 <div className="space-y-4 flex-1">
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="tag-name">
@@ -400,6 +390,20 @@ export default function ProblemTagManagementPage() {
                       onChange={(e) => setNewTagName(e.target.value)}
                       placeholder={t.tagNamePlaceholder}
                       className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="tag-description">
+                      {t.tagDescriptionLabel}
+                    </label>
+                    <textarea
+                      id="tag-description"
+                      type="text"
+                      value={newTagDescription}
+                      onChange={(e) => setNewTagDescription(e.target.value)}
+                      placeholder={t.tagDescriptionPlaceholder}
+                      rows={3}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none"
                     />
                   </div>
                   {tagMessage.text && (
@@ -420,51 +424,124 @@ export default function ProblemTagManagementPage() {
                     addingTag ? 'opacity-60 cursor-not-allowed' : ''
                   }`}
                 >
-                  {addingTag ? '...' : t.saveButton}
+                  {addingTag ? '...' : t.saveButtonProblemTagManagement}
                 </button>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 order-1 md:order-1">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.tagListTitle}</h2>
                 {tagsLoading ? (
-                  <p className="text-sm text-gray-500">{t.loading}</p>
+                  <p className="text-sm text-gray-500">{t.loadingProblemTagManagement}</p>
                 ) : tags.length === 0 ? (
                   <p className="text-sm text-gray-500">{t.emptyState}</p>
                 ) : (
                   <div className="space-y-3">
-                    {tags.map((tag) => (
-                      <div
-                        key={tag.id}
-                        className="flex items-center justify-between border border-gray-100 rounded-xl px-4 py-3 hover:border-gray-200 transition"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{tag.name}</p>
-                          <p className="text-xs text-gray-500">
-                            {tag.createdAt
-                              ? tag.createdAt.toLocaleDateString(
-                                  selectedLanguage.code === 'TH'
-                                    ? 'th-TH'
-                                    : selectedLanguage.code === 'JP'
-                                    ? 'ja-JP'
-                                    : 'en-US',
-                                  {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                  }
-                                )
-                              : '—'}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTag(tag.id)}
-                          className="text-xs font-medium text-red-500 hover:text-red-600"
+                    {tags.map((tag) => {
+                      const isEditing = editingTagId === tag.id;
+                      return (
+                        <div
+                          key={tag.id}
+                          className="flex items-start justify-between gap-4 border border-gray-100 rounded-xl px-4 py-3 hover:border-gray-200 transition"
                         >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex-1 space-y-1">
+                            {isEditing ? (
+                              <>
+                                <div>
+                                  <label
+                                    className="block text-xs font-medium text-gray-600 mb-1"
+                                    htmlFor={`edit-name-${tag.id}`}
+                                  >
+                                    {t.tagNameLabel}
+                                  </label>
+                                  <input
+                                    id={`edit-name-${tag.id}`}
+                                    type="text"
+                                    value={editingName}
+                                    onChange={(e) => setEditingName(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                                  />
+                                </div>
+                                <div>
+                                  <label
+                                    className="block text-xs font-medium text-gray-600 mb-1"
+                                    htmlFor={`edit-desc-${tag.id}`}
+                                  >
+                                    {t.tagDescriptionLabel}
+                                  </label>
+                                  <textarea
+                                    id={`edit-desc-${tag.id}`}
+                                    rows={2}
+                                    value={editingDescription}
+                                    onChange={(e) => setEditingDescription(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none"
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm font-semibold text-gray-900">{tag.name}</p>
+                                {tag.description && (
+                                  <p className="text-xs text-gray-600 mt-1">{tag.description}</p>
+                                )}
+                              </>
+                            )}
+                            <p className="text-xs text-gray-500 mt-1">
+                              {tag.createdAt
+                                ? tag.createdAt.toLocaleDateString(
+                                    selectedLanguage.code === 'TH'
+                                      ? 'th-TH'
+                                      : selectedLanguage.code === 'JP'
+                                      ? 'ja-JP'
+                                      : 'en-US',
+                                    {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric',
+                                    }
+                                  )
+                                : '—'}
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-2 ml-2">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={handleUpdateTag}
+                                  className="px-3 py-1 rounded-full bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800 transition"
+                                >
+                                  {t.updateButtonProblemTagManagement}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={cancelEditTag}
+                                  className="px-3 py-1 rounded-full border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50 transition"
+                                >
+                                  {t.cancelButtonProblemTagManagement}
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => startEditTag(tag)}
+                                  className="text-xs font-medium text-gray-700 hover:text-gray-900"
+                                >
+                                  {t.editButtonProblemTagManagement}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTag(tag.id)}
+                                  className="text-xs font-medium text-red-500 hover:text-red-600"
+                                >
+                                  {t.deleteButtonProblemTagManagement}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

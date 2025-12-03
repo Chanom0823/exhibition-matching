@@ -47,31 +47,6 @@ const translations = {
     backHome: 'กลับสู่หน้าหลัก',
     contactSuccess: 'ได้ติดต่อบริษัทแล้ว กรุณารอการติดต่อกลับ',
   },
-  EN: {
-    title: 'Exhibition Matching',
-    description: 'The exhibitors that best match your challenges',
-    storeName: 'Store A',
-    storeNameC: 'Store C',
-    productType: 'Product Type',
-    category: 'Category 1',
-    contact: 'Contact',
-    details: 'Details',
-    contactChannel: 'Contact Channel',
-    noFavorites: 'No favorites yet',
-    close: 'Close',
-    companyName: 'Company Name',
-    companyDescription: 'Description',
-    categories: 'Categories',
-    email: 'Email',
-    phone: 'Phone',
-    website: 'Website',
-    address: 'Address',
-    all: 'All',
-    problem: 'Problem',
-    favorites: 'Favorites',
-    backHome: 'Back to Home',
-    contactSuccess: 'Contacted the company. Please wait for a callback.',
-  },
   JP: {
     title: '展示マッチングシステム',
     description: 'あなたの課題に最も適した出展者',
@@ -99,11 +74,40 @@ const translations = {
   },
 };
 
+const japaneseTagLabels = {
+  'ด้านสิ่งแวดล้อม และการดำเนินงานตามหลัก ESG': '環境・ESG',
+  'การจัดการด้านสิ่งแวดล้อม / การประหยัดพลังงาน / การตอบโจทย์ ESG ยังดำเนินไปไม่ดี':
+    '環境・省エネ・ESG対応が進まない',
+  'การนำข้อมูลมาใช้งานให้เกิดประโยชน์': 'データ活用',
+  'ข้อมูลกระจัดกระจาย ไม่สามารถนำมาใช้งานได้จริง': 'データがバラバラで活用できない',
+  'การควบคุมคุณภาพ': '品質管理',
+  'มีปัญหาในการควบคุมคุณภาพและความปลอดภัย': '品質・安全管理に課題がある',
+  'การผูกงานไว้กับตัวบุคคล': '属人化',
+  'การทำงานที่พึ่งพาตัวบุคคลมากเกินไป และไม่สามารถลดความผิดพลาดได้':
+    '業務の属人化・ミスが減らない',
+  'บุคลากรและการมาตรฐานงาน': '人材・標準化',
+  'ขาดแคลนบุคลากร / การฝึกสอนหรือการส่งต่องานทำได้ไม่เพียงพอ':
+    '人材不足・教育／引き継ぎができない',
+  'การวางแผนการผลิต': '生産計画',
+  'การวางแผนการผลิต / การควบคุมกระบวนการ ทำได้ไม่ดี':
+    '生産計画／工程管理がうまくいかない',
+  'ลดการใช้กระดาษและ Excel': '紙・Excel削減',
+  'มีงานกระดาษ / Excel / งานแบบอนาล็อกจำนวนมาก': '紙・Excel・アナログ作業が多い',
+  'การทำให้มองเห็นได้ชัดเจน': '見える化',
+  'การมองเห็นภาพรวมของหน้างาน': '現場の「見える化」ができていない',
+};
+
+const getTagLabelByLanguage = (name, languageCode) => {
+  if (languageCode === 'JP') {
+    return japaneseTagLabels[name] || name;
+  }
+  return name;
+};
+
 export default function UserMatchingPage() {
   const router = useRouter();
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
@@ -112,6 +116,7 @@ export default function UserMatchingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const carouselRef = useRef(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [favorites, setFavorites] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [exhibitors, setExhibitors] = useState([]);
@@ -120,12 +125,25 @@ export default function UserMatchingPage() {
   const [selectedExhibitor, setSelectedExhibitor] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
+  const [problemTags, setProblemTags] = useState([]);
 
   const toggleFavorite = (exhibitorId) => {
     setFavorites((prev) => ({
       ...prev,
       [exhibitorId]: !prev[exhibitorId],
     }));
+  };
+
+  const handleFilterClick = (filterKey) => {
+    setSelectedFilter(filterKey);
+    if (filterKey !== 'problem') {
+      setSelectedCategory(null);
+    }
+  };
+
+  const handleCategorySelect = (tag) => {
+    setSelectedFilter('problem');
+    setSelectedCategory((prev) => (prev === tag ? null : tag));
   };
 
   // Load user interests from localStorage or Firebase
@@ -189,13 +207,42 @@ export default function UserMatchingPage() {
     loadExhibitors();
   }, [userInterests]);
 
+  useEffect(() => {
+    const loadProblemTags = async () => {
+      try {
+        const tagsSnapshot = await getDocs(collection(db, 'problemTags'));
+        const tags = tagsSnapshot.docs
+          .map((docSnap) => docSnap.data()?.name?.trim())
+          .filter((name, index, self) => name && self.indexOf(name) === index);
+        setProblemTags(tags);
+      } catch (error) {
+        console.error('Error loading problem tags:', error);
+      }
+    };
+
+    loadProblemTags();
+  }, []);
+
   // Carousel should always use the full exhibitors list
   const carouselExhibitors = exhibitors;
 
-  // Filter exhibitors based on selected filter for list section
-  const filteredExhibitors = selectedFilter === 'favorites'
-    ? exhibitors.filter((exhibitor) => favorites[exhibitor.id])
-    : exhibitors;
+  // Filter exhibitors based on selected filters
+  let filteredExhibitors = exhibitors;
+
+  if (selectedCategory) {
+    const normalizedCategory = selectedCategory.toLowerCase();
+    filteredExhibitors = filteredExhibitors.filter(
+      (exhibitor) =>
+        exhibitor.categories &&
+        exhibitor.categories.some(
+          (category) => category && category.toLowerCase() === normalizedCategory
+        )
+    );
+  }
+
+  if (selectedFilter === 'favorites') {
+    filteredExhibitors = filteredExhibitors.filter((exhibitor) => favorites[exhibitor.id]);
+  }
 
   useEffect(() => {
     const storedLanguage =
@@ -273,10 +320,12 @@ export default function UserMatchingPage() {
   );
 
   return (
-    <div className={`min-h-screen bg-white flex items-center justify-center ${currentFontClass}`}>
-      <div className="w-[390px] h-[844px] bg-white flex flex-col">
+    <div
+      className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}
+    >
+      <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
         {/* Navbar */}
-        <div className="w-full h-[64px] flex justify-between items-center px-4 py-[10px]">
+        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px] flex-shrink-0">
           <button
             type="button"
             className="flex items-center"
@@ -288,14 +337,14 @@ export default function UserMatchingPage() {
               alt="alt design office"
               width={80}
               height={39}
-              className="w-[80px] h-[39px]"
+              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
               priority
             />
           </button>
           <div className="relative" ref={languageDropdownRef}>
             <button
               type="button"
-              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
+              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
               onClick={() => setIsLanguageOpen((prev) => !prev)}
               aria-haspopup="listbox"
               aria-expanded={isLanguageOpen}
@@ -313,7 +362,7 @@ export default function UserMatchingPage() {
             </button>
             {isLanguageOpen && (
               <ul
-                className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
+                className="absolute right-0 mt-2 w-32 md:w-36 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
                 role="listbox"
                 aria-label="เลือกภาษา"
               >
@@ -321,7 +370,7 @@ export default function UserMatchingPage() {
                   <li key={option.code}>
                     <button
                       type="button"
-                      className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
+                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
                         selectedLanguage.code === option.code
                           ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-700 hover:bg-gray-50'
@@ -341,7 +390,7 @@ export default function UserMatchingPage() {
         </div>
 
         {/* Content */}
-        <main className="flex-1 flex flex-col px-4 py-4 overflow-y-auto">
+        <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <div className="text-center mb-4">
             <h1 className="text-2xl font-semibold text-gray-900 leading-snug mb-2">{titleContent}</h1>
             <p className="text-sm text-gray-600">{t.description}</p>
@@ -403,11 +452,15 @@ export default function UserMatchingPage() {
 
                     {/* Category Buttons */}
                     <div className="flex flex-wrap gap-1.5 justify-center mb-2 flex-1 items-start">
-                      {exhibitor.categories && exhibitor.categories.slice(0, 3).map((category, catIndex) => (
-                        <span key={catIndex} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded-full flex items-center justify-center max-w-[70px] truncate">
-                          {category}
-                        </span>
-                      ))}
+                      {exhibitor.categories &&
+                        exhibitor.categories.slice(0, 3).map((category, catIndex) => (
+                          <span
+                            key={catIndex}
+                            className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded-full flex items-center justify-center max-w-[70px] truncate"
+                          >
+                            {getTagLabelByLanguage(category, selectedLanguage.code)}
+                          </span>
+                        ))}
                     </div>
 
                     {/* Details Button */}
@@ -453,52 +506,75 @@ export default function UserMatchingPage() {
           )}
 
           {/* Filter Buttons */}
-          <div className="flex justify-start gap-4 mb-4 items-center">
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                selectedFilter === 'all'
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-transparent text-gray-900 hover:text-gray-700'
-              }`}
-              aria-label={t.all}
-            >
-              {t.all}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('problem')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                selectedFilter === 'problem'
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-transparent text-gray-900 hover:text-gray-700'
-              }`}
-              aria-label={t.problem}
-            >
-              {t.problem}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedFilter('favorites')}
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1 ${
-                selectedFilter === 'favorites'
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-transparent text-gray-900 hover:text-gray-700'
-              }`}
-              aria-label={t.favorites}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill={selectedFilter === 'favorites' ? 'white' : 'currentColor'}
-                className="w-4 h-4"
+          <div className="mb-4">
+            <div className="flex justify-start gap-4 items-center">
+              <button
+                type="button"
+                onClick={() => handleFilterClick('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  selectedFilter === 'all'
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-transparent text-gray-900 hover:text-gray-700'
+                }`}
+                aria-label={t.all}
               >
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-              {t.favorites}
-            </button>
+                {t.all}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFilterClick('problem')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  selectedFilter === 'problem'
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-transparent text-gray-900 hover:text-gray-700'
+                }`}
+                aria-label={t.problem}
+              >
+                {t.problem}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFilterClick('favorites')}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1 ${
+                  selectedFilter === 'favorites'
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-transparent text-gray-900 hover:text-gray-700'
+                }`}
+                aria-label={t.favorites}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill={selectedFilter === 'favorites' ? 'white' : 'currentColor'}
+                  className="w-4 h-4"
+                >
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+                {t.favorites}
+              </button>
+            </div>
+            {problemTags.length > 0 && (
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {problemTags.map((tag) => {
+                  const isActive = selectedCategory === tag;
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => handleCategorySelect(tag)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        isActive
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'
+                      }`}
+                    >
+                      {getTagLabelByLanguage(tag, selectedLanguage.code)}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Horizontal Store Cards */}
@@ -568,8 +644,11 @@ export default function UserMatchingPage() {
                       {exhibitor.categories && exhibitor.categories.length > 0 && (
                         <div className="flex gap-1.5 mb-2">
                           {exhibitor.categories.slice(0, 2).map((category, catIndex) => (
-                            <span key={catIndex} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded-full flex items-center justify-center border border-gray-300 flex-shrink-0 max-w-[70px] truncate">
-                              {category}
+                            <span
+                              key={catIndex}
+                              className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded-full flex items-center justify-center border border-gray-300 flex-shrink-0 max-w-[70px] truncate"
+                            >
+                              {getTagLabelByLanguage(category, selectedLanguage.code)}
                             </span>
                           ))}
                         </div>
@@ -755,21 +834,23 @@ export default function UserMatchingPage() {
               )}
 
               {/* Categories */}
-              {selectedExhibitor.categories && selectedExhibitor.categories.length > 0 && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">{t.categories}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedExhibitor.categories.map((category, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
-                      >
-                        {category}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    {selectedExhibitor.categories && selectedExhibitor.categories.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          {t.categories}
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedExhibitor.categories.map((category, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
+                            >
+                              {getTagLabelByLanguage(category, selectedLanguage.code)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
             </div>
 
             {/* Modal Footer */}

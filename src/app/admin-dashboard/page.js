@@ -6,6 +6,9 @@ import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import jsPDF from 'jspdf';
+import ExportButtons from '@/app/components/ExportButtons';
+import translations from '@/app/components/translations';
 
 const promptFont = localFont({
   src: [
@@ -19,116 +22,10 @@ const sawarabiFont = localFont({
   src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
 
-const translations = {
-  TH: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management', 'PDPA Management'],
-    searchPlaceholder: 'Search...',
-    totalParticipants: 'จำนวนผู้เข้างานทั้งหมด',
-    totalVisitors: 'จำนวนผู้เข้าชม',
-    totalExhibitors: 'จำนวน exhibitors',
-    trendTitle: 'เปรียบเทียบระหว่าง Exhibitors และ Visitors',
-    trendOutpatients: 'ยอดสนใจ',
-    trendInpatients: 'ไม่ได้ติดต่อ',
-    patientsByCategory: 'ผู้สนใจตามหมวดหมู่',
-    timeAdmitted: 'ช่วงเวลาที่ติดต่อ',
-    divisionLabel: 'หมวดหมู่',
-    patientsLabel: 'จำนวน',
-    logout: 'ออกจากระบบ',
-    export: 'Export',
-    tableNo: 'ลำดับ',
-    tableName: 'ปัญหา',
-    tableContact: 'จำนวนที่เลือก',
-    details: 'รายละเอียด',
-    contact: 'ติดต่อ',
-    contacted: 'ติดต่อแล้ว',
-    notContacted: 'ยังไม่ติดต่อ',
-    name: 'ชื่อ',
-    company: 'ชื่อบริษัท',
-    phone: 'เบอร์โทร',
-    email: 'อีเมล',
-    problems: 'ปัญหาที่เลือก',
-    filterAll: 'ทั้งหมด',
-    filterNotContacted: 'ยังไม่ติดต่อ',
-    filterContacted: 'ติดต่อแล้ว',
-    userContactsLabel: 'ผู้ใช้งานกดติดต่อ',
-    exhibitorContactsLabel: 'Exhibitor กดติดต่อแล้ว',
-  },
-  EN: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management', 'PDPA Management'],
-    searchPlaceholder: 'Search...',
-    totalParticipants: 'Total Participants',
-    totalVisitors: 'Total Visitors',
-    totalExhibitors: 'Total Exhibitors',
-    trendTitle: 'Exhibitors vs Visitors Comparison',
-    trendOutpatients: 'Matched',
-    trendInpatients: 'Not Contacted',
-    patientsByCategory: 'Interests by Category',
-    timeAdmitted: 'Contact Time',
-    divisionLabel: 'Category',
-    patientsLabel: 'Count',
-    logout: 'Logout',
-    export: 'Export',
-    tableNo: 'No.',
-    tableName: 'Problem',
-    tableContact: 'Count',
-    details: 'Details',
-    contact: 'Contact',
-    contacted: 'Contacted',
-    notContacted: 'Not Contacted',
-    name: 'Name',
-    company: 'Company',
-    phone: 'Phone',
-    email: 'Email',
-    problems: 'Selected Problems',
-    filterAll: 'All',
-    filterNotContacted: 'Not Contacted',
-    filterContacted: 'Contacted',
-    userContactsLabel: 'User Contacts',
-    exhibitorContactsLabel: 'Exhibitor Contacted',
-  },
-  JP: {
-    dashboard: 'ダッシュボード',
-    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理', 'PDPA管理'],
-    searchPlaceholder: '検索...',
-    totalParticipants: '総参加者数',
-    totalVisitors: '総訪問者数',
-    totalExhibitors: '出展者数',
-    trendTitle: '出展者と訪問者の比較',
-    trendOutpatients: 'マッチ',
-    trendInpatients: '未連絡',
-    patientsByCategory: 'カテゴリ別興味',
-    timeAdmitted: '連絡時間',
-    divisionLabel: 'カテゴリ',
-    patientsLabel: '数',
-    logout: 'ログアウト',
-    export: 'Export',
-    tableNo: '番号',
-    tableName: '問題',
-    tableContact: '選択数',
-    details: '詳細',
-    contact: '連絡',
-    contacted: '連絡済み',
-    notContacted: '未連絡',
-    name: '名前',
-    company: '会社名',
-    phone: '電話',
-    email: 'メール',
-    problems: '選択された問題',
-    filterAll: 'すべて',
-    filterNotContacted: '未連絡',
-    filterContacted: '連絡済み',
-    userContactsLabel: 'ユーザー連絡',
-    exhibitorContactsLabel: '出展者連絡済み',
-  },
-};
-
 export default function AdminDashboardPage() {
   const router = useRouter();
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
@@ -385,6 +282,279 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleExportPDF = () => {
+    // Helper function to convert hex to RGB
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 0, g: 0, b: 0 };
+    };
+
+    // Use English translations for PDF export
+    const pdfT = translations.EN;
+    
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    let yPosition = 20;
+    const margin = 20;
+    const lineHeight = 7;
+    const sectionSpacing = 15;
+    const cardHeight = 25;
+    const cardSpacing = 10;
+
+    // Helper function to add new page if needed
+    const checkNewPage = (requiredSpace) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = 20;
+        return true;
+      }
+      return false;
+    };
+
+    // Title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(pdfT.dashboard, margin, yPosition);
+    yPosition += lineHeight + 8;
+
+    // Date (English format)
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    pdf.text(`Date: ${currentDate}`, margin, yPosition);
+    yPosition += sectionSpacing + 5;
+
+    // Summary Cards Section (3 cards in a row)
+    checkNewPage(cardHeight + 10);
+    const cardWidth = (pageWidth - margin * 2 - cardSpacing * 2) / 3;
+    const summaryCards = [
+      { label: pdfT.totalParticipants, value: summaryData.totalParticipants.toLocaleString() },
+      { label: pdfT.totalVisitors, value: summaryData.totalVisitors.toLocaleString() },
+      { label: pdfT.totalExhibitors, value: summaryData.totalExhibitors.toLocaleString() },
+    ];
+
+    summaryCards.forEach((card, index) => {
+      const xPos = margin + index * (cardWidth + cardSpacing);
+      
+      // Draw card background
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setFillColor(255, 255, 255);
+      pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, 'FD');
+      
+      // Card content
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(card.value, xPos + 5, yPosition + 10);
+      
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
+      pdf.text(labelLines, xPos + 5, yPosition + 16);
+    });
+    yPosition += cardHeight + sectionSpacing;
+
+    // Charts Section (2 panels side by side)
+    checkNewPage(80);
+    
+    // Left Panel: Horizontal Bar Chart - Exhibitors vs Visitors
+    const leftPanelWidth = (pageWidth - margin * 2 - 10) / 2;
+    const chartHeight = 60;
+    const chartY = yPosition;
+    
+    // Panel background
+    pdf.setDrawColor(200, 200, 200);
+    pdf.setFillColor(255, 255, 255);
+    pdf.roundedRect(margin, chartY, leftPanelWidth, chartHeight + 20, 2, 2, 'FD');
+    
+    // Chart title
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    const chartTitle = pdf.splitTextToSize(pdfT.trendTitle, leftPanelWidth - 10);
+    pdf.text(chartTitle, margin + 5, chartY + 8);
+    
+    // Draw horizontal bars
+    const maxValue = Math.max(comparisonData.exhibitors, comparisonData.visitors, 1);
+    const barHeight = 12;
+    const barSpacing = 20;
+    const barStartY = chartY + 20;
+    const barWidth = leftPanelWidth - 30;
+    
+    // Exhibitors bar
+    const exhibitorsBarWidth = (comparisonData.exhibitors / maxValue) * barWidth;
+    pdf.setFillColor(30, 41, 57);
+    pdf.rect(margin + 10, barStartY, exhibitorsBarWidth, barHeight, 'F');
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Exhibitors', margin + 10, barStartY - 2);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(String(comparisonData.exhibitors), margin + 10 + exhibitorsBarWidth + 5, barStartY + 8);
+    
+    // Visitors bar
+    const visitorsBarWidth = (comparisonData.visitors / maxValue) * barWidth;
+    pdf.setFillColor(30, 41, 57);
+    pdf.rect(margin + 10, barStartY + barSpacing, visitorsBarWidth, barHeight, 'F');
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Visitors', margin + 10, barStartY + barSpacing - 2);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(String(comparisonData.visitors), margin + 10 + visitorsBarWidth + 5, barStartY + barSpacing + 8);
+
+    // Right Panel: Donut Chart - Problems Percentage
+    const rightPanelX = margin + leftPanelWidth + 10;
+    const rightPanelWidth = pageWidth - rightPanelX - margin;
+    const donutCenterX = rightPanelX + rightPanelWidth / 2;
+    const donutCenterY = chartY + (chartHeight + 20) / 2;
+    const donutRadius = 25;
+    
+    // Panel background
+    pdf.setDrawColor(200, 200, 200);
+    pdf.setFillColor(255, 255, 255);
+    pdf.roundedRect(rightPanelX, chartY, rightPanelWidth, chartHeight + 20, 2, 2, 'FD');
+    
+    // Chart title
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Problems Percentage', rightPanelX + 5, chartY + 8);
+    
+    // Draw donut chart segments
+    if (categoryData.length > 0) {
+      // Outer circle (background - light gray)
+      pdf.setDrawColor(230, 230, 230);
+      pdf.setLineWidth(8);
+      pdf.circle(donutCenterX, donutCenterY, donutRadius, 'D');
+      
+      const colors = ['#1E2939', '#4B5563', '#6B7280', '#9CA3AF', '#D1D5DB', '#E5E7EB'];
+      let currentAngle = -90;
+      
+      categoryData.forEach((category, index) => {
+        const angleRange = (category.percentage / 100) * 360;
+        const color = colors[index % colors.length];
+        const rgb = hexToRgb(color);
+        
+        if (category.percentage > 0) {
+          pdf.setDrawColor(rgb.r, rgb.g, rgb.b);
+          pdf.setLineWidth(8);
+          const segmentSteps = Math.max(20, Math.floor(angleRange / 2));
+          for (let step = 0; step <= segmentSteps; step++) {
+            const angle = ((currentAngle + (angleRange * (step / segmentSteps))) * Math.PI) / 180;
+            const x1 = donutCenterX + Math.cos(angle) * (donutRadius - 4);
+            const y1 = donutCenterY + Math.sin(angle) * (donutRadius - 4);
+            const x2 = donutCenterX + Math.cos(angle) * donutRadius;
+            const y2 = donutCenterY + Math.sin(angle) * donutRadius;
+            pdf.line(x1, y1, x2, y2);
+          }
+          currentAngle += angleRange;
+        }
+      });
+      
+      // Inner white circle to create donut effect
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(255, 255, 255);
+      pdf.circle(donutCenterX, donutCenterY, donutRadius - 8, 'FD');
+    }
+    
+    // Labels below chart
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    const labelY = chartY + chartHeight + 10;
+    let labelYPos = labelY;
+    categoryData.slice(0, 5).forEach((category, index) => {
+      const displayName = category.name === 'Others' ? 'Others' : category.name;
+      const color = colors[index % colors.length];
+      const rgb = hexToRgb(color);
+      
+      // Color dot
+      pdf.setFillColor(rgb.r, rgb.g, rgb.b);
+      pdf.circle(rightPanelX + 5, labelYPos, 1.5, 'F');
+      
+      // Text
+      pdf.setTextColor(0, 0, 0);
+      const text = `${displayName}: ${Math.round(category.percentage)}% (${category.count})`;
+      pdf.text(text, rightPanelX + 10, labelYPos + 1);
+      labelYPos += 4;
+    });
+    pdf.setTextColor(0, 0, 0);
+    
+    yPosition = chartY + chartHeight + 20 + sectionSpacing;
+
+    // Table Section - Top 5 Problems
+    if (categoryData.length > 0) {
+      checkNewPage(sectionSpacing + lineHeight * 8);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Top 5 Problems', margin, yPosition);
+      yPosition += lineHeight + 5;
+
+      // Table Header with background
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, lineHeight + 4, 'F');
+      
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      const colWidths = [15, 120, 50];
+      const headers = [pdfT.tableNo, pdfT.tableName, pdfT.tableContact];
+      let xPosition = margin + 3;
+
+      headers.forEach((header, index) => {
+        pdf.text(header, xPosition, yPosition);
+        xPosition += colWidths[index];
+      });
+      yPosition += lineHeight + 3;
+
+      // Table Rows
+      pdf.setFont('helvetica', 'normal');
+      pdf.setDrawColor(220, 220, 220);
+      categoryData.slice(0, 5).forEach((category, index) => {
+        checkNewPage(lineHeight + 3);
+        
+        // Draw row border
+        pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+        
+        xPosition = margin + 3;
+        
+        // No.
+        pdf.text(String(index + 1), xPosition, yPosition);
+        xPosition += colWidths[0];
+
+        // Problem name
+        const displayName = category.name === 'Others' ? 'Others' : category.name;
+        const name = displayName.length > 40 ? displayName.substring(0, 37) + '...' : displayName;
+        pdf.text(name, xPosition, yPosition);
+        xPosition += colWidths[1];
+
+        // Count
+        pdf.text(String(category.count), xPosition, yPosition);
+        
+        yPosition += lineHeight + 2;
+      });
+    } else {
+      checkNewPage(sectionSpacing + lineHeight * 3);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Top 5 Problems', margin, yPosition);
+      yPosition += lineHeight + 5;
+      
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(150, 150, 150);
+      pdf.text('No data available', margin, yPosition);
+      pdf.setTextColor(0, 0, 0);
+    }
+
+    // Save PDF
+    const fileName = `admin-dashboard-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+  };
+
   const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
@@ -461,7 +631,7 @@ export default function AdminDashboardPage() {
           <nav className="flex-1 px-4 py-4">
             <div className="flex flex-col gap-2">
               {t.tabs.map((tab, idx) => {
-                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'homepageManagement', 'pdpaManagement'];
+                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'homepageManagement'];
                 const targetTab = tabKeys[idx] || 'dashboard';
                 
                 // Icon mapping
@@ -575,21 +745,16 @@ export default function AdminDashboardPage() {
             <div className="flex items-end justify-end  w-full">
               <div className="relative" ref={languageDropdownRef}>
                 <div className="flex items-end justify-end gap-3 cursor-pointer">
-                  <button
-                    type="button"
-                    className="bg-gray-800 text-white rounded-lg px-3 h-[36px] flex items-center justify-center gap-2 hover:bg-gray-700 transition"
-                    aria-label={t.export}
-                    title={t.export}
-                  >
-                    <Image
-                      src="/import-export.png"
-                      alt={t.export}
-                      width={18}
-                      height={18}
-                      className="w-[18px] h-[18px] brightness-0 invert"
-                    />
-                    <span className="text-sm">{t.export}</span>
-                  </button>
+                  <ExportButtons 
+                    exportPdfLabel={`${t.export} PDF`}
+                    exportExcelLabel={`${t.export} Excel`}
+                    summaryData={summaryData}
+                    comparisonData={comparisonData}
+                    categoryData={categoryData}
+                    tableData={tableData}
+                    translations={translations}
+                    selectedLanguage={selectedLanguage}
+                  />
                   <button
                     type="button"
                     onClick={() => setIsLanguageOpen((prev) => !prev)}
@@ -750,7 +915,7 @@ export default function AdminDashboardPage() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-gray-700">
-                            {selectedLanguage.code === 'TH' ? 'Exhibitors' : selectedLanguage.code === 'EN' ? 'Exhibitors' : '出展者'}
+                            {selectedLanguage.code === 'TH' ? 'Exhibitors' : '出展者'}
                           </span>
                           <span className="text-sm font-semibold text-gray-900">
                             {comparisonData.exhibitors.toLocaleString()}
@@ -778,7 +943,7 @@ export default function AdminDashboardPage() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-gray-700">
-                            {selectedLanguage.code === 'TH' ? 'Visitors' : selectedLanguage.code === 'EN' ? 'Visitors' : '訪問者'}
+                            {selectedLanguage.code === 'TH' ? 'Visitors' : '訪問者'}
                           </span>
                           <span className="text-sm font-semibold text-gray-900">
                             {comparisonData.visitors.toLocaleString()}
@@ -810,7 +975,7 @@ export default function AdminDashboardPage() {
               <div className="bg-white rounded-2xl p-6 shadow-sm">
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {selectedLanguage.code === 'TH' ? 'เปอร์เซ็นต์ปัญหาทั้งหมด' : selectedLanguage.code === 'EN' ? 'Problems Percentage' : '問題の割合'}
+                    {selectedLanguage.code === 'TH' ? 'เปอร์เซ็นต์ปัญหาทั้งหมด' : '問題の割合'}
                   </h3>
                 </div>
                 <div className="relative w-32 h-32 mx-auto mb-4">
@@ -853,7 +1018,7 @@ export default function AdminDashboardPage() {
                   {categoryData.length > 0 ? (
                     categoryData.map((category, index) => {
                       const displayName = category.name === 'Others' 
-                        ? (selectedLanguage.code === 'TH' ? 'อื่นๆ' : selectedLanguage.code === 'EN' ? 'Others' : 'その他')
+                        ? (selectedLanguage.code === 'TH' ? 'อื่นๆ' : 'その他')
                         : category.name;
                       return (
                         <div key={index} className="flex items-center justify-between text-sm">
@@ -901,7 +1066,7 @@ export default function AdminDashboardPage() {
                     {categoryData.length > 0 ? (
                       categoryData.slice(0, 5).map((category, index) => {
                         const displayName = category.name === 'Others' 
-                          ? (selectedLanguage.code === 'TH' ? 'อื่นๆ' : selectedLanguage.code === 'EN' ? 'Others' : 'その他')
+                          ? (selectedLanguage.code === 'TH' ? 'อื่นๆ' : 'その他')
                           : category.name;
                         return (
                           <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import localFont from 'next/font/local';
+import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const promptFont = localFont({
   src: [
@@ -20,41 +22,44 @@ const sawarabiFont = localFont({
 const translations = {
   TH: {
     dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management', 'PDPA Management'],
+    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management'],
     searchPlaceholder: 'Search...',
     logout: 'ออกจากระบบ',
     export: 'Export',
     pageTitle: 'Homepage Management',
     heroSection: 'ส่วน Hero Banner',
-    statsSection: 'ไฮไลท์บนหน้าแรก',
-    contentSection: 'เนื้อหาที่แสดง',
-    uploadCTA: 'แก้ไขข้อมูล',
+    headingLabel: 'หัวข้อหลัก',
+    descriptionLabel: 'คำอธิบาย',
+    exploreButtonLabel: 'ข้อความปุ่มสำรวจงาน',
+    loginCtaLabel: 'ข้อความปุ่มเข้าสู่ระบบ',
+    editButton: 'แก้ไข',
+    saveButton: 'บันทึก',
+    cancelButton: 'ยกเลิก',
+    saving: 'กำลังบันทึก...',
+    saveSuccess: 'บันทึกสำเร็จ',
+    saveError: 'เกิดข้อผิดพลาด',
+    loading: 'กำลังโหลด...',
     lastUpdated: 'อัปเดตล่าสุด',
-  },
-  EN: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management', 'PDPA Management'],
-    searchPlaceholder: 'Search...',
-    logout: 'Logout',
-    export: 'Export',
-    pageTitle: 'Homepage Management',
-    heroSection: 'Hero Banner',
-    statsSection: 'Homepage Highlights',
-    contentSection: 'Displayed Content Blocks',
-    uploadCTA: 'Edit content',
-    lastUpdated: 'Last updated',
   },
   JP: {
     dashboard: 'ダッシュボード',
-    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理', 'PDPA管理'],
+    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理'],
     searchPlaceholder: '検索...',
     logout: 'ログアウト',
     export: 'Export',
     pageTitle: 'ホームページ管理',
     heroSection: 'ヒーローバナー',
-    statsSection: 'ホームページのハイライト',
-    contentSection: '表示されるコンテンツ',
-    uploadCTA: 'コンテンツを編集',
+    headingLabel: '見出し',
+    descriptionLabel: '説明',
+    exploreButtonLabel: '探索ボタンのテキスト',
+    loginCtaLabel: 'ログインボタンのテキスト',
+    editButton: '編集',
+    saveButton: '保存',
+    cancelButton: 'キャンセル',
+    saving: '保存中...',
+    saveSuccess: '保存しました',
+    saveError: 'エラーが発生しました',
+    loading: '読み込み中...',
     lastUpdated: '最終更新',
   },
 };
@@ -63,7 +68,6 @@ export default function HomepageManagementPage() {
   const router = useRouter();
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
 
@@ -72,6 +76,21 @@ export default function HomepageManagementPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('homepageManagement');
   const languageDropdownRef = useRef(null);
+
+  // Homepage content state
+  const [homepageContent, setHomepageContent] = useState({
+    TH: {
+      heading: 'ยินดีต้อนรับสู่ alt design office',
+      description: 'ส่งเสริมประสบการณ์นิทรรศการผ่านการจับคู่ที่ใช่ สำรวจงานและผู้จัดได้จากที่นี่',
+      exploreButton: 'สำรวจงานนิทรรศการ',
+      loginCta: 'เข้าสู่ระบบ',
+    },
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const t = translations[selectedLanguage.code];
   const currentFontClass =
@@ -101,6 +120,100 @@ export default function HomepageManagementPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Load homepage content from Firebase
+  useEffect(() => {
+    const loadHomepageContent = async () => {
+      try {
+        setIsLoading(true);
+        const docRef = doc(db, 'homepageContent', 'main');
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const content = data.content || homepageContent;
+          // Ensure TH exists with all fields
+          setHomepageContent({
+            TH: {
+              ...homepageContent.TH,
+              ...(content.TH || {}),
+            },
+          });
+          if (data.updatedAt) {
+            setLastUpdated(data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading homepage content:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadHomepageContent();
+  }, []);
+
+  const handleInputChange = (lang, field, value) => {
+    setHomepageContent((prev) => ({
+      ...prev,
+      [lang]: {
+        ...prev[lang],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      setSaveMessage({ type: '', text: '' });
+      
+      const docRef = doc(db, 'homepageContent', 'main');
+      await setDoc(docRef, {
+        content: homepageContent,
+        updatedAt: new Date(),
+      }, { merge: true });
+      
+      setLastUpdated(new Date());
+      setSaveMessage({ type: 'success', text: t.saveSuccess });
+      setIsEditing(false);
+      
+      setTimeout(() => {
+        setSaveMessage({ type: '', text: '' });
+      }, 3000);
+    } catch (error) {
+      console.error('Error saving homepage content:', error);
+      setSaveMessage({ type: 'error', text: t.saveError });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setSaveMessage({ type: '', text: '' });
+    // Reload from Firebase
+    const loadHomepageContent = async () => {
+      try {
+        const docRef = doc(db, 'homepageContent', 'main');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const content = data.content || homepageContent;
+          // Ensure TH exists with all fields
+          setHomepageContent({
+            TH: {
+              ...homepageContent.TH,
+              ...(content.TH || {}),
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Error loading homepage content:', error);
+      }
+    };
+    loadHomepageContent();
+  };
 
   const handleLanguageSelect = (option) => {
     setSelectedLanguage(option);
@@ -163,7 +276,6 @@ export default function HomepageManagementPage() {
                   'userManagement',
                   'problemTagManagement',
                   'homepageManagement',
-                  'pdpaManagement',
                 ];
                 const targetTab = tabKeys[idx] || 'dashboard';
 
@@ -275,70 +387,139 @@ export default function HomepageManagementPage() {
           </header>
 
           <main className="flex-1 overflow-auto p-4 md:p-6 bg-[#f5f5f5]">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">{t.heroSection}</h2>
-                    <p className="text-sm text-gray-500">{t.lastUpdated}: 12 Nov 2025</p>
-                  </div>
-                  <button className="px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800">
-                    {t.uploadCTA}
-                  </button>
-                </div>
-                <div className="h-40 bg-gray-50 border border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 text-sm">
-                  Hero preview / slider placeholder
-                </div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">{t.statsSection}</h2>
-                    <p className="text-sm text-gray-500">{t.lastUpdated}: 10 Nov 2025</p>
-                  </div>
-                  <button className="px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800">
-                    {t.uploadCTA}
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {['Visitors', 'Exhibitors', 'Sessions', 'Partners'].map((label) => (
-                    <div key={label} className="rounded-xl border border-gray-100 p-4">
-                      <p className="text-xs uppercase text-gray-500">{label}</p>
-                      <p className="text-2xl font-bold text-gray-900 mt-2">
-                        {Math.floor(Math.random() * 9000) + 1000}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{t.contentSection}</h2>
-                  <p className="text-sm text-gray-500">
-                    {t.lastUpdated}: 8 Nov 2025
-                  </p>
-                </div>
-                <button className="px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800">
-                  {t.uploadCTA}
-                </button>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {[1, 2, 3].map((block) => (
-                  <div key={`block-${block}`} className="border border-gray-100 rounded-xl p-4">
-                    <div className="h-32 rounded-lg bg-gray-50 border border-dashed border-gray-200 mb-4 flex items-center justify-center text-gray-400 text-xs">
-                      Image / Block {block}
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900 mb-1">Section {block}</p>
-                    <p className="text-xs text-gray-500">
-                      Placeholder description for homepage content block {block}.
+                  <h2 className="text-lg font-semibold text-gray-900">{t.heroSection}</h2>
+                  {lastUpdated && (
+                    <p className="text-sm text-gray-500">
+                      {t.lastUpdated}: {lastUpdated.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </p>
-                  </div>
-                ))}
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {isEditing ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleCancel}
+                        disabled={isSaving}
+                        className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition disabled:opacity-50"
+                      >
+                        {t.cancelButton}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {isSaving && (
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        )}
+                        {isSaving ? t.saving : t.saveButton}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(true)}
+                      className="px-4 py-2 text-sm font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition"
+                    >
+                      {t.editButton}
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {saveMessage.text && (
+                <div
+                  className={`mb-4 px-4 py-2 rounded-lg text-sm ${
+                    saveMessage.type === 'success'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {saveMessage.text}
+                </div>
+              )}
+
+              {isLoading ? (
+                <div className="text-center py-8 text-gray-500">{t.loading}</div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Thai Content */}
+                  <div className="border border-gray-200 rounded-xl p-4">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t.headingLabel}
+                        </label>
+                        <input
+                          type="text"
+                          value={homepageContent.TH.heading}
+                          onChange={(e) => handleInputChange('TH', 'heading', e.target.value)}
+                          disabled={!isEditing}
+                          className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 ${
+                            !isEditing ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t.descriptionLabel}
+                        </label>
+                        <textarea
+                          value={homepageContent.TH.description}
+                          onChange={(e) => handleInputChange('TH', 'description', e.target.value)}
+                          disabled={!isEditing}
+                          rows={3}
+                          className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 ${
+                            !isEditing ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t.exploreButtonLabel}
+                        </label>
+                        <input
+                          type="text"
+                          value={homepageContent.TH.exploreButton}
+                          onChange={(e) => handleInputChange('TH', 'exploreButton', e.target.value)}
+                          disabled={!isEditing}
+                          className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 ${
+                            !isEditing ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t.loginCtaLabel}
+                        </label>
+                        <input
+                          type="text"
+                          value={homepageContent.TH.loginCta || ''}
+                          onChange={(e) => handleInputChange('TH', 'loginCta', e.target.value)}
+                          disabled={!isEditing}
+                          className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 ${
+                            !isEditing ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </main>
         </div>

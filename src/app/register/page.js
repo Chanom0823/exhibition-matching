@@ -7,6 +7,7 @@ import localFont from 'next/font/local';
 import { auth, db } from '@/lib/firebase';
 import { collection, doc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import AuthNavbar from '../components/AuthNavbar';
 
 const promptFont = localFont({
   src: [
@@ -49,63 +50,21 @@ const translations = {
     errors: {
       missingFields: 'กรุณากรอกข้อมูลให้ครบถ้วน',
       passwordMismatch: 'รหัสผ่านไม่ตรงกัน',
-      passwordLength: 'รหัสผ่านต้องมีความยาว 5-8 ตัว และมีตัวพิมพ์เล็ก-ใหญ่ พร้อมอักขระพิเศษอย่างน้อย 1 ตัว',
-      passwordHint: 'รหัสผ่าน 5-8 ตัว ประกอบด้วยตัวพิมพ์ใหญ่-เล็ก และอักขระพิเศษอย่างน้อย 1 ตัว',
+      passwordLength: 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัว และมีตัวพิมพ์เล็ก-ใหญ่ พร้อมอักขระพิเศษอย่างน้อย 1 ตัว',
+      passwordHint: 'รหัสผ่านอย่างน้อย 8 ตัว ประกอบด้วยตัวพิมพ์ใหญ่-เล็ก และอักขระพิเศษอย่างน้อย 1 ตัว',
       passwordRules: [
-        'ความยาว 5-8 ตัวอักษร',
+        'ความยาวอย่างน้อย 8 ตัวอักษร',
         'ต้องมีตัวอักษรภาษาอังกฤษพิมพ์ใหญ่และพิมพ์เล็ก',
         'ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว',
       ],
       usernameExists: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว',
+      invalidUsername: 'ชื่อผู้ใช้ต้องมีตัวอักษรอย่างน้อย 1 ตัว (ห้ามเป็นตัวเลขล้วน อักษรพิเศษล้วน หรือตัวเลขกับอักษรพิเศษล้วน)',
       emailExists: 'อีเมลนี้ถูกใช้งานแล้ว',
       invalidPhone: 'กรุณากรอกหมายเลขโทรศัพท์ให้ถูกต้อง',
       phoneExists: 'หมายเลขโทรศัพท์นี้ถูกใช้งานแล้ว',
       general: 'เกิดข้อผิดพลาดในการสมัครสมาชิก กรุณาลองใหม่อีกครั้ง',
     },
     success: 'สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ',
-  },
-  EN: {
-    title: 'Register',
-    subtitle: 'Create an account to continue!',
-    fields: {
-      fullName: 'Full Name',
-      username: 'Username',
-      email: 'Email',
-      phone: 'Phone Number',
-      password: 'Create Password',
-      confirmPassword: 'Confirm Password',
-    },
-    placeholders: {
-      fullName: 'Enter your full name',
-      username: 'Enter a username',
-      email: 'Enter your email',
-      phone: 'Enter phone number',
-      password: 'Enter password',
-      confirmPassword: 'Confirm password',
-    },
-    actions: {
-      register: 'Register',
-      haveAccountText: 'Already have an account?',
-      login: 'Login',
-      back: 'Back',
-    },
-    errors: {
-      missingFields: 'Please fill in all required fields',
-      passwordMismatch: 'Passwords do not match',
-      passwordLength: 'Password must be 5-8 characters and include uppercase, lowercase, and at least one special character',
-      passwordHint: 'Use 5-8 characters with uppercase, lowercase, and at least 1 special character.',
-      passwordRules: [
-        'Length must be 5-8 characters',
-        'Must include uppercase and lowercase letters',
-        'Must contain at least 1 special character',
-      ],
-      usernameExists: 'Username already exists',
-      emailExists: 'Email is already in use',
-      invalidPhone: 'Please enter a valid phone number',
-      phoneExists: 'Phone number is already in use',
-      general: 'Registration failed, please try again.',
-    },
-    success: 'Registration complete! Please login.',
   },
   JP: {
     title: '登録',
@@ -135,14 +94,15 @@ const translations = {
     errors: {
       missingFields: '必須項目を入力してください',
       passwordMismatch: 'パスワードが一致しません',
-      passwordLength: 'パスワードは5〜8文字で、大文字・小文字・記号を各1文字以上含めてください',
-      passwordHint: '5〜8文字で、大文字・小文字・記号を最低1文字ずつ含めてください。',
+      passwordLength: 'パスワードは最低8文字で、大文字・小文字・記号を各1文字以上含めてください',
+      passwordHint: '最低8文字で、大文字・小文字・記号を最低1文字ずつ含めてください。',
       passwordRules: [
-        '文字数は5〜8文字',
+        '文字数は最低8文字',
         '大文字と小文字を含めてください',
         '記号を最低1文字含めてください',
       ],
       usernameExists: 'このユーザー名は既に使用されています',
+      invalidUsername: 'ユーザー名には最低1文字の文字を含める必要があります（数字のみ、記号のみ、数字と記号のみは不可）',
       emailExists: 'このメールアドレスは既に使用されています',
       invalidPhone: '有効な電話番号を入力してください',
       phoneExists: 'この電話番号は既に使用されています',
@@ -155,7 +115,6 @@ const translations = {
 export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    fullName: '',
     username: '',
     password: '',
     confirmPassword: '',
@@ -169,7 +128,6 @@ export default function RegisterPage() {
 
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'EN', label: 'English' },
     { code: 'JP', label: '日本語' },
   ];
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
@@ -269,14 +227,12 @@ export default function RegisterPage() {
     setError('');
     setIsLoading(true);
 
-    const trimmedFullName = formData.fullName.trim();
     const trimmedUsername = formData.username.trim();
     const trimmedEmail = formData.email.trim();
     const sanitizedPhone = sanitizeDigitsOnly(formData.phoneNumber || '');
     const formattedPhone = `${selectedPhoneCountry.code} ${sanitizedPhone}`.trim();
 
     if (
-      !trimmedFullName ||
       !trimmedUsername ||
       !trimmedEmail ||
       !sanitizedPhone ||
@@ -294,6 +250,14 @@ export default function RegisterPage() {
       return;
     }
 
+    // Validate username: must contain at least one letter (not only digits, not only special chars, not only digits + special chars)
+    const hasLetter = /[a-zA-Zก-๙ぁ-んァ-ヶー一-龯]/.test(trimmedUsername);
+    if (!hasLetter) {
+      setError(translations[selectedLanguage.code].errors.invalidUsername);
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError(translations[selectedLanguage.code].errors.passwordMismatch);
       setIsLoading(false);
@@ -301,7 +265,7 @@ export default function RegisterPage() {
     }
 
     const passwordRule =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_\-+=\[\]{}|\\:;"'<>,.?/~`]).{5,8}$/;
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_\-+=\[\]{}|\\:;"'<>,.?/~`]).{8,}$/;
     if (!passwordRule.test(formData.password)) {
       setError(translations[selectedLanguage.code].errors.passwordLength);
       setIsLoading(false);
@@ -342,7 +306,6 @@ export default function RegisterPage() {
 
       const userDoc = {
         uid: userCredential.user.uid,
-        fullName: trimmedFullName,
         username: trimmedUsername,
         usernameLower: trimmedUsername.toLowerCase(),
         email: trimmedEmail,
@@ -374,114 +337,38 @@ export default function RegisterPage() {
   const t = translations[selectedLanguage.code];
 
   return (
-    <div className={`min-h-screen bg-white flex items-center justify-center p-4 ${currentFontClass}`}>
-      <div className="w-full max-w-[390px] min-h-screen md:min-h-[600px] bg-white flex flex-col relative">
+    <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
+      <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none">
         {/* Navbar */}
-        <div className="w-full min-h-[64px] flex justify-between items-center px-4 py-[10px]">
-          <button
-            type="button"
-            className="flex items-center"
-            onClick={() => router.push('/')}
-            aria-label="กลับไปหน้าแรก"
-          >
-            <Image
-              src="/logo.svg"
-              alt="alt design office"
-              width={80}
-              height={39}
-              className="w-[80px] h-[39px]"
-              priority
-            />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="relative" ref={languageDropdownRef}>
-              <button
-                type="button"
-                className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
-                onClick={() => setIsLanguageOpen((prev) => !prev)}
-                aria-haspopup="listbox"
-                aria-expanded={isLanguageOpen}
-              >
-                {selectedLanguage.code}{' '}
-                <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
-                  <path
-                    d="M1 1l5 5 5-5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {isLanguageOpen && (
-                <ul
-                  className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
-                  role="listbox"
-                  aria-label="เลือกภาษา"
-                >
-                  {languageOptions.map((option) => (
-                    <li key={option.code}>
-                      <button
-                        type="button"
-                        className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
-                          selectedLanguage.code === option.code
-                            ? 'bg-gray-100 text-gray-900'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                        onClick={() => handleLanguageSelect(option)}
-                        role="option"
-                        aria-selected={selectedLanguage.code === option.code}
-                      >
-                        <span>{option.label}</span>
-                        <span className="font-semibold">{option.code}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
+        <AuthNavbar
+          languageOptions={languageOptions}
+          selectedLanguage={selectedLanguage}
+          onLanguageSelect={handleLanguageSelect}
+        />
 
-        <div className="px-6 py-[10px]">
+        <div className="px-3 sm:px-4 md:px-6 py-[10px]">
           <button
             type="button"
             onClick={() => router.back()}
             className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition"
           >
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6">
               <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="text-sm font-medium">{t.actions.back}</span>
+            <span className="text-xs sm:text-sm font-medium">{t.actions.back}</span>
           </button>
         </div>
 
         {/* Form Content */}
-        <div className="flex-1 flex flex-col px-4 md:px-6 pt-4 pb-6 gap-4 overflow-y-auto">
+        <div className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 pt-4 pb-6 gap-3 sm:gap-4 overflow-y-auto">
           <div className="text-center mb-2">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{t.title}</h2>
-            <p className="text-sm text-gray-500">{t.subtitle}</p>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">{t.title}</h2>
+            <p className="text-xs sm:text-sm text-gray-500 px-2">{t.subtitle}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3 md:gap-4">
+          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3 sm:gap-4">
             <div>
-              <label htmlFor="fullName" className="block text-sm text-gray-700 mb-1.5">
-                {t.fields.fullName}
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                value={formData.fullName}
-                onChange={(e) => handleLetterInputChange(e, true)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm md:text-base"
-                placeholder={t.placeholders.fullName}
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="username" className="block text-sm text-gray-700 mb-1.5">
+              <label htmlFor="username" className="block text-xs sm:text-sm text-gray-700 mb-1.5">
                 {t.fields.username}
               </label>
               <input
@@ -489,8 +376,8 @@ export default function RegisterPage() {
                 name="username"
                 type="text"
                 value={formData.username}
-                onChange={handleLetterInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm md:text-base"
+                onChange={handleChange}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base"
                 placeholder={t.placeholders.username}
                 required
                 autoComplete="username"
@@ -498,7 +385,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm text-gray-700 mb-1.5">
+              <label htmlFor="email" className="block text-xs sm:text-sm text-gray-700 mb-1.5">
                 {t.fields.email}
               </label>
               <input
@@ -507,7 +394,7 @@ export default function RegisterPage() {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm md:text-base"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base"
                 placeholder={t.placeholders.email}
                 autoComplete="email"
                 required
@@ -515,19 +402,19 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="phoneNumber" className="block text-sm text-gray-700 mb-1.5">
+              <label htmlFor="phoneNumber" className="block text-xs sm:text-sm text-gray-700 mb-1.5">
                 {t.fields.phone}
               </label>
               <div className="flex items-center gap-2">
                 <div className="relative" ref={phoneDropdownRef}>
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-3 py-3 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white hover:bg-gray-50"
+                    className="flex items-center gap-2 px-3 sm:px-3 py-2.5 sm:py-3 border border-gray-300 rounded-lg text-xs sm:text-sm text-gray-900 bg-white hover:bg-gray-50"
                     onClick={() => setIsPhoneDropdownOpen((prev) => !prev)}
                     aria-haspopup="listbox"
                     aria-expanded={isPhoneDropdownOpen}
                   >
-                    <span className="text-lg">{selectedPhoneCountry.flag}</span>
+                    <span className="text-base sm:text-lg">{selectedPhoneCountry.flag}</span>
                     <span className="font-medium">{selectedPhoneCountry.code}</span>
                     <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
                       <path
@@ -549,7 +436,7 @@ export default function RegisterPage() {
                         <li key={option.code}>
                           <button
                             type="button"
-                            className={`w-full flex items-center gap-2 px-4 py-2 text-sm ${
+                            className={`w-full flex items-center gap-2 px-4 py-2 text-xs sm:text-sm ${
                               selectedPhoneCountry.code === option.code
                                 ? 'bg-gray-100 text-gray-900'
                                 : 'text-gray-700 hover:bg-gray-50'
@@ -558,7 +445,7 @@ export default function RegisterPage() {
                             role="option"
                             aria-selected={selectedPhoneCountry.code === option.code}
                           >
-                            <span className="text-lg">{option.flag}</span>
+                            <span className="text-base sm:text-lg">{option.flag}</span>
                             <span className="font-medium">{option.code}</span>
                             <span className="text-xs text-gray-500">{option.label}</span>
                           </button>
@@ -573,7 +460,7 @@ export default function RegisterPage() {
                   type="tel"
                   value={formData.phoneNumber}
                   onChange={handlePhoneChange}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm md:text-base"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base"
                   placeholder={t.placeholders.phone}
                   required
                 />
@@ -581,7 +468,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm text-gray-700 mb-1.5">
+              <label htmlFor="password" className="block text-xs sm:text-sm text-gray-700 mb-1.5">
                 {t.fields.password}
               </label>
               <div className="relative">
@@ -591,24 +478,24 @@ export default function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm md:text-base pr-12"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base pr-10 sm:pr-12"
                   placeholder={t.placeholders.password}
                   required
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label="แสดงรหัสผ่าน"
                 >
                   {showPassword ? (
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                    <svg width="18" height="18" className="sm:w-5 sm:h-5" fill="none" viewBox="0 0 20 20">
                       <path d="M1.667 10S4.167 4.167 10 4.167 18.333 10 18.333 10 15.833 15.833 10 15.833 1.667 10 1.667 10z" stroke="currentColor" strokeWidth="1.5" />
                       <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
                   ) : (
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                    <svg width="18" height="18" className="sm:w-5 sm:h-5" fill="none" viewBox="0 0 20 20">
                       <path d="M1.667 10S4.167 4.167 10 4.167c1.53 0 2.87.29 4.01.77M18.333 10s-2.5 5.833-8.333 5.833c-1.53 0-2.87-.29-4.01-.77M7.5 7.5l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                       <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
@@ -626,7 +513,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm text-gray-700 mb-1.5">
+              <label htmlFor="confirmPassword" className="block text-xs sm:text-sm text-gray-700 mb-1.5">
                 {t.fields.confirmPassword}
               </label>
               <div className="relative">
@@ -636,24 +523,24 @@ export default function RegisterPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm md:text-base pr-12"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base pr-10 sm:pr-12"
                   placeholder={t.placeholders.confirmPassword}
                   required
                   autoComplete="new-password"
                 />
                 <button
                   type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
                   aria-label="แสดงรหัสผ่าน"
                 >
                   {showConfirmPassword ? (
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                    <svg width="18" height="18" className="sm:w-5 sm:h-5" fill="none" viewBox="0 0 20 20">
                       <path d="M1.667 10S4.167 4.167 10 4.167 18.333 10 18.333 10 15.833 15.833 10 15.833 1.667 10 1.667 10z" stroke="currentColor" strokeWidth="1.5" />
                       <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
                   ) : (
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                    <svg width="18" height="18" className="sm:w-5 sm:h-5" fill="none" viewBox="0 0 20 20">
                       <path d="M1.667 10S4.167 4.167 10 4.167c1.53 0 2.87.29 4.01.77M18.333 10s-2.5 5.833-8.333 5.833c-1.53 0-2.87-.29-4.01-.77M7.5 7.5l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                       <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
@@ -663,7 +550,7 @@ export default function RegisterPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm mt-3 sm:mt-4">
                 {error}
               </div>
             )}
@@ -671,12 +558,12 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold text-sm md:text-base mt-2 hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed mt-1 sm:mt-2"
             >
               {isLoading ? `${t.actions.register}...` : t.actions.register}
             </button>
           </form>
-          <div className="w-full text-center text-sm text-gray-500 mt-4 pb-4">
+          <div className="w-full text-center text-xs sm:text-sm text-gray-500 mt-3 sm:mt-4 pb-3 sm:pb-4">
             {t.actions.haveAccountText}{' '}
             <button
               type="button"
