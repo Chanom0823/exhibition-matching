@@ -5,9 +5,11 @@ import Image from 'next/image';
 import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import {signOut } from 'firebase/auth';
 import jsPDF from 'jspdf';
 import ExportButtons from '@/app/components/ExportButtons';
+import translations from '@/app/components/translations';
 
 const promptFont = localFont({
   src: [
@@ -20,77 +22,6 @@ const promptFont = localFont({
 const sawarabiFont = localFont({
   src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
-
-const translations = {
-  TH: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management'],
-    searchPlaceholder: 'Search...',
-    totalParticipants: 'จำนวนผู้เข้างานทั้งหมด',
-    totalVisitors: 'จำนวนผู้เข้าชม',
-    totalExhibitors: 'จำนวน exhibitors',
-    trendTitle: 'เปรียบเทียบระหว่าง Exhibitors และ Visitors',
-    trendOutpatients: 'ยอดสนใจ',
-    trendInpatients: 'ไม่ได้ติดต่อ',
-    patientsByCategory: 'ผู้สนใจตามหมวดหมู่',
-    timeAdmitted: 'ช่วงเวลาที่ติดต่อ',
-    divisionLabel: 'หมวดหมู่',
-    patientsLabel: 'จำนวน',
-    logout: 'ออกจากระบบ',
-    export: 'Export',
-    tableNo: 'ลำดับ',
-    tableName: 'ปัญหา',
-    tableContact: 'จำนวนที่เลือก',
-    details: 'รายละเอียด',
-    contact: 'ติดต่อ',
-    contacted: 'ติดต่อแล้ว',
-    notContacted: 'ยังไม่ติดต่อ',
-    name: 'ชื่อ',
-    company: 'ชื่อบริษัท',
-    phone: 'เบอร์โทร',
-    email: 'อีเมล',
-    problems: 'ปัญหาที่เลือก',
-    filterAll: 'ทั้งหมด',
-    filterNotContacted: 'ยังไม่ติดต่อ',
-    filterContacted: 'ติดต่อแล้ว',
-    userContactsLabel: 'ผู้ใช้งานกดติดต่อ',
-    exhibitorContactsLabel: 'Exhibitor กดติดต่อแล้ว',
-  },
-  JP: {
-    dashboard: 'ダッシュボード',
-    tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理'],
-    searchPlaceholder: '検索...',
-    totalParticipants: '総参加者数',
-    totalVisitors: '総訪問者数',
-    totalExhibitors: '出展者数',
-    trendTitle: '出展者と訪問者の比較',
-    trendOutpatients: 'マッチ',
-    trendInpatients: '未連絡',
-    patientsByCategory: 'カテゴリ別興味',
-    timeAdmitted: '連絡時間',
-    divisionLabel: 'カテゴリ',
-    patientsLabel: '数',
-    logout: 'ログアウト',
-    export: 'Export',
-    tableNo: '番号',
-    tableName: '問題',
-    tableContact: '選択数',
-    details: '詳細',
-    contact: '連絡',
-    contacted: '連絡済み',
-    notContacted: '未連絡',
-    name: '名前',
-    company: '会社名',
-    phone: '電話',
-    email: 'メール',
-    problems: '選択された問題',
-    filterAll: 'すべて',
-    filterNotContacted: '未連絡',
-    filterContacted: '連絡済み',
-    userContactsLabel: 'ユーザー連絡',
-    exhibitorContactsLabel: '出展者連絡済み',
-  },
-};
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -259,7 +190,7 @@ export default function AdminDashboardPage() {
     setIsLanguageOpen(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('username');
@@ -267,7 +198,8 @@ export default function AdminDashboardPage() {
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userRole');
     }
-    router.push('/login');
+    await signOut(auth);
+    router.replace('/login')
   };
 
   const toggleRow = (rowId) => {

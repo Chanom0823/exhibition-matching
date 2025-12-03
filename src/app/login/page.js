@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import localFont from 'next/font/local';
-import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, getAuth } from 'firebase/auth';
+import AuthNavbar from '../components/AuthNavbar';
+import { auth, db } from '@/lib/firebase'; 
+import { doc, getDoc } from "firebase/firestore";
 
 const promptFont = localFont({
   src: [
@@ -114,92 +114,48 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorKey(null);
     setIsLoading(true);
-
-    // กรณีเจ้าของระบบ (owner) ใช้ credential พิเศษ
-    if (username === 'owner1' && password === '12345') {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('username', username);
-      localStorage.setItem('userRole', 'owner');
-      localStorage.setItem('userId', 'owner');
-      localStorage.setItem('userEmail', 'owner@example.com');
-      router.push('/owner-dashboard');
-      setIsLoading(false);
-      return;
-    }
-
-    // กรณี admin / organizer
-    if (username === 'admin' && password === '12345') {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('username', username);
-      localStorage.setItem('userRole', 'organizer');
-      localStorage.setItem('userId', 'admin');
-      localStorage.setItem('userEmail', 'admin@example.com');
-      router.push('/organizer-dashboard');
-      setIsLoading(false);
-      return;
-    }
-
-    // กรณี admin dashboard
-    if (username === 'admin1234' && password === '123456@') {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('username', username);
-      localStorage.setItem('userRole', 'admin');
-      localStorage.setItem('userId', 'admin1234');
-      localStorage.setItem('userEmail', 'admin1234@example.com');
-      router.push('/admin-dashboard');
-      setIsLoading(false);
-      return;
-    }
-
+    console.log(username, password)
     try {
-      let identifier = username.trim();
-      let exhibitorProfile = null;
-
-      if (!identifier.includes('@')) {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('usernameLower', '==', identifier.toLowerCase()));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          setErrorKey('invalidCredentials');
+      const userCredential = await signInWithEmailAndPassword(auth, username, password);
+      const user = userCredential.user;
+      const docRef = doc(db, "users", user.uid); 
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        if (userData.role === 'exhibitor' || userData.role === 'admin') {
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('username', user.displayName || user.username);
+          localStorage.setItem('userRole', userData.role);
+          localStorage.setItem('userId', user.uid);
+          localStorage.setItem('userEmail', user.email);
+          if(userData.role === 'exhibitor'){
+            router.push('/exhibitor-dashboard');
+          }else{
+            router.push('/admin-dashboard');
+          }
           setIsLoading(false);
-          return;
+        } else {
+          alert(selectedLanguage.code === 'TH' ? "ขออภัยคุณไม่มีสิทธิ์เข้าถึง" : "申し訳ございませんが、アクセス権限がありません");
+          await signOut(auth);
+          setIsLoading(false);
         }
-
-        exhibitorProfile = querySnapshot.docs[0].data();
-        identifier = exhibitorProfile.email;
+      }else{
+        alert("ไม่พบข้อมูลผู้ใช้ในระบบฐานข้อมูล (โปรดติดต่อเจ้าหน้าที่)");
+        await signOut(auth);
+        setIsLoading(false);
       }
-
-      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
-
-      if (!exhibitorProfile) {
-        const profileSnap = await getDoc(doc(db, 'users', userCredential.user.uid));
-        if (profileSnap.exists()) {
-          exhibitorProfile = profileSnap.data();
-        }
-      }
-
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('username', exhibitorProfile?.username || identifier);
-      localStorage.setItem('userId', userCredential.user.uid);
-      localStorage.setItem('userEmail', exhibitorProfile?.email || identifier);
-      localStorage.setItem('userRole', exhibitorProfile?.role || 'user');
-      
-      setIsLoading(false);
-      // Redirect ไปหน้า exhibitor dashboard
-      router.push('/exhibitor-dashboard');
     } catch (error) {
       console.error('Error logging in:', error);
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
-        setErrorKey('invalidCredentials');
-      } else {
-        setErrorKey('general');
-      }
+      const errorMessage = selectedLanguage.code === 'TH'
+        ? "อีเมลหรือรหัสผ่านไม่ถูกต้องครับ"
+        : "メールアドレスまたはパスワードが正しくありません";
+      alert(errorMessage);
       setIsLoading(false);
     }
   };
 
   const t = translations[selectedLanguage.code];
+
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
@@ -207,71 +163,11 @@ export default function LoginPage() {
     <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none">
         {/* Header with Logo and Language Selector */}
-        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px]">
-          {/* Logo - Top Left */}
-          <button
-            type="button"
-            className="flex items-center"
-            onClick={() => router.push('/')}
-            aria-label="กลับไปหน้าแรก"
-          >
-            <Image 
-              src="/logo.svg" 
-              alt="alt design office" 
-              width={80} 
-              height={39}
-              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
-              priority
-            />
-          </button>
-          {/* Language Selector - Top Right */}
-          <div className="relative" ref={languageDropdownRef}>
-            <button
-              type="button"
-              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
-              onClick={() => setIsLanguageOpen((prev) => !prev)}
-              aria-haspopup="listbox"
-              aria-expanded={isLanguageOpen}
-            >
-              {selectedLanguage.code}{' '}
-              <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
-                <path
-                  d="M1 1l5 5 5-5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-            {isLanguageOpen && (
-              <ul
-                className="absolute right-0 mt-2 w-32 md:w-36 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
-                role="listbox"
-                aria-label="เลือกภาษา"
-              >
-                {languageOptions.map((option) => (
-                  <li key={option.code}>
-                    <button
-                      type="button"
-                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
-                        selectedLanguage.code === option.code
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                      onClick={() => handleLanguageSelect(option)}
-                      role="option"
-                      aria-selected={selectedLanguage.code === option.code}
-                    >
-                      <span>{option.label}</span>
-                      <span className="font-semibold">{option.code}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+        <AuthNavbar
+          languageOptions={languageOptions}
+          selectedLanguage={selectedLanguage}
+          onLanguageSelect={handleLanguageSelect}
+        />
 
         {/* Login Form - Centered */}
         <div className="flex-1 flex items-start sm:items-center justify-center px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
@@ -324,13 +220,13 @@ export default function LoginPage() {
                 >
                   {showPassword ? (
                     <svg width="18" height="18" className="sm:w-5 sm:h-5" fill="none" viewBox="0 0 20 20">
-                      <path d="M1.667 10S4.167 4.167 10 4.167 18.333 10 18.333 10 15.833 15.833 10 15.833 1.667 10 1.667 10z" stroke="currentColor" strokeWidth="1.5"/>
-                      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M1.667 10S4.167 4.167 10 4.167 18.333 10 18.333 10 15.833 15.833 10 15.833 1.667 10 1.667 10z" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
                   ) : (
                     <svg width="18" height="18" className="sm:w-5 sm:h-5" fill="none" viewBox="0 0 20 20">
-                      <path d="M1.667 10S4.167 4.167 10 4.167c1.53 0 2.87.29 4.01.77M18.333 10s-2.5 5.833-8.333 5.833c-1.53 0-2.87-.29-4.01-.77M7.5 7.5l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M1.667 10S4.167 4.167 10 4.167c1.53 0 2.87.29 4.01.77M18.333 10s-2.5 5.833-8.333 5.833c-1.53 0-2.87-.29-4.01-.77M7.5 7.5l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
                   )}
                 </button>
@@ -349,9 +245,9 @@ export default function LoginPage() {
 
             <div className="flex flex-col gap-2 text-xs sm:text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 cursor-pointer" 
+                <input
+                  type="checkbox"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 cursor-pointer"
                 />
                 <span className="text-gray-700">{t.rememberMe}</span>
               </label>
@@ -387,4 +283,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

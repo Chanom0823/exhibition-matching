@@ -6,6 +6,7 @@ import Link from 'next/link';
 import localFont from 'next/font/local';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import MainNavbar from '../components/MainNavbar';
 
 const promptFont = localFont({
   src: [
@@ -117,6 +118,7 @@ export default function HomePage() {
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
+  // Keep brand name on one line
   const brandMatch = t.heading.match(/alt design office/i);
   const headingContent =
     brandMatch && brandMatch[0]
@@ -132,77 +134,33 @@ export default function HomePage() {
         })()
       : t.heading;
 
+  // Force line break before the specific phrase on the homepage
+  const specialPhrase = 'สำหรับอุตสาหกรรมการผลิต ปี 2025';
+  const descriptionContent =
+    t.description && t.description.includes(specialPhrase)
+      ? (() => {
+          const [before, after] = t.description.split(specialPhrase);
+          return (
+            <>
+              {before}
+              <br />
+              {specialPhrase}
+              {after}
+            </>
+          );
+        })()
+      : t.description;
+
   return (
     <div className={`min-h-screen bg-white flex items-center justify-center ${currentFontClass}`}>
       <div className="w-full max-w-[390px] md:max-w-full h-[844px] md:h-screen bg-white flex flex-col relative">
         {/* Navbar */}
-        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px]">
-          <div className="flex items-center">
-            <Image
-              src="/logo.svg"
-              alt="alt design office"
-              width={80}
-              height={39}
-              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
-              priority
-            />
-          </div>
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="relative" ref={languageDropdownRef}>
-              <button
-                type="button"
-                className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
-                onClick={() => setIsLanguageOpen((prev) => !prev)}
-                aria-haspopup="listbox"
-                aria-expanded={isLanguageOpen}
-              >
-                {selectedLanguage.code}{' '}
-                <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
-                  <path
-                    d="M1 1l5 5 5-5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {isLanguageOpen && (
-                <ul
-                  className="absolute right-0 mt-2 w-32 md:w-36 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
-                  role="listbox"
-                  aria-label="เลือกภาษา"
-                >
-                  {languageOptions.map((option) => (
-                    <li key={option.code}>
-                      <button
-                        type="button"
-                        className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
-                          selectedLanguage.code === option.code
-                            ? 'bg-gray-100 text-gray-900'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                        onClick={() => handleLanguageSelect(option)}
-                        role="option"
-                        aria-selected={selectedLanguage.code === option.code}
-                      >
-                        <span>{option.label}</span>
-                        <span className="font-semibold">{option.code}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <Link
-              href="/login"
-              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center hover:bg-gray-700 transition"
-            >
-              {t.loginCta}
-            </Link>
-          </div>
-        </div>
+        <MainNavbar
+          languageOptions={languageOptions}
+          selectedLanguage={selectedLanguage}
+          onLanguageSelect={handleLanguageSelect}
+          loginLabel={t.loginCta}
+        />
 
         {/* Hero Content */}
         <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 lg:px-12 text-center gap-4 md:gap-6 pt-[80px] md:pt-0">
@@ -211,7 +169,7 @@ export default function HomePage() {
               {headingContent}
             </h1>
             <p className="text-sm md:text-lg lg:text-xl text-gray-600 mb-6 md:mb-8 max-w-xl mx-auto">
-              {t.description}
+              {descriptionContent}
             </p>
             <Link
               href="/user-panel"
