@@ -887,10 +887,16 @@ export default function UserMatchingPage() {
                 type="button"
                 onClick={async () => {
                   try {
-                    await addDoc(collection(db, 'contacts'), {
+                    await addDoc(collection(db, 'contacts'), { //แก้ตารางเป็น uservisit 
                       exhibitorId: selectedExhibitor.id,
-                      companyName: selectedExhibitor.companyName,
-                      createdAt: serverTimestamp(),
+                      companyName: selectedExhibitor.companyName, 
+                      //problemTags 
+                      // VisitcompanyName  
+                      // fullName 
+                      // language 
+                      // pdpaAcceptedtrue 
+                      // contact 
+                      createdAt: serverTimestamp(), //จะส่งข้อมูลจาก session หรือ cookie เท่านั้น
                     });
                     setIsModalOpen(false);
                     setSelectedExhibitor(null);

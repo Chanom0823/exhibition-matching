@@ -261,7 +261,9 @@ export default function UserPanelPage() {
         userRole: userRole || 'visitor',
         createdAt: serverTimestamp(),
       });
-
+    //หาวิธี ส่ง DocID ของUserPanelSubmissions ส่งต่อไปยัง user-matching
+    //ต้องเก็ยข้อมูลใส่ cookie หรือ session ซึ่งมีการจำกัดเวลา ต้อง file แยก
+    //ตัวแปรทั้งหมดในuserpanel ต้องเก็บในsessionหรือcookie
       if (typeof window !== 'undefined') {
         localStorage.setItem('userInterests', JSON.stringify(selectedCategories));
       }
