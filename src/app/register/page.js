@@ -250,7 +250,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // Validate username: must contain at least one letter (not only digits, not only special chars, not only digits + special chars)
     const hasLetter = /[a-zA-Zก-๙ぁ-んァ-ヶー一-龯]/.test(trimmedUsername);
     if (!hasLetter) {
       setError(translations[selectedLanguage.code].errors.invalidUsername);
