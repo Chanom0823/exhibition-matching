@@ -6,6 +6,7 @@ import Image from 'next/image';
 import localFont from 'next/font/local';
 import { addDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { createSesstion } from '@/lib/auth';
 
 const promptFont = localFont({
   src: [
@@ -248,22 +249,28 @@ export default function UserPanelPage() {
     const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
 
     try {
-      await addDoc(collection(db, 'userPanelSubmissions'), {
+      const docRef = await addDoc(collection(db, 'userPanelSubmissions'), {
         fullName: trimmedFullName,
         companyName: trimmedCompanyName,
         contact: trimmedContact,
         categories: selectedCategories,
         language: selectedLanguage.code,
         pdpaAccepted: true,
-        username: username || null,
+        // username: username || null,
         userId: userId || null,
-        userEmail: userEmail || null,
-        userRole: userRole || 'visitor',
+        // userEmail: userEmail || null,
+        // userRole: userRole || 'visitor',
         createdAt: serverTimestamp(),
-      });
+      })
     //หาวิธี ส่ง DocID ของUserPanelSubmissions ส่งต่อไปยัง user-matching
     //ต้องเก็ยข้อมูลใส่ cookie หรือ session ซึ่งมีการจำกัดเวลา ต้อง file แยก
     //ตัวแปรทั้งหมดในuserpanel ต้องเก็บในsessionหรือcookie
+
+    if(docRef.id){
+      console.log("บันทึกเสร็จเเล้ว ID", docRef.id)
+      const result = await createSesstion(docRef.id)
+      alert('Visiter ID ของคุณ คือ ' + result)
+    }
       if (typeof window !== 'undefined') {
         localStorage.setItem('userInterests', JSON.stringify(selectedCategories));
       }
