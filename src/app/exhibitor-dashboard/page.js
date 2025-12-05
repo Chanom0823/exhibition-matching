@@ -188,7 +188,7 @@ export default function ExhibitorDashboardPage() {
     const fetchSummaryData = async () => {
       if (typeof window === 'undefined') return;
       
-      const currentUsername = localStorage.getItem('username');
+      const currentUsername = localStorage.getItem('userId');
       if (!currentUsername) return;
 
       try {
@@ -197,7 +197,7 @@ export default function ExhibitorDashboardPage() {
 
         const submissionsQuery = query(
               submissionsRef, 
-              where('username', '==', currentUsername) 
+              where('exhibitorId', '==', currentUsername) 
         );
         
         // const submissionsQuery = query(submissionsRef);
@@ -209,7 +209,7 @@ export default function ExhibitorDashboardPage() {
         });
 
         // Fetch contacts (matched data from usermatching page)
-        const contactsRef = collection(db, 'contacts');
+        const contactsRef = collection(db, 'userPanelSubmissions');
         const contactsQuery = query(contactsRef);
         const contactsSnapshot = await getDocs(contactsQuery);
         
@@ -260,7 +260,7 @@ export default function ExhibitorDashboardPage() {
             id: sub.id,
             no: index + 1,
             name: sub.fullName || 'N/A',
-            companyName: sub.companyName || 'N/A',
+            companyName: sub.companyName || '-',
             phone,
             email,
             categories: sub.categories || [],

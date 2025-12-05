@@ -896,7 +896,6 @@ export default function UserMatchingPage() {
                     const washingtonRef = doc(db,  'userPanelSubmissions', visiterId);
                     await updateDoc(washingtonRef, {
                       exhibitorId: selectedExhibitor.id,
-                      companyName: selectedExhibitor.companyName,
                       createdAt: serverTimestamp(),
                     }, { merge: true });
                     setIsModalOpen(false);
