@@ -7,7 +7,7 @@ const translations = {
       loginCta: 'เข้าสู่ระบบ',
     // Admin Dashboard
     dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management'],
+    tabs: ['DashBoard', 'User Management', 'Problem Tag Management'],
     searchPlaceholder: 'Search...',
     totalParticipants: 'จำนวนผู้เข้างานทั้งหมด',
     totalVisitors: 'จำนวนผู้เข้าชม',
@@ -120,7 +120,7 @@ const translations = {
       loginCta: 'ログイン',
       // Admin Dashboard
       dashboard: 'ダッシュボード',
-      tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理'],
+      tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理'],
       searchPlaceholder: '検索...',
       totalParticipants: '総参加者数',
       totalVisitors: '来場者数',

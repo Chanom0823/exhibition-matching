@@ -109,8 +109,6 @@ export default function ProblemTagManagementPage() {
       router.push('/admin-dashboard/user-management');
     } else if (targetTab === 'problemTagManagement') {
       router.push('/admin-dashboard/problem-tag-management');
-    } else if (targetTab === 'homepageManagement') {
-      router.push('/admin-dashboard/homepage-management');
     } else if (targetTab === 'pdpaManagement') {
       router.push('/admin-dashboard/pdpa-management');
     }
@@ -255,7 +253,7 @@ export default function ProblemTagManagementPage() {
           <nav className="flex-1 px-4 py-4">
             <div className="flex flex-col gap-2">
               {t.tabs.map((tab, idx) => {
-                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'homepageManagement'];
+                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement'];
                 const targetTab = tabKeys[idx] || 'dashboard';
 
                 const getIcon = (index) => {
