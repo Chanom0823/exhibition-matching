@@ -6,9 +6,10 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc, where, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc, where, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import {signOut } from 'firebase/auth';
+import { lookSesstion } from '@/lib/auth';
 
 const promptFont = localFont({
   src: [
@@ -249,7 +250,8 @@ export default function ExhibitorDashboardPage() {
 
         const tableRows = submissions.map((sub, index) => {
           const contactDocId = contactMap.get(sub.id) || contactMap.get(sub.fullName);
-          const isContacted = Boolean(contactDocId);
+          const isContacted = sub.isContacted || false;
+          // const isContacted = false;
           // Parse contact to separate phone and email
           const contactStr = sub.contact || '';
           const isEmail = contactStr.includes('@');
@@ -923,29 +925,29 @@ export default function ExhibitorDashboardPage() {
       if (row.isContacted) {
         // Remove contact
         if (row.contactDocId) {
-          await deleteDoc(doc(db, 'contacts', row.contactDocId));
+          const washingtonRef = await doc(db, 'userPanelSubmissions', row.contactDocId);
+          await updateDoc(washingtonRef, {
+            isContacted : false,
+          });
         }
-
         setTableData((prevData) => {
           const updated = prevData.map((item) =>
-            item.id === row.id ? { ...item, isContacted: false, contactDocId: null } : item
+            item?.id === row.id ? { ...item, isContacted: false } : item
           );
           updateSummaryFromRows(updated);
           return updated;
         });
       } else {
         // Save contact to Firebase
-        const docRef = await addDoc(collection(db, 'contacts'), {
-          submissionId: row.id,
-          fullName: row.name,
-          companyName: row.companyName,
-          createdAt: serverTimestamp(),
+        const washingtonRef = await doc(db, 'userPanelSubmissions', row.contactDocId);
+        const docRef = await updateDoc(washingtonRef, {
+          isContacted : true,
         });
 
         // Update local state
         setTableData((prevData) => {
           const updated = prevData.map((item) =>
-            item.id === row.id ? { ...item, isContacted: true, contactDocId: docRef.id } : item
+            item?.id === row.id ? { ...item, isContacted: true } : item
           );
           updateSummaryFromRows(updated);
           return updated;

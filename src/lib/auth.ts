@@ -14,7 +14,6 @@ export async function createSesstion(id:string){
 export async function lookSesstion(){
   const cookieStore = await cookies();
   const cookie = cookieStore.get('visiterId')
-  console.log('วิ่งมานี่เเล้ว')
   return cookie?.value;
 }
 
