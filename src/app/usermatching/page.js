@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import localFont from 'next/font/local';
-import { addDoc, collection, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { lookSesstion } from '@/lib/auth';
 
 const promptFont = localFont({
   src: [
@@ -145,7 +146,7 @@ export default function UserMatchingPage() {
     setSelectedFilter('problem');
     setSelectedCategory((prev) => (prev === tag ? null : tag));
   };
-
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
   // Load user interests from localStorage or Firebase
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -886,18 +887,18 @@ export default function UserMatchingPage() {
               <button
                 type="button"
                 onClick={async () => {
+                  const visiterId = await  lookSesstion();
+                  if(!visiterId){
+                    
+                    return ;
+                  } 
                   try {
-                    await addDoc(collection(db, 'contacts'), { //แก้ตารางเป็น uservisit 
+                    const washingtonRef = doc(db,  'userPanelSubmissions', visiterId);
+                    await updateDoc(washingtonRef, {
                       exhibitorId: selectedExhibitor.id,
-                      companyName: selectedExhibitor.companyName, 
-                      //problemTags 
-                      // VisitcompanyName  
-                      // fullName 
-                      // language 
-                      // pdpaAcceptedtrue 
-                      // contact 
-                      createdAt: serverTimestamp(), //จะส่งข้อมูลจาก session หรือ cookie เท่านั้น
-                    });
+                      companyName: selectedExhibitor.companyName,
+                      createdAt: serverTimestamp(),
+                    }, { merge: true });
                     setIsModalOpen(false);
                     setSelectedExhibitor(null);
                     setShowNotification(true);

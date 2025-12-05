@@ -256,15 +256,9 @@ export default function UserPanelPage() {
         categories: selectedCategories,
         language: selectedLanguage.code,
         pdpaAccepted: true,
-        // username: username || null,
         userId: userId || null,
-        // userEmail: userEmail || null,
-        // userRole: userRole || 'visitor',
         createdAt: serverTimestamp(),
       })
-    //หาวิธี ส่ง DocID ของUserPanelSubmissions ส่งต่อไปยัง user-matching
-    //ต้องเก็ยข้อมูลใส่ cookie หรือ session ซึ่งมีการจำกัดเวลา ต้อง file แยก
-    //ตัวแปรทั้งหมดในuserpanel ต้องเก็บในsessionหรือcookie
 
     if(docRef.id){
       console.log("บันทึกเสร็จเเล้ว ID", docRef.id)
