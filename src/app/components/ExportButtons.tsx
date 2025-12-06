@@ -538,7 +538,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     
     const categorySheetData = [
       categoryHeaders,
-      ...categoryData.map((cat, index) => [
+      ...(categoryData ?? []).map((cat, index) => [
         index + 1,
         cat.name === "Others" 
           ? (isJapanese ? "その他" : isThai ? "อื่นๆ" : "Others")
@@ -568,7 +568,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     
     const tableSheetData = [
       tableHeaders,
-      ...tableData.map((row) => [
+      ...(tableData ?? []).map((row) => [
         row.no,
         row.name,
         row.companyName,
