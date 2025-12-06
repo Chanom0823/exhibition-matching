@@ -106,19 +106,17 @@ export default function UserMatchingPage() {
     setSelectedCategory((prev) => (prev === tag ? null : tag));
   };
   // Load user interests from localStorage or Firebase
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
+  //useEffect(() => {
       // Try to get user interests from localStorage
-      const storedInterests = localStorage.getItem('userInterests');
-      if (storedInterests) {
-        try {
-          setUserInterests(JSON.parse(storedInterests));
-        } catch (e) {
-          console.error('Error parsing user interests:', e);
-        }
-      }
-    }
-  }, []);
+      // const storedInterests = localStorage?.getItem('userInterests');
+      // if (storedInterests) {
+      //   try {
+      //     setUserInterests(JSON.parse(storedInterests));
+      //   } catch (e) {
+      //     console.error('Error parsing user interests:', e);
+      //   }
+      // }
+  //}, []);
 
   // Load exhibitors from Firebase
   useEffect(() => {
@@ -137,6 +135,7 @@ export default function UserMatchingPage() {
               id: doc.id,
               ...data,
             });
+            console.log('Loaded exhibitor:', data.companyName);
           }
         });
 
