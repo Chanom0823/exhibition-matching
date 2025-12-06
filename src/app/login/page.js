@@ -63,6 +63,11 @@ const translations = {
   },
 };
 
+const verifyEligibility = async () => {
+  const uid = await lookUidSesstion();
+  if(uid) return router.replace('/')
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -114,7 +119,6 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorKey(null);
     setIsLoading(true);
-    console.log(username, password)
     try {
       const userCredential = await signInWithEmailAndPassword(auth, username, password);
       const user = userCredential.user;

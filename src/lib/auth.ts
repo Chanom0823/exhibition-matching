@@ -21,3 +21,8 @@ export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete('visiterId');
 }
+
+// export async function lookUidSesstion(){
+//   const cookie = localStorage.getItem('userId')
+//   return cookie;
+// }
