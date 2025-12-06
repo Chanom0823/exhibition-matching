@@ -86,13 +86,11 @@ export default function UserMatchingPage() {
   const languageDropdownRef = useRef(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [exhibitors, setExhibitors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userInterests, setUserInterests] = useState([]);
   const [selectedExhibitor, setSelectedExhibitor] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
   const [problemTags, setProblemTags] = useState([]);
 
   const handleFilterClick = (filterKey) => {
@@ -100,11 +98,6 @@ export default function UserMatchingPage() {
     if (filterKey !== 'problem') {
       setSelectedCategory(null);
     }
-  };
-
-  const handleCategorySelect = (tag) => {
-    setSelectedFilter('problem');
-    setSelectedCategory((prev) => (prev === tag ? null : tag));
   };
 
   useEffect(() => {
@@ -119,16 +112,11 @@ export default function UserMatchingPage() {
         if (visitorSnap.exists()) {
           const data = visitorSnap.data();
           visitorInterests = data.categories || [];
-          console.log("ความสนใจของผู้ใช้:", visitorInterests);
-        } else {
-          console.log("ไม่พบข้อมูลการกรอกฟอร์มของผู้ใช้");
         }
         const exhibitorsRef = collection(db, 'exhibitors');
         const q = query(exhibitorsRef, where('categories', 'array-contains-any', visitorInterests));
         const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-          console.log('ID:', doc.id, ' => ข้อมูล:', doc.data());
-        });
+       
         const exhibitorsData = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
@@ -138,11 +126,7 @@ export default function UserMatchingPage() {
               id: doc.id,
               ...data,
             });
-            console.log('Loaded exhibitor:', data.companyName);
           }
-        });
-        exhibitorsData.map((item) => {
-          console.log("ข้อมูลบริษัท: ", item);
         });
 
         setExhibitors(exhibitorsData);
@@ -253,8 +237,8 @@ export default function UserMatchingPage() {
               alt="alt design office"
               width={80}
               height={39}
-              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
-              priority
+              className="w-20 h-auto md:w-25"
+              loading="eager"
             />
           </button>
           <div className="relative" ref={languageDropdownRef}>
@@ -318,7 +302,8 @@ export default function UserMatchingPage() {
               alt="Map"
               width={358}
               height={200}
-              className="w-full rounded-lg"
+              loading="eager"
+              className="w-full h-auto rounded-lg"
             />
           </div>
 
@@ -328,11 +313,11 @@ export default function UserMatchingPage() {
               {selectedLanguage.code === 'TH' ? 'กำลังโหลด...' : selectedLanguage.code === 'EN' ? 'Loading...' : '読み込み中...'}
             </div>
           ) : filteredExhibitors.length > 0 ? (
-            <div className="relative">
+            <div className="relative  w-full">
               {filteredExhibitors.map((exhibitor) => (
                 <div
                   key={exhibitor.id}
-                  className="w-full bg-white rounded-lg shadow-md border border-gray-200 p-3 mb-3 w-[358px] h-[100px] cursor-pointer transition hover:shadow-lg relative"
+                  className="w-full bg-white rounded-lg shadow-md border border-gray-200 p-3 mb-3  min-h-25 cursor-pointer transition hover:shadow-lg relative"
                   onClick={() => {
                     setSelectedExhibitor(selectedExhibitor?.id === exhibitor.id ? null : exhibitor);
                     setIsDropdownOpen(selectedExhibitor?.id === exhibitor.id ? !isDropdownOpen : true);
@@ -347,9 +332,9 @@ export default function UserMatchingPage() {
                     }
                   }}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center min-h-20 gap-4">
                     {/* Circular Image */}
-                    <div className="w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
+                    <div className="w-[60px] h-[60px] rounded-full overflow-hidden shrink-0 border border-gray-200">
                       {exhibitor.logoUrl? (
                         <Image
                           src={exhibitor?.logoUrl}
@@ -368,10 +353,10 @@ export default function UserMatchingPage() {
                     </div>
 
                     {/* Store Info and Actions */}
-                    <div className="flex-1 flex flex-col justify-between min-h-[80px]">
-                      <div>
+                    <div className="flex  flex-col   justify-between min-h-20">
+                      <div className='flex flex-col'>
                         {/* Store Name */}
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between  gap-2">
                           <h3
                             className={`${promptFont.className} text-[16px] font-bold text-gray-900 mb-1 flex-1`}
                           >
@@ -390,7 +375,7 @@ export default function UserMatchingPage() {
 
                         {/* Category Buttons */}
                         {exhibitor.categories && exhibitor.categories.length > 0 && (
-                          <div className="flex gap-1.5 mb-2">
+                          <div className="flex flex-wrap gap-1.5 mb-2">
                             {exhibitor.categories.slice(0, 2).map((category, catIndex) => (
                               <span
                                 key={catIndex}
