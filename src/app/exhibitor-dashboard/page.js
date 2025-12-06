@@ -188,38 +188,69 @@ export default function ExhibitorDashboardPage() {
   useEffect(() => {
     const fetchSummaryData = async () => {
       if (typeof window === 'undefined') return;
-      
+
       const currentUsername = localStorage.getItem('userId');
       if (!currentUsername) return;
 
       try {
-        // Fetch userPanelSubmissions
+        // Fetch exhibitor document to get exhibitor categories/tags
+        const exhibitorDocRef = doc(db, 'exhibitors', currentUsername);
+        const exhibitorSnap = await getDoc(exhibitorDocRef);
+        const exhibitorCategories = (exhibitorSnap.exists() && exhibitorSnap.data().categories) ? exhibitorSnap.data().categories : [];
+
+        // Fetch submissions specifically registered for this exhibitor
         const submissionsRef = collection(db, 'userPanelSubmissions');
-
-        const submissionsQuery = query(
-              submissionsRef, 
-              where('exhibitorId', '==', currentUsername) 
-        );
-        
-        // const submissionsQuery = query(submissionsRef);
+        const submissionsQuery = query(submissionsRef, where('exhibitorId', '==', currentUsername));
         const submissionsSnapshot = await getDocs(submissionsQuery);
-        
+
         const submissions = [];
-        submissionsSnapshot.forEach((doc) => {
-          submissions.push({ id: doc.id, ...doc.data() });
+        submissionsSnapshot.forEach((d) => submissions.push({ id: d.id, ...d.data() }));
+
+        // Fetch ALL submissions to compute visitors whose selected problem tags match exhibitor categories
+        const allSubsSnapshot = await getDocs(collection(db, 'userPanelSubmissions'));
+        const allSubs = [];
+        allSubsSnapshot.forEach((d) => allSubs.push({ id: d.id, ...d.data() }));
+
+        // Count visitors whose categories intersect exhibitorCategories (case-insensitive)
+        let visitorsMatchingCount = 0;
+        if (Array.isArray(exhibitorCategories) && exhibitorCategories.length > 0) {
+          const normExCat = exhibitorCategories.map((c) => (c || '').toLowerCase());
+          const seenVisitorIds = new Set();
+          allSubs.forEach((s) => {
+            if (!s.categories || !Array.isArray(s.categories) || seenVisitorIds.has(s.id)) return;
+            const sCatsNorm = s.categories.map((c) => (c || '').toLowerCase());
+            const intersects = sCatsNorm.some((c) => normExCat.includes(c));
+            if (intersects) {
+              visitorsMatchingCount += 1;
+              seenVisitorIds.add(s.id);
+            }
+          });
+        }
+
+        // Prepare table data from submissions (those who registered for this exhibitor)
+        const tableRows = submissions.map((sub, index) => {
+          const isContacted = sub.isContacted || false;
+          const contactStr = sub.contact || '';
+          const isEmail = contactStr.includes('@');
+          const phone = isEmail ? '' : contactStr;
+          const email = isEmail ? contactStr : '';
+
+          return {
+            id: sub.id,
+            no: index + 1,
+            name: sub.fullName || 'N/A',
+            companyName: sub.companyName || '-',
+            phone,
+            email,
+            categories: sub.categories || [],
+            isContacted,
+            contactDocId: sub.id || null,
+          };
         });
 
-        // Fetch contacts (matched data from usermatching page)
-        const contactsRef = collection(db, 'userPanelSubmissions');
-        const contactsQuery = query(contactsRef);
-        const contactsSnapshot = await getDocs(contactsQuery);
-        
-        const contacts = [];
-        contactsSnapshot.forEach((doc) => {
-          contacts.push({ id: doc.id, ...doc.data() });
-        });
+        setTableData(tableRows);
 
-        // Calculate category counts
+        // Update category chart data (from submissions for this exhibitor)
         const categoryCounts = {};
         submissions.forEach((sub) => {
           if (sub.categories && Array.isArray(sub.categories)) {
@@ -230,52 +261,31 @@ export default function ExhibitorDashboardPage() {
             });
           }
         });
-
-        // Convert to array and sort by count (descending)
         const sortedCategories = Object.entries(categoryCounts)
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 6); // Top 6 categories
-
+          .slice(0, 6);
         setCategoryData(sortedCategories);
 
-        // Prepare table data from submissions
-        const contactMap = new Map();
-        contacts.forEach((contact) => {
-          const key = contact.submissionId || contact.fullName;
-          if (key) {
-            contactMap.set(key, contact.id);
-          }
-        });
+        // Compute contacted count for table (exhibitor clicked contact)
+        const contactedCount = tableRows.filter((r) => r.isContacted).length;
 
-        const tableRows = submissions.map((sub, index) => {
-          const contactDocId = contactMap.get(sub.id) || contactMap.get(sub.fullName);
-          const isContacted = sub.isContacted || false;
-          // const isContacted = false;
-          // Parse contact to separate phone and email
-          const contactStr = sub.contact || '';
-          const isEmail = contactStr.includes('@');
-          const phone = isEmail ? '' : contactStr;
-          const email = isEmail ? contactStr : '';
-          
-          return {
-            id: sub.id,
-            no: index + 1,
-            name: sub.fullName || 'N/A',
-            companyName: sub.companyName || '-',
-            phone,
-            email,
-            categories: sub.categories || [],
-            isContacted,
-            contactDocId: contactDocId || null,
-          };
-        });
+        // Count unique visitors (all submissions - may have duplicates by visitor)
+        const uniqueVisitorCount = new Set(allSubs.map((s) => s.id)).size;
 
-        setTableData(tableRows);
-        updateSummaryFromRows(tableRows, false);
+        // Set summary data: card1 = total number of all visitors who registered,
+        // card2 = visitorsMatchingCount (visitors who selected problem tags matching exhibitor),
+        // card3 = number of contacts (rows where exhibitor clicked contact)
+        setSummaryData({
+          totalInterests: uniqueVisitorCount,
+          matched: visitorsMatchingCount,
+          notMatched: Math.max(tableRows.length - contactedCount, 0),
+          contacts: contactedCount,
+          loading: false,
+        });
       } catch (error) {
         console.error('Error fetching summary data:', error);
-        updateSummaryFromRows([], false);
+        setSummaryData((prev) => ({ ...prev, loading: false }));
       }
     };
 
@@ -911,13 +921,14 @@ export default function ExhibitorDashboardPage() {
 
   const updateSummaryFromRows = (rows, loading = false) => {
     const contactedCount = rows.filter((row) => row.isContacted).length;
-    setSummaryData({
+    setSummaryData((prev) => ({
       totalInterests: rows.length,
-      matched: contactedCount,
+      // 'matched' represents visitors matching exhibitor tags — preserve previous value
+      matched: prev?.matched ?? 0,
       notMatched: Math.max(rows.length - contactedCount, 0),
       contacts: contactedCount,
       loading,
-    });
+    }));
   };
 
   const handleContactClick = async (row) => {
@@ -981,7 +992,7 @@ export default function ExhibitorDashboardPage() {
   // Table data
   const [tableData, setTableData] = useState([]);
   const [expandedRows, setExpandedRows] = useState(new Set());
-  const [tableFilter, setTableFilter] = useState('all'); // 'all', 'notContacted', 'contacted'
+  // tableFilter removed - always show all rows
 
   // Sample data for charts
   const trendData = [
@@ -1268,149 +1279,21 @@ export default function ExhibitorDashboardPage() {
               </div>
             </div>
 
-            {/* Charts Row 1 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-              {/* Trend Chart */}
-              <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm ">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">{t.trendTitle}</h3>
-                </div>
-                <div className="h-[200px] flex items-end justify- gap-4">
-                  {categoryData.length > 0 ? (
-                    categoryData.map((item, index) => {
-                      const maxCount = Math.max(...categoryData.map((c) => c.count), 1);
-                      return (
-                        <div key={item.name} className="w-16 flex flex-col items-center gap-2">
-                          <div className="w-full flex items-end justify-center h-[150px]">
-                            <div
-                              className="w-full rounded-t"
-                              style={{ 
-                                height: `${(item.count / maxCount) * 100}%`,
-                                backgroundColor: '#1E2939'
-                              }}
-                            />
-                          </div>
-                          <span className="text-xs text-gray-600 text-center px-1 break-words">
-                            {item.name}
-                          </span>
-                          <span className="text-xs font-semibold text-gray-900">{item.count}</span>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="w-full text-center text-gray-500 py-8">
-                      {summaryData.loading ? 'Loading...' : 'No data available'}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Donut Chart */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center">
-                <div className="relative w-32 h-32 mb-4">
-                  <svg viewBox="0 0 100 100" className="transform -rotate-90">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#e5e7eb"
-                      strokeWidth="8"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#1E2939"
-                      strokeWidth="8"
-                      strokeDasharray={userDashArray}
-                      strokeDashoffset={0}
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#10b981"
-                      strokeWidth="8"
-                      strokeDasharray={exhibitorDashArray}
-                      strokeDashoffset={exhibitorOffset}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                      <span className="text-2xl">👥</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm text-gray-600">
-                    {userPercentage}% {t.userContactsLabel} ({userContactCount})
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {exhibitorPercentage}% {t.exhibitorContactsLabel} ({exhibitorContactCount})
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Table */}
             <div className="bg-white rounded-2xl p-4 shadow-sm">
-              {/* Filter Buttons */}
-              <div className="flex gap-4 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setTableFilter('all')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    tableFilter === 'all'
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-transparent text-gray-900 hover:text-gray-700'
-                  }`}
-                >
-                  {t.filterAll}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTableFilter('notContacted')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    tableFilter === 'notContacted'
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-transparent text-gray-900 hover:text-gray-700'
-                  }`}
-                >
-                  {t.filterNotContacted}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTableFilter('contacted')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    tableFilter === 'contacted'
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-transparent text-gray-900 hover:text-gray-700'
-                  }`}
-                >
-                  {t.filterContacted}
-                </button>
-              </div>
-
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t.tableNo}</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t.tableName}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t.company}</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t.tableContact}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(() => {
-                      const filteredData = tableData.filter((row) => {
-                        if (tableFilter === 'all') return true;
-                        if (tableFilter === 'contacted') return row.isContacted;
-                        if (tableFilter === 'notContacted') return !row.isContacted;
-                        return true;
-                      });
+                      const filteredData = tableData; // show all rows (filter buttons removed)
                       return filteredData.length > 0 ? (
                         filteredData.map((row, index) => {
                           const isExpanded = expandedRows.has(row.id);
@@ -1419,6 +1302,7 @@ export default function ExhibitorDashboardPage() {
                               <tr key={row.id || index} className="border-b border-gray-100 hover:bg-gray-50">
                                 <td className="py-3 px-4 text-sm text-gray-700">{row.no}</td>
                                 <td className="py-3 px-4 text-sm text-gray-700">{row.name}</td>
+                                <td className="py-3 px-4 text-sm text-gray-700">{row.companyName}</td>
                                 <td className="py-3 px-1">
                                   <div className="flex items-center gap-2">
                                     <button
@@ -1449,7 +1333,7 @@ export default function ExhibitorDashboardPage() {
                               </tr>
                               {isExpanded && (
                                 <tr key={`${row.id}-details`} className="border-b border-gray-100 bg-gray-50">
-                                  <td colSpan="3" className="py-4 px-4">
+                                  <td colSpan="4" className="py-4 px-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       <div>
                                         <p className="text-xs text-gray-500 mb-1">{t.name}</p>

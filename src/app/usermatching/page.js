@@ -4,9 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import localFont from 'next/font/local';
-import { addDoc, collection, serverTimestamp, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { lookSesstion } from '@/lib/auth';
 
 const promptFont = localFont({
   src: [
@@ -91,10 +90,9 @@ export default function UserMatchingPage() {
   const [loading, setLoading] = useState(true);
   const [userInterests, setUserInterests] = useState([]);
   const [selectedExhibitor, setSelectedExhibitor] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [problemTags, setProblemTags] = useState([]);
-  const [contactedExhibitors, setContactedExhibitors] = useState([]);
 
   const handleFilterClick = (filterKey) => {
     setSelectedFilter(filterKey);
@@ -107,7 +105,6 @@ export default function UserMatchingPage() {
     setSelectedFilter('problem');
     setSelectedCategory((prev) => (prev === tag ? null : tag));
   };
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
   // Load user interests from localStorage or Firebase
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -185,17 +182,10 @@ export default function UserMatchingPage() {
     loadProblemTags();
   }, []);
 
-  // Carousel should always use the full exhibitors list
-  const carouselExhibitors = exhibitors;
-
   // Filter exhibitors based on selected filters
   let filteredExhibitors = exhibitors;
 
-  if (selectedFilter === 'contacted') {
-    filteredExhibitors = filteredExhibitors.filter((exhibitor) =>
-      contactedExhibitors.includes(exhibitor.id)
-    );
-  } else if (selectedCategory) {
+  if (selectedCategory) {
     const normalizedCategory = selectedCategory.toLowerCase();
     filteredExhibitors = filteredExhibitors.filter(
       (exhibitor) =>
@@ -230,27 +220,6 @@ export default function UserMatchingPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  // Load contacted exhibitors from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('contactedExhibitors');
-      if (stored) {
-        try {
-          setContactedExhibitors(JSON.parse(stored));
-        } catch (e) {
-          console.error('Error parsing contactedExhibitors:', e);
-        }
-      }
-    }
-  }, []);
-
-  // Persist contacted exhibitors to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('contactedExhibitors', JSON.stringify(contactedExhibitors));
-    }
-  }, [contactedExhibitors]);
 
   const handleLanguageSelect = (option) => {
     setSelectedLanguage(option);
@@ -377,18 +346,6 @@ export default function UserMatchingPage() {
               >
                 ทั้งหมด
               </button>
-              <button
-                type="button"
-                onClick={() => handleFilterClick('contacted')}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  selectedFilter === 'contacted'
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-transparent text-gray-900 hover:text-gray-700'
-                }`}
-                aria-label="Contacted"
-              >
-                ติดต่อแล้ว
-              </button>
             </div>
           </div>
 
@@ -398,28 +355,29 @@ export default function UserMatchingPage() {
               {selectedLanguage.code === 'TH' ? 'กำลังโหลด...' : selectedLanguage.code === 'EN' ? 'Loading...' : '読み込み中...'}
             </div>
           ) : filteredExhibitors.length > 0 ? (
-            filteredExhibitors.map((exhibitor) => (
-              <div
-                key={exhibitor.id}
-                className="w-full bg-white rounded-lg shadow-md border border-gray-200 p-3 mb-3 w-[358px] h-[100px] cursor-pointer transition hover:shadow-lg"
-                onClick={() => {
-                  setSelectedExhibitor(exhibitor);
-                  setIsModalOpen(true);
-                }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedExhibitor(exhibitor);
-                    setIsModalOpen(true);
-                  }
-                }}
-              >
-                <div className="flex items-center gap-4">
-                  {/* Circular Image */}
-                  <div className="w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
-                    {exhibitor.logoUrl ? (
+            <div className="relative">
+              {filteredExhibitors.map((exhibitor) => (
+                <div
+                  key={exhibitor.id}
+                  className="w-full bg-white rounded-lg shadow-md border border-gray-200 p-3 mb-3 w-[358px] h-[100px] cursor-pointer transition hover:shadow-lg relative"
+                  onClick={() => {
+                    setSelectedExhibitor(selectedExhibitor?.id === exhibitor.id ? null : exhibitor);
+                    setIsDropdownOpen(selectedExhibitor?.id === exhibitor.id ? !isDropdownOpen : true);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedExhibitor(selectedExhibitor?.id === exhibitor.id ? null : exhibitor);
+                      setIsDropdownOpen(selectedExhibitor?.id === exhibitor.id ? !isDropdownOpen : true);
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Circular Image */}
+                    <div className="w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
+                      {exhibitor.logoUrl ? (
                       <Image
                         src={exhibitor.logoUrl}
                         alt={exhibitor.companyName || t.storeNameC}
@@ -446,9 +404,6 @@ export default function UserMatchingPage() {
                         >
                           {exhibitor.companyName || t.storeNameC}
                         </h3>
-                        {contactedExhibitors.includes(exhibitor.id) && (
-                          <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-800 text-[10px] rounded-full whitespace-nowrap">ติดต่อแล้ว</span>
-                        )}
                       </div>
 
                       {/* Product Type */}
@@ -477,8 +432,92 @@ export default function UserMatchingPage() {
                   </div>
 
                 </div>
+
+                {/* Red Dropdown Menu */}
+                {selectedExhibitor?.id === exhibitor.id && isDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white text-gray-900 rounded-lg shadow-lg p-4 z-20 w-full">
+                    {/* Company Name */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">{t.companyName}</label>
+                      <p className="text-sm text-gray-900">{selectedExhibitor.companyName || '-'}</p>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="space-y-2 mb-3">
+                      <label className="block text-xs font-semibold text-gray-600">{t.contactChannel}</label>
+                      
+                      {(selectedExhibitor.companyEmail || selectedExhibitor.email) && (
+                        <div>
+                          <span className="text-xs text-gray-500">{t.email}:</span>
+                          <p className="text-sm text-gray-900">{selectedExhibitor.companyEmail || selectedExhibitor.email}</p>
+                        </div>
+                      )}
+
+                      {(selectedExhibitor.companyPhone || selectedExhibitor.phone) && (
+                        <div>
+                          <span className="text-xs text-gray-500">{t.phone}:</span>
+                          <p className="text-sm text-gray-900">{selectedExhibitor.companyPhone || selectedExhibitor.phone}</p>
+                        </div>
+                      )}
+
+                      {(selectedExhibitor.companyWebsite || selectedExhibitor.website) && (
+                        <div>
+                          <span className="text-xs text-gray-500">{t.website}:</span>
+                          <a
+                            href={selectedExhibitor.companyWebsite || selectedExhibitor.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 underline hover:text-blue-800"
+                          >
+                            {selectedExhibitor.companyWebsite || selectedExhibitor.website}
+                          </a>
+                        </div>
+                      )}
+
+                      {selectedExhibitor.address && (
+                        <div>
+                          <span className="text-xs text-gray-500">{t.address}:</span>
+                          <p className="text-sm text-gray-900">{selectedExhibitor.address}</p>
+                        </div>
+                      )}
+
+                      {!(selectedExhibitor.companyEmail || selectedExhibitor.email) && 
+                       !(selectedExhibitor.companyPhone || selectedExhibitor.phone) && 
+                       !(selectedExhibitor.companyWebsite || selectedExhibitor.website) && 
+                       !selectedExhibitor.address && (
+                        <p className="text-xs text-gray-500">-</p>
+                      )}
+                    </div>
+
+                    {/* Company Description */}
+                    {selectedExhibitor.companyDescription && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t.companyDescription}</label>
+                        <p className="text-sm text-gray-900">{selectedExhibitor.companyDescription}</p>
+                      </div>
+                    )}
+
+                    {/* Categories */}
+                    {selectedExhibitor.categories && selectedExhibitor.categories.length > 0 && (
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-2">{t.categories}</label>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedExhibitor.categories.map((category, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full border border-gray-300"
+                            >
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            ))
+              ))}
+            </div>
           ) : (
             <div className="w-full bg-gray-50 border border-dashed border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500 mb-4">
               {selectedLanguage.code === 'TH' 
@@ -521,188 +560,9 @@ export default function UserMatchingPage() {
         </main>
       </div>
 
-      {/* Details Modal */}
-      {isModalOpen && selectedExhibitor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-[90%] max-w-[400px] max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex justify-center items-center relative">
-              <h2 className="text-lg font-bold text-gray-900">{t.details}</h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setSelectedExhibitor(null);
-                }}
-                className="absolute right-4 text-gray-500 hover:text-gray-700 transition"
-                aria-label={t.close}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      {/* Details Modal - Removed */}
 
-            {/* Modal Content */}
-            <div className="p-4 space-y-4">
-              {/* Logo */}
-              <div className="flex justify-center">
-                <div className="w-[120px] h-[120px] rounded-full overflow-hidden border-2 border-gray-200">
-                  {selectedExhibitor.logoUrl ? (
-                    <Image
-                      src={selectedExhibitor.logoUrl}
-                      alt={selectedExhibitor.companyName || t.storeName}
-                      width={120}
-                      height={120}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-gray-400">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Company Name */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">{t.companyName}</label>
-                <p className="text-base text-gray-900">{selectedExhibitor.companyName || '-'}</p>
-              </div>
-
-              {/* Contact Information */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">{t.contactChannel}</label>
-                
-                {(selectedExhibitor.companyEmail || selectedExhibitor.email) && (
-                  <div>
-                    <span className="text-xs text-gray-500">{t.email}:</span>
-                    <p className="text-base text-gray-900">{selectedExhibitor.companyEmail || selectedExhibitor.email}</p>
-                  </div>
-                )}
-
-                {(selectedExhibitor.companyPhone || selectedExhibitor.phone) && (
-                  <div>
-                    <span className="text-xs text-gray-500">{t.phone}:</span>
-                    <p className="text-base text-gray-900">{selectedExhibitor.companyPhone || selectedExhibitor.phone}</p>
-                  </div>
-                )}
-
-                {(selectedExhibitor.companyWebsite || selectedExhibitor.website) && (
-                  <div>
-                    <span className="text-xs text-gray-500">{t.website}:</span>
-                    <a
-                      href={selectedExhibitor.companyWebsite || selectedExhibitor.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-base text-blue-600 hover:text-blue-800 underline"
-                    >
-                      {selectedExhibitor.companyWebsite || selectedExhibitor.website}
-                    </a>
-                  </div>
-                )}
-
-                {selectedExhibitor.address && (
-                  <div>
-                    <span className="text-xs text-gray-500">{t.address}:</span>
-                    <p className="text-base text-gray-900">{selectedExhibitor.address}</p>
-                  </div>
-                )}
-
-                {!(selectedExhibitor.companyEmail || selectedExhibitor.email) && 
-                 !(selectedExhibitor.companyPhone || selectedExhibitor.phone) && 
-                 !(selectedExhibitor.companyWebsite || selectedExhibitor.website) && 
-                 !selectedExhibitor.address && (
-                  <p className="text-sm text-gray-500">-</p>
-                )}
-              </div>
-
-              {/* Company Description */}
-              {selectedExhibitor.companyDescription && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">{t.companyDescription}</label>
-                  <p className="text-base text-gray-900">{selectedExhibitor.companyDescription}</p>
-                </div>
-              )}
-
-              {/* Categories */}
-                    {selectedExhibitor.categories && selectedExhibitor.categories.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          {t.categories}
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedExhibitor.categories.map((category, index) => (
-                            <span
-                              key={index}
-                              className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
-                            >
-                              {category}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3 flex justify-center items-center gap-3">
-              {selectedExhibitor && contactedExhibitors.includes(selectedExhibitor.id) ? (
-                <div className="px-6 py-2 text-sm font-semibold text-gray-700">ติดต่อแล้ว</div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const visiterId = await lookSesstion();
-                    if (!visiterId) {
-                      return;
-                    }
-                    try {
-                      const washingtonRef = doc(db, 'userPanelSubmissions', visiterId);
-                      await updateDoc(
-                        washingtonRef,
-                        {
-                          exhibitorId: selectedExhibitor.id,
-                          createdAt: serverTimestamp(),
-                        },
-                        { merge: true }
-                      );
-
-                      // Add to contacted list
-                      setContactedExhibitors((prev) => [...new Set([...prev, selectedExhibitor.id])]);
-
-                      setIsModalOpen(false);
-                      setSelectedExhibitor(null);
-                      setShowNotification(true);
-                      setTimeout(() => {
-                        setShowNotification(false);
-                      }, 5000);
-                    } catch (error) {
-                      console.error('Error saving contact:', error);
-                    }
-                  }}
-                  className="px-6 py-2 bg-gray-800 text-white rounded-lg text-sm font-semibold hover:bg-gray-900 transition"
-                >
-                  {t.contact}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Notification */}
-      {showNotification && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 transition-all duration-300 ease-out">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-          <p className="text-sm font-medium">{t.contactSuccess}</p>
-        </div>
-      )}
+      {/* Notification - Removed */}
     </div>
   );
 }
