@@ -1,3 +1,26 @@
+export const japaneseTagLabels = {
+  'ด้านสิ่งแวดล้อม และการดำเนินงานตามหลัก ESG': '環境・ESG',
+  'การจัดการด้านสิ่งแวดล้อม / การประหยัดพลังงาน / การตอบโจทย์ ESG ยังดำเนินไปไม่ดี':
+    '環境・省エネ・ESG対応が進まない',
+  'การนำข้อมูลมาใช้งานให้เกิดประโยชน์': 'データ活用',
+  'ข้อมูลกระจัดกระจาย ไม่สามารถนำมาใช้งานได้จริง': 'データがバラバラで活用できない',
+  'การควบคุมคุณภาพ': '品質管理',
+  'มีปัญหาในการควบคุมคุณภาพและความปลอดภัย': '品質・安全管理に課題がある',
+  'การผูกงานไว้กับตัวบุคคล': '属人化',
+  'การทำงานที่พึ่งพาตัวบุคคลมากเกินไป และไม่สามารถลดความผิดพลาดได้':
+    '業務の属人化・ミスが減らない',
+  'บุคลากรและการมาตรฐานงาน': '人材・標準化',
+  'ขาดแคลนบุคลากร / การฝึกสอนหรือการส่งต่องานทำได้ไม่เพียงพอ':
+    '人材不足・教育／引き継ぎができない',
+  'การวางแผนการผลิต': '生産計画',
+  'การวางแผนการผลิต / การควบคุมกระบวนการ ทำได้ไม่ดี':
+    '生産計画／工程管理がうまくいかない',
+  'ลดการใช้กระดาษและ Excel': '紙・Excel削減',
+  'มีงานกระดาษ / Excel / งานแบบอนาล็อกจำนวนมาก': '紙・Excel・アナログ作業が多い',
+  'การทำให้มองเห็นได้ชัดเจน': '見える化',
+  'การมองเห็นภาพรวมของหน้างาน': '現場の「見える化」ができていない',
+};
+
 const translations = {
     TH: {
     // Homepage
@@ -7,7 +30,7 @@ const translations = {
       loginCta: 'เข้าสู่ระบบ',
     // Admin Dashboard
     dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'Homepage Management'],
+    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'User Sessions'],
     searchPlaceholder: 'Search...',
     totalParticipants: 'จำนวนผู้เข้างานทั้งหมด',
     totalVisitors: 'จำนวนผู้เข้าชม',
@@ -56,6 +79,7 @@ const translations = {
     tagAddErrorProblemTagManagement: 'ไม่สามารถเพิ่มแท็กได้ กรุณาลองใหม่',
     tagDuplicateProblemTagManagement: 'แท็กนี้มีอยู่แล้ว',
     editButtonProblemTagManagement: 'แก้ไข',
+    deleteButtonProblemTagManagement: 'ลบ',
     updateButtonProblemTagManagement: 'บันทึก',
     cancelButtonProblemTagManagement: 'ยกเลิก',
     tagUpdateSuccess: 'บันทึกการแก้ไขแท็กสำเร็จ',
@@ -111,6 +135,24 @@ const translations = {
     previewVisitorSection: 'ข้อมูลผู้เข้าชม',
     previewContact: 'ช่องทางติดต่อ',
     previewNoData: 'ไม่พบข้อมูลการลงทะเบียน',
+
+     title: 'ยินดีต้อนรับ',
+    instruction: 'กรอกข้อมูลที่จำเป็นเพื่อดำเนินการต่อ',
+    fullName: 'ชื่อ-นามสกุล*',
+    fullNamePlaceholder: 'ชื่อ-นามสกุล',
+    companyNamePlaceholder: 'ชื่อบริษัท',
+    contactInfo: 'อีเมล / เบอร์โทรศัพท์ (อย่างน้อย 1 ช่องทาง)',
+    contactPlaceholder: 'อีเมล / เบอร์โทรศัพท์',
+    problemCategory: 'หมวดปัญหา',
+    pdpa: 'ข้าพเจ้ายินยอมตามนโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
+    readPolicy: 'อ่านนโยบายได้ที่',
+    register: 'ลงทะเบียน',
+    pdpaRequired: 'กรุณายอมรับนโยบาย PDPA ก่อนส่งข้อมูล',
+    categoryRequired: 'กรุณาเลือกหมวดหมู่ปัญหาอย่างน้อย 1 ข้อ',
+    submitSuccess: 'ส่งข้อมูลสำเร็จแล้ว',
+    submitError: 'เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่',
+
+    back:'ย้อนกลับ',
     },
     JP: {
     // Homepage
@@ -120,7 +162,7 @@ const translations = {
       loginCta: 'ログイン',
       // Admin Dashboard
       dashboard: 'ダッシュボード',
-      tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ホームページ管理'],
+      tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ユーザーセッション'],
       searchPlaceholder: '検索...',
       totalParticipants: '総参加者数',
       totalVisitors: '来場者数',
@@ -184,6 +226,7 @@ const translations = {
     tagAddErrorProblemTagManagement: 'タグを追加できません。もう一度お試しください。',
     tagDuplicateProblemTagManagement: 'このタグは既に存在します',
     editButtonProblemTagManagement: '編集',
+    deleteButtonProblemTagManagement: '削除',
     updateButtonProblemTagManagement: '保存',
     cancelButtonProblemTagManagement: 'キャンセル',
     tagUpdateSuccess: 'タグの変更を保存しました',
@@ -239,6 +282,23 @@ const translations = {
     previewVisitorSection: '訪問者情報',
     previewContact: '連絡先',
     previewNoData: '登録情報が見つかりません',
+
+    title: 'ようこそ',
+    instruction: '必要事項を入力して続行してください',
+    fullName: '氏名*',
+    fullNamePlaceholder: '氏名',
+    companyNamePlaceholder: '会社名',
+    contactInfo: 'メール / 電話番号 (少なくとも1つの連絡先)',
+    contactPlaceholder: 'メール / 電話番号',
+    problemCategory: '問題カテゴリ',
+    pdpa: '個人情報保護方針（PDPA）に同意します',
+    readPolicy: 'ポリシーを読む',
+    register: '登録',
+    pdpaRequired: '送信する前にPDPAポリシーに同意してください',
+    categoryRequired: '少なくとも1つの問題カテゴリを選択してください',
+    submitSuccess: '情報が正常に送信されました',
+    submitError: '送信中にエラーが発生しました。もう一度お試しください。',
+    back: '戻る',
     },
   };
 export default translations;

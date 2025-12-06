@@ -1,4 +1,6 @@
 import '../styles/globals.css'
+import ActionCaredProvider from './contexts/action-cared'
+import PDPAProvider from './contexts/pdpa'
 
 export const metadata = {
   title: 'Exhibition Matching',
@@ -8,7 +10,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="th">
-      <body>{children}</body>
+      <body>
+        <ActionCaredProvider>
+          <PDPAProvider>
+            {children}
+          </PDPAProvider>
+        </ActionCaredProvider>
+      </body>
     </html>
   )
 }

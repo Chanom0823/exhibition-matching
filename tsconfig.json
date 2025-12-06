@@ -34,7 +34,7 @@
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "src/lib/auth.js"  ],
   "exclude": [
     "node_modules"
   ]

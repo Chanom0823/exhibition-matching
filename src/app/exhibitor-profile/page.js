@@ -164,7 +164,7 @@ export default function ExhibitorProfilePage() {
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [categories, setCategories] = useState(['', '']);
+  const [categories, setCategories] = useState(['']);
   const [problemTags, setProblemTags] = useState([]);
   const [formData, setFormData] = useState({
     companyName: '',
@@ -180,7 +180,7 @@ export default function ExhibitorProfilePage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
-  const [isEditMode, setIsEditMode] = useState(true); // Start in edit mode
+  const [isEditMode, setIsEditMode] = useState(false); // Edit mode disabled - view only
   const [isProfileSaved, setIsProfileSaved] = useState(false); // Track if profile has been saved
 
   const getTagOptions = (currentValue) => {
@@ -205,10 +205,7 @@ export default function ExhibitorProfilePage() {
     }));
   };
 
-  const handleEdit = () => {
-    setIsEditMode(true);
-    setSaveMessage({ type: '', text: '' });
-  };
+  // handleEdit function removed - edit mode is disabled
 
   const handleLogoChange = (e) => {
     if (!isEditMode) return; // Prevent changes when not in edit mode
@@ -301,7 +298,7 @@ export default function ExhibitorProfilePage() {
             logoPreview: null,
             logoUrl: '',
           });
-          setCategories(['', '']);
+          setCategories(['']);
           setIsProfileSaved(false);
           setIsEditMode(true); // Start in edit mode for new accounts
         }
@@ -320,7 +317,7 @@ export default function ExhibitorProfilePage() {
           logoPreview: null,
           logoUrl: '',
         });
-        setCategories(['', '']);
+        setCategories(['']);
         setIsProfileSaved(false);
         setIsEditMode(true);
       }
@@ -759,7 +756,7 @@ export default function ExhibitorProfilePage() {
                 <section>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">{t.tagsTitle}</h2>
                   <div className="flex flex-col gap-2">
-                    {[0, 1].map((index) => {
+                    {[0].map((index) => {
                       const currentValue = categories[index] || '';
                       const availableTags = getTagOptions(currentValue);
                       return (
@@ -820,15 +817,8 @@ export default function ExhibitorProfilePage() {
                       )}
                       {isSaving ? (selectedLanguage.code === 'TH' ? 'กำลังบันทึก...' : selectedLanguage.code === 'EN' ? 'Saving...' : '保存中...') : t.saveNow}
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleEdit}
-                      className="px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition"
-                    >
-                      {selectedLanguage.code === 'TH' ? 'แก้ไข' : selectedLanguage.code === 'EN' ? 'Edit' : '編集'}
-                  </button>
-                  )}
+                  ) : null
+                  }
                 </section>
 
               </div>

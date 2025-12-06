@@ -47,11 +47,13 @@ export default function ProblemTagManagementPage() {
   const [tagsLoading, setTagsLoading] = useState(true);
   const [newTagName, setNewTagName] = useState('');
   const [newTagDescription, setNewTagDescription] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#000000');
   const [addingTag, setAddingTag] = useState(false);
   const [tagMessage, setTagMessage] = useState({ type: '', text: '' });
   const [editingTagId, setEditingTagId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [editingDescription, setEditingDescription] = useState('');
+  const [editingColor, setEditingColor] = useState('#000000');
 
   const t = translations[selectedLanguage.code];
   const currentFontClass =
@@ -109,10 +111,8 @@ export default function ProblemTagManagementPage() {
       router.push('/admin-dashboard/user-management');
     } else if (targetTab === 'problemTagManagement') {
       router.push('/admin-dashboard/problem-tag-management');
-    } else if (targetTab === 'homepageManagement') {
-      router.push('/admin-dashboard/homepage-management');
-    } else if (targetTab === 'pdpaManagement') {
-      router.push('/admin-dashboard/pdpa-management');
+    } else if (targetTab === 'userSessions') {
+      router.push('/admin-dashboard/user-sessions');
     }
   };
 
@@ -128,6 +128,7 @@ export default function ProblemTagManagementPage() {
             id: docSnap.id,
             name: data.name || '-',
             description: data.description || '',
+            color: data.color || '#000000',
             createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : null,
           };
         });
@@ -163,10 +164,12 @@ export default function ProblemTagManagementPage() {
       await addDoc(collection(db, 'problemTags'), {
         name: trimmed,
         description: newTagDescription.trim() || '',
+        color: newTagColor,
         createdAt: serverTimestamp(),
       });
       setNewTagName('');
       setNewTagDescription('');
+      setNewTagColor('#000000');
       setTagMessage({ type: 'success', text: t.saveButtonProblemTagManagement });
       setTimeout(() => setTagMessage({ type: '', text: '' }), 2000);
     } catch (error) {
@@ -181,6 +184,7 @@ export default function ProblemTagManagementPage() {
     setEditingTagId(tag.id);
     setEditingName(tag.name || '');
     setEditingDescription(tag.description || '');
+    setEditingColor(tag.color || '#000000');
     setTagMessage({ type: '', text: '' });
   };
 
@@ -188,6 +192,7 @@ export default function ProblemTagManagementPage() {
     setEditingTagId(null);
     setEditingName('');
     setEditingDescription('');
+    setEditingColor('#000000');
     setTagMessage({ type: '', text: '' });
   };
 
@@ -213,11 +218,13 @@ export default function ProblemTagManagementPage() {
       await updateDoc(doc(db, 'problemTags', editingTagId), {
         name: trimmed,
         description: editingDescription.trim() || '',
+        color: editingColor,
       });
       setTagMessage({ type: 'success', text: t.tagUpdateSuccessProblemTagManagement });
       setEditingTagId(null);
       setEditingName('');
       setEditingDescription('');
+      setEditingColor('#000000');
       setTimeout(() => setTagMessage({ type: '', text: '' }), 2000);
     } catch (error) {
       console.error('Error updating tag:', error);
@@ -255,7 +262,7 @@ export default function ProblemTagManagementPage() {
           <nav className="flex-1 px-4 py-4">
             <div className="flex flex-col gap-2">
               {t.tabs.map((tab, idx) => {
-                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'homepageManagement'];
+                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement'];
                 const targetTab = tabKeys[idx] || 'dashboard';
 
                 const getIcon = (index) => {
@@ -406,6 +413,26 @@ export default function ProblemTagManagementPage() {
                       className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="tag-color">
+                      สี (Color Code)
+                    </label>
+                    <input
+                      id="tag-color"
+                      type="text"
+                      value={newTagColor}
+                      onChange={(e) => setNewTagColor(e.target.value)}
+                      placeholder="#000000"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                    />
+                    <div className="flex items-center gap-3 mt-2">
+                      <div
+                        className="w-10 h-10 rounded border border-gray-300"
+                        style={{ backgroundColor: newTagColor }}
+                      />
+                      <span className="text-xs text-gray-600">{newTagColor}</span>
+                    </div>
+                  </div>
                   {tagMessage.text && (
                     <p
                       className={`text-xs ${
@@ -476,6 +503,29 @@ export default function ProblemTagManagementPage() {
                                     className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none"
                                   />
                                 </div>
+                                <div>
+                                  <label
+                                    className="block text-xs font-medium text-gray-600 mb-1"
+                                    htmlFor={`edit-color-${tag.id}`}
+                                  >
+                                    สี (Color Code)
+                                  </label>
+                                  <input
+                                    id={`edit-color-${tag.id}`}
+                                    type="text"
+                                    value={editingColor}
+                                    onChange={(e) => setEditingColor(e.target.value)}
+                                    placeholder="#000000"
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                                  />
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <div
+                                      className="w-6 h-6 rounded border border-gray-300"
+                                      style={{ backgroundColor: editingColor }}
+                                    />
+                                    <span className="text-xs text-gray-600">{editingColor}</span>
+                                  </div>
+                                </div>
                               </>
                             ) : (
                               <>
@@ -483,6 +533,14 @@ export default function ProblemTagManagementPage() {
                                 {tag.description && (
                                   <p className="text-xs text-gray-600 mt-1">{tag.description}</p>
                                 )}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <div
+                                    className="w-5 h-5 rounded-sm border border-gray-300"
+                                    style={{ backgroundColor: tag.color }}
+                                    title={tag.color}
+                                  />
+                                  <span className="text-xs text-gray-600 font-mono">{tag.color}</span>
+                                </div>
                               </>
                             )}
                             <p className="text-xs text-gray-500 mt-1">

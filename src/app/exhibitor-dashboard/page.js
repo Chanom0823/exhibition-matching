@@ -5,10 +5,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import localFont from 'next/font/local';
-import { useRouter } from 'next/navigation';
-import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc, where, getDoc } from 'firebase/firestore';
+import { redirect, useRouter } from 'next/navigation';
+import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc, where, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import {signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { lookUidSesstion } from '@/lib/auth';
 
 const promptFont = localFont({
   src: [
@@ -115,6 +116,8 @@ const translations = {
   },
 };
 
+
+
 export default function ExhibitorDashboardPage() {
   const router = useRouter();
   const languageOptions = [
@@ -131,6 +134,9 @@ export default function ExhibitorDashboardPage() {
   const [canAcceptPdpa, setCanAcceptPdpa] = useState(false);
   const [pdpaContent, setPdpaContent] = useState(null);
   const pdpaContentRef = useRef(null);
+
+
+
 
   useEffect(() => {
     const storedLanguage =
@@ -160,20 +166,20 @@ export default function ExhibitorDashboardPage() {
   // Check PDPA acceptance for exhibitor
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     // Check if user is logged in as exhibitor
     const userRole = localStorage.getItem('userRole');
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    
+
     if (!isLoggedIn || userRole !== 'exhibitor') {
       // Not logged in or not an exhibitor, don't show modal
       setShowPdpaModal(false);
       return;
     }
-    
+
     // Check if exhibitor has accepted PDPA for dashboard
     const exhibitorAccepted = localStorage.getItem('exhibitorPdpaAccepted') === 'true';
-    
+
     if (exhibitorAccepted) {
       setIsPdpaAccepted(true);
       setShowPdpaModal(false);
@@ -187,95 +193,132 @@ export default function ExhibitorDashboardPage() {
   useEffect(() => {
     const fetchSummaryData = async () => {
       if (typeof window === 'undefined') return;
-      
-      const currentUsername = localStorage.getItem('username');
+
+      const currentUsername = localStorage.getItem('userId');
       if (!currentUsername) return;
 
       try {
-        // Fetch userPanelSubmissions
+        // 1. ดึงข้อมูล Exhibitor (เพื่อเอา Categories ของตัวเอง)
+        const exhibitorDocRef = doc(db, 'exhibitors', currentUsername);
+        const exhibitorSnap = await getDoc(exhibitorDocRef);
+
+        // ดึง Categories ออกมา (ถ้าไม่มีให้เป็น array ว่าง)
+        const exhibitorCategories = (exhibitorSnap.exists() && exhibitorSnap.data().categories)
+          ? exhibitorSnap.data().categories
+          : [];
+
+        // 2. ดึงข้อมูล Visitor ที่มีความสนใจ "ตรงกับเรา"
         const submissionsRef = collection(db, 'userPanelSubmissions');
+        let submissionsQuery;
+        if (exhibitorCategories.length > 0) {
+          // ดึงตามประเภทเหมือนเดิม (ไม่กรอง PDPA ดังนั้น True/False มาหมด)
+          const searchCategories = exhibitorCategories.slice(0, 10);
+          submissionsQuery = query(
+            submissionsRef,
+            where('categories', 'array-contains-any', searchCategories)
+          );
+        } else {
+          submissionsQuery = query(submissionsRef, where('id', '==', 'impossible_id'));
+        }
 
-        const submissionsQuery = query(
-              submissionsRef, 
-              where('username', '==', currentUsername) 
-        );
-        
-        // const submissionsQuery = query(submissionsRef);
         const submissionsSnapshot = await getDocs(submissionsQuery);
-        
         const submissions = [];
-        submissionsSnapshot.forEach((doc) => {
-          submissions.push({ id: doc.id, ...doc.data() });
+        submissionsSnapshot.forEach((d) => submissions.push({ id: d.id, ...d.data() }));
+
+        // 3. ดึงข้อมูล Visitor "ทุกคนในระบบ" (เอาไว้เทียบ Stats ภาพรวม)
+        const allSubsSnapshot = await getDocs(collection(db, 'userPanelSubmissions'));
+        const allSubs = [];
+        allSubsSnapshot.forEach((d) => allSubs.push({ id: d.id, ...d.data() }));
+
+
+        let visitorsMatchingCount = 0;
+        if (Array.isArray(exhibitorCategories) && exhibitorCategories.length > 0) {
+          const normExCat = exhibitorCategories.map((c) => (c || '').trim().toLowerCase());
+          const seenVisitorIds = new Set();
+          allSubs.forEach((s) => {
+            if (!s.categories || !Array.isArray(s.categories) || seenVisitorIds.has(s.id)) return;
+            const sCatsNorm = s.categories.map((c) => (c || '').trim().toLowerCase());
+            if (sCatsNorm.some((c) => normExCat.includes(c))) {
+              visitorsMatchingCount += 1;
+              seenVisitorIds.add(s.id);
+            }
+          });
+        }
+
+        // 5. เตรียมข้อมูลใส่ตาราง (Table Data) - จุดที่แก้ไขครับ
+        const tableRows = submissions.map((sub, index) => {
+          const isContacted = sub.isContacted || false;
+          const contactStr = sub.contact || '';
+          const isEmail = contactStr.includes('@');
+          if (sub.pdpaAccepted) {
+            return {
+              id: sub.id,
+              no: index + 1,
+              name: sub.fullName || 'N/A',
+              companyName: sub.companyName || '-',
+              phone: isEmail ? '' : contactStr,
+              email: isEmail ? contactStr : '',
+              categories: sub.categories || [],
+              isContacted,
+              contactDocId: sub.id || null,
+              pdpaAccepted: sub.pdpaAccepted ?? false
+            };
+          }else{
+            return {
+              id: sub.id,
+              no: index + 1,
+              name: 'User-' + sub.id || 'N/A',
+              companyName:  '-',
+              phone:  '-' ,
+              email:  '-',
+              categories: sub.categories || [],
+              isContacted,
+              contactDocId: sub.id || null,
+              pdpaAccepted: sub.pdpaAccepted ?? false
+            };
+          }
+
         });
 
-        // Fetch contacts (matched data from usermatching page)
-        const contactsRef = collection(db, 'contacts');
-        const contactsQuery = query(contactsRef);
-        const contactsSnapshot = await getDocs(contactsQuery);
-        
-        const contacts = [];
-        contactsSnapshot.forEach((doc) => {
-          contacts.push({ id: doc.id, ...doc.data() });
-        });
+        setTableData(tableRows);
 
-        // Calculate category counts
+        // 6. เตรียมข้อมูลกราฟ (Chart Data)
         const categoryCounts = {};
         submissions.forEach((sub) => {
           if (sub.categories && Array.isArray(sub.categories)) {
             sub.categories.forEach((category) => {
               if (category && category.trim() !== '') {
-                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                const catName = category.trim();
+                categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
               }
             });
           }
         });
 
-        // Convert to array and sort by count (descending)
         const sortedCategories = Object.entries(categoryCounts)
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 6); // Top 6 categories
+          .slice(0, 6);
 
         setCategoryData(sortedCategories);
 
-        // Prepare table data from submissions
-        const contactMap = new Map();
-        contacts.forEach((contact) => {
-          const key = contact.submissionId || contact.fullName;
-          if (key) {
-            contactMap.set(key, contact.id);
-          }
+        // 7. สรุปยอด (Summary Cards)
+        const contactedCount = tableRows.filter((r) => r.isContacted).length;
+        const uniqueVisitorCount = new Set(allSubs.map((s) => s.id)).size;
+
+        setSummaryData({
+          totalInterests: uniqueVisitorCount,
+          matched: visitorsMatchingCount,
+          notMatched: Math.max(visitorsMatchingCount - contactedCount, 0),
+          contacts: contactedCount,
+          loading: false,
         });
 
-        const tableRows = submissions.map((sub, index) => {
-          const contactDocId = contactMap.get(sub.id) || contactMap.get(sub.fullName);
-          const isContacted = Boolean(contactDocId);
-          // Parse contact to separate phone and email
-          const contactStr = sub.contact || '';
-          const isEmail = contactStr.includes('@');
-          const phone = isEmail ? '' : contactStr;
-          const email = isEmail ? contactStr : '';
-          
-          return {
-            id: sub.id,
-            no: index + 1,
-            name: sub.fullName || 'N/A',
-            companyName: sub.companyName || 'N/A',
-            phone,
-            email,
-            categories: sub.categories || [],
-            isContacted,
-            contactDocId: contactDocId || null,
-          };
-        });
-
-        setTableData(tableRows);
-        updateSummaryFromRows(tableRows, false);
       } catch (error) {
         console.error('Error fetching summary data:', error);
-        updateSummaryFromRows([], false);
+        setSummaryData((prev) => ({ ...prev, loading: false }));
       }
-    };
+    }
 
     fetchSummaryData();
   }, []);
@@ -306,14 +349,14 @@ export default function ExhibitorDashboardPage() {
       try {
         const docRef = doc(db, 'pdpaContent', 'active');
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.content) {
             const generateContent = (lang) => {
               const content = data.content[lang];
               if (!content) return '';
-              
+
               const sectionLabels = {
                 TH: {
                   section1: 'การเก็บรวบรวมข้อมูล',
@@ -328,7 +371,7 @@ export default function ExhibitorDashboardPage() {
                   section4: 'お客様の権利',
                 },
               };
-              
+
               return `
                 <h2 class="text-xl font-bold mb-4">${content.subtitle || ''}</h2>
                 <p class="mb-4">${content.intro || ''}</p>
@@ -346,7 +389,7 @@ export default function ExhibitorDashboardPage() {
                 <p class="mb-4">${content.section4 || ''}</p>
               `;
             };
-            
+
             setPdpaContent({
               TH: generateContent('TH'),
               JP: generateContent('JP'),
@@ -357,7 +400,7 @@ export default function ExhibitorDashboardPage() {
       } catch (error) {
         console.error('Error loading PDPA content:', error);
       }
-      
+
       // Use default content from pdpa page (full content)
       const defaultPdpaTranslations = {
         TH: {
@@ -777,32 +820,32 @@ export default function ExhibitorDashboardPage() {
           `,
         },
       };
-      
+
       setPdpaContent({
         TH: defaultPdpaTranslations.TH.content,
         JP: defaultPdpaTranslations.JP.content,
       });
     };
-    
+
     loadPdpaContent();
   }, []);
 
   // Scroll detection for PDPA content modal
   useEffect(() => {
     if (!showPdpaContentModal || !pdpaContentRef.current) return;
-    
+
     const contentElement = pdpaContentRef.current;
-    
+
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = contentElement;
       const isScrolledToBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px threshold
       setCanAcceptPdpa(isScrolledToBottom);
     };
-    
+
     contentElement.addEventListener('scroll', handleScroll);
     // Check initial state
     handleScroll();
-    
+
     return () => {
       contentElement.removeEventListener('scroll', handleScroll);
     };
@@ -830,7 +873,7 @@ export default function ExhibitorDashboardPage() {
       handleViewPolicy();
       return;
     }
-    
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('pdpaAccepted', 'true');
       localStorage.setItem('exhibitorPdpaAccepted', 'true');
@@ -843,7 +886,7 @@ export default function ExhibitorDashboardPage() {
     // 1) import jsPDF แบบ dynamic กัน error window is not defined
     const jsPDFModule = await import('jspdf');
     const jsPDF = jsPDFModule.default;
-  
+
     // 2) ใช้ text ที่จะใส่ใน PDF
     const pdfT = translations[selectedLanguage.code];
 
@@ -856,7 +899,7 @@ export default function ExhibitorDashboardPage() {
     const sectionSpacing = 15;
     const cardHeight = 25;
     const cardSpacing = 10;
-  
+
     // ... ที่เหลือใน handleExportPDF ของคุณใช้ได้เหมือนเดิม ...
   }
 
@@ -893,7 +936,7 @@ export default function ExhibitorDashboardPage() {
 
     FileSaver.default.saveAs(data, `exhibitor-dashboard-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
-  
+
 
   const toggleRow = (rowId) => {
     setExpandedRows((prev) => {
@@ -909,13 +952,14 @@ export default function ExhibitorDashboardPage() {
 
   const updateSummaryFromRows = (rows, loading = false) => {
     const contactedCount = rows.filter((row) => row.isContacted).length;
-    setSummaryData({
+    setSummaryData((prev) => ({
       totalInterests: rows.length,
-      matched: contactedCount,
+      // 'matched' represents visitors matching exhibitor tags — preserve previous value
+      matched: prev?.matched ?? 0,
       notMatched: Math.max(rows.length - contactedCount, 0),
       contacts: contactedCount,
       loading,
-    });
+    }));
   };
 
   const handleContactClick = async (row) => {
@@ -923,29 +967,29 @@ export default function ExhibitorDashboardPage() {
       if (row.isContacted) {
         // Remove contact
         if (row.contactDocId) {
-          await deleteDoc(doc(db, 'contacts', row.contactDocId));
+          const washingtonRef = await doc(db, 'userPanelSubmissions', row.contactDocId);
+          await updateDoc(washingtonRef, {
+            isContacted: false,
+          });
         }
-
         setTableData((prevData) => {
           const updated = prevData.map((item) =>
-            item.id === row.id ? { ...item, isContacted: false, contactDocId: null } : item
+            item?.id === row.id ? { ...item, isContacted: false } : item
           );
           updateSummaryFromRows(updated);
           return updated;
         });
       } else {
         // Save contact to Firebase
-        const docRef = await addDoc(collection(db, 'contacts'), {
-          submissionId: row.id,
-          fullName: row.name,
-          companyName: row.companyName,
-          createdAt: serverTimestamp(),
+        const washingtonRef = await doc(db, 'userPanelSubmissions', row.contactDocId);
+        const docRef = await updateDoc(washingtonRef, {
+          isContacted: true,
         });
 
         // Update local state
         setTableData((prevData) => {
           const updated = prevData.map((item) =>
-            item.id === row.id ? { ...item, isContacted: true, contactDocId: docRef.id } : item
+            item?.id === row.id ? { ...item, isContacted: true } : item
           );
           updateSummaryFromRows(updated);
           return updated;
@@ -963,7 +1007,7 @@ export default function ExhibitorDashboardPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userName] = useState('Emma Kwan');
-  
+
   // Summary Cards data
   const [summaryData, setSummaryData] = useState({
     totalInterests: 0,
@@ -975,11 +1019,11 @@ export default function ExhibitorDashboardPage() {
 
   // Category data for bar chart
   const [categoryData, setCategoryData] = useState([]);
-  
+
   // Table data
   const [tableData, setTableData] = useState([]);
   const [expandedRows, setExpandedRows] = useState(new Set());
-  const [tableFilter, setTableFilter] = useState('all'); // 'all', 'notContacted', 'contacted'
+  // tableFilter removed - always show all rows
 
   // Sample data for charts
   const trendData = [
@@ -1028,9 +1072,8 @@ export default function ExhibitorDashboardPage() {
 
         {/* Left Sidebar */}
         <aside
-          className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-[250px] bg-white border-r border-gray-200 flex-col transform transition-transform ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-          } md:flex`}
+          className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-[250px] bg-white border-r border-gray-200 flex-col transform transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            } md:flex`}
         >
           {/* Logo */}
           <div className="px-4 py-4 items-center justify-center flex">
@@ -1052,11 +1095,10 @@ export default function ExhibitorDashboardPage() {
                         router.push('/exhibitor-profile');
                       }
                     }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${
-                      activeTab === targetTab
-                        ? 'bg-gray-100 text-gray-600 font-medium'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${activeTab === targetTab
+                      ? 'bg-gray-100 text-gray-600 font-medium'
+                      : 'text-gray-600 hover:bg-gray-100'
+                      }`}
                   >
                     <Image
                       src={idx === 0 ? '/dashboard.png' : '/user.png'}
@@ -1089,7 +1131,7 @@ export default function ExhibitorDashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            
+
             <div className="flex items-end justify-end  w-full">
               <div className="relative" ref={languageDropdownRef}>
                 <div className="flex items-end justify-end gap-3 cursor-pointer">
@@ -1167,11 +1209,10 @@ export default function ExhibitorDashboardPage() {
                       <li key={option.code}>
                         <button
                           type="button"
-                          className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
-                            selectedLanguage.code === option.code
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'text-gray-700 hover:bg-gray-50'
-                          }`}
+                          className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${selectedLanguage.code === option.code
+                            ? 'bg-gray-100 text-gray-900'
+                            : 'text-gray-700 hover:bg-gray-50'
+                            }`}
                           onClick={() => handleLanguageSelect(option)}
                         >
                           <span>{option.label}</span>
@@ -1266,149 +1307,21 @@ export default function ExhibitorDashboardPage() {
               </div>
             </div>
 
-            {/* Charts Row 1 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-              {/* Trend Chart */}
-              <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm ">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">{t.trendTitle}</h3>
-                </div>
-                <div className="h-[200px] flex items-end justify- gap-4">
-                  {categoryData.length > 0 ? (
-                    categoryData.map((item, index) => {
-                      const maxCount = Math.max(...categoryData.map((c) => c.count), 1);
-                      return (
-                        <div key={item.name} className="w-16 flex flex-col items-center gap-2">
-                          <div className="w-full flex items-end justify-center h-[150px]">
-                            <div
-                              className="w-full rounded-t"
-                              style={{ 
-                                height: `${(item.count / maxCount) * 100}%`,
-                                backgroundColor: '#1E2939'
-                              }}
-                            />
-                          </div>
-                          <span className="text-xs text-gray-600 text-center px-1 break-words">
-                            {item.name}
-                          </span>
-                          <span className="text-xs font-semibold text-gray-900">{item.count}</span>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="w-full text-center text-gray-500 py-8">
-                      {summaryData.loading ? 'Loading...' : 'No data available'}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Donut Chart */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center">
-                <div className="relative w-32 h-32 mb-4">
-                  <svg viewBox="0 0 100 100" className="transform -rotate-90">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#e5e7eb"
-                      strokeWidth="8"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#1E2939"
-                      strokeWidth="8"
-                      strokeDasharray={userDashArray}
-                      strokeDashoffset={0}
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      stroke="#10b981"
-                      strokeWidth="8"
-                      strokeDasharray={exhibitorDashArray}
-                      strokeDashoffset={exhibitorOffset}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                      <span className="text-2xl">👥</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm text-gray-600">
-                    {userPercentage}% {t.userContactsLabel} ({userContactCount})
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {exhibitorPercentage}% {t.exhibitorContactsLabel} ({exhibitorContactCount})
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Table */}
             <div className="bg-white rounded-2xl p-4 shadow-sm">
-              {/* Filter Buttons */}
-              <div className="flex gap-4 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setTableFilter('all')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    tableFilter === 'all'
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-transparent text-gray-900 hover:text-gray-700'
-                  }`}
-                >
-                  {t.filterAll}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTableFilter('notContacted')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    tableFilter === 'notContacted'
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-transparent text-gray-900 hover:text-gray-700'
-                  }`}
-                >
-                  {t.filterNotContacted}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTableFilter('contacted')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    tableFilter === 'contacted'
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-transparent text-gray-900 hover:text-gray-700'
-                  }`}
-                >
-                  {t.filterContacted}
-                </button>
-              </div>
-
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t.tableNo}</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t.tableName}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t.company}</th>
                       <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">{t.tableContact}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(() => {
-                      const filteredData = tableData.filter((row) => {
-                        if (tableFilter === 'all') return true;
-                        if (tableFilter === 'contacted') return row.isContacted;
-                        if (tableFilter === 'notContacted') return !row.isContacted;
-                        return true;
-                      });
+                      const filteredData = tableData; // show all rows (filter buttons removed)
                       return filteredData.length > 0 ? (
                         filteredData.map((row, index) => {
                           const isExpanded = expandedRows.has(row.id);
@@ -1417,6 +1330,7 @@ export default function ExhibitorDashboardPage() {
                               <tr key={row.id || index} className="border-b border-gray-100 hover:bg-gray-50">
                                 <td className="py-3 px-4 text-sm text-gray-700">{row.no}</td>
                                 <td className="py-3 px-4 text-sm text-gray-700">{row.name}</td>
+                                <td className="py-3 px-4 text-sm text-gray-700">{row.companyName}</td>
                                 <td className="py-3 px-1">
                                   <div className="flex items-center gap-2">
                                     <button
@@ -1429,11 +1343,10 @@ export default function ExhibitorDashboardPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleContactClick(row)}
-                                      className={`px-3 h-[36px] text-sm font-medium rounded-lg transition flex items-center justify-center ${
-                                        row.isContacted
-                                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                          : 'text-white hover:opacity-90'
-                                      }`}
+                                      className={`px-3 h-[36px] text-sm font-medium rounded-lg transition flex items-center justify-center ${row.isContacted
+                                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                        : 'text-white hover:opacity-90'
+                                        }`}
                                       style={
                                         !row.isContacted
                                           ? { backgroundColor: '#1E2939' }
@@ -1447,7 +1360,7 @@ export default function ExhibitorDashboardPage() {
                               </tr>
                               {isExpanded && (
                                 <tr key={`${row.id}-details`} className="border-b border-gray-100 bg-gray-50">
-                                  <td colSpan="3" className="py-4 px-4">
+                                  <td colSpan="4" className="py-4 px-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       <div>
                                         <p className="text-xs text-gray-500 mb-1">{t.name}</p>
@@ -1532,11 +1445,10 @@ export default function ExhibitorDashboardPage() {
                 type="button"
                 onClick={handleExhibitorPdpaAccept}
                 disabled={!hasViewedPdpa}
-                className={`w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-semibold transition ${
-                  hasViewedPdpa
-                    ? 'bg-gray-900 text-white hover:bg-gray-800'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className={`w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-semibold transition ${hasViewedPdpa
+                  ? 'bg-gray-900 text-white hover:bg-gray-800'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
               >
                 {t.pdpaAccept}
               </button>
@@ -1579,19 +1491,18 @@ export default function ExhibitorDashboardPage() {
                   type="button"
                   onClick={handlePdpaContentAccept}
                   disabled={!canAcceptPdpa}
-                  className={`w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-semibold transition ${
-                    canAcceptPdpa
-                      ? 'bg-gray-900 text-white hover:bg-gray-800'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-semibold transition ${canAcceptPdpa
+                    ? 'bg-gray-900 text-white hover:bg-gray-800'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
                   {selectedLanguage.code === 'TH' ? 'ฉันยอมรับและต้องการเริ่มใช้งาน' : '同意してダッシュボードを利用する'}
                 </button>
               </div>
               {!canAcceptPdpa && (
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  {selectedLanguage.code === 'TH' 
-                    ? 'กรุณาเลื่อนอ่านเนื้อหาจนถึงท้ายสุดก่อนยอมรับ' 
+                  {selectedLanguage.code === 'TH'
+                    ? 'กรุณาเลื่อนอ่านเนื้อหาจนถึงท้ายสุดก่อนยอมรับ'
                     : '同意するには、最後までスクロールして内容を確認してください'}
                 </p>
               )}
