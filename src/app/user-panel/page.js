@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import localFont from 'next/font/local';
-import { addDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { createSesstion } from '@/lib/auth';
+import translations, { japaneseTagLabels } from '../components/translations';
+import { sentForm } from './action';
+import UserPanelPDPA from '../components/ีuser-panels/UserPanelPDPA';
+import { useConsent } from '../contexts/pdpa';
 
 const promptFont = localFont({
   src: [
@@ -20,69 +23,6 @@ const sawarabiFont = localFont({
   src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
 
-const translations = {
-  TH: {
-    title: 'ยินดีต้อนรับ',
-    instruction: 'กรอกข้อมูลที่จำเป็นเพื่อดำเนินการต่อ',
-    fullName: 'ชื่อ-นามสกุล*',
-    fullNamePlaceholder: 'ชื่อ-นามสกุล',
-    companyName: 'ชื่อบริษัท*',
-    companyNamePlaceholder: 'ชื่อบริษัท',
-    contactInfo: 'อีเมล / เบอร์โทรศัพท์ (อย่างน้อย 1 ช่องทาง)',
-    contactPlaceholder: 'อีเมล / เบอร์โทรศัพท์',
-    problemCategory: 'หมวดปัญหา (เลือกได้สูงสุด 2 ข้อ)*',
-    selectCategory: 'เลือกหมวดหมู่ปัญหา',
-    pdpa: 'ข้าพเจ้ายินยอมตามนโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
-    readPolicy: 'อ่านนโยบายได้ที่',
-    register: 'ลงทะเบียน',
-    pdpaRequired: 'กรุณายอมรับนโยบาย PDPA ก่อนส่งข้อมูล',
-    categoryRequired: 'กรุณาเลือกหมวดหมู่ปัญหาอย่างน้อย 1 ข้อ',
-    submitSuccess: 'ส่งข้อมูลสำเร็จแล้ว',
-    submitError: 'เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่',
-  },
-  JP: {
-    title: 'ようこそ',
-    instruction: '必要事項を入力して続行してください',
-    fullName: '氏名*',
-    fullNamePlaceholder: '氏名',
-    companyName: '会社名*',
-    companyNamePlaceholder: '会社名',
-    contactInfo: 'メール / 電話番号 (少なくとも1つの連絡先)',
-    contactPlaceholder: 'メール / 電話番号',
-    problemCategory: '問題カテゴリ (最大2つまで選択)*',
-    selectCategory: '問題カテゴリを選択',
-    pdpa: '個人情報保護方針（PDPA）に同意します',
-    readPolicy: 'ポリシーを読む',
-    register: '登録',
-    pdpaRequired: '送信する前にPDPAポリシーに同意してください',
-    categoryRequired: '少なくとも1つの問題カテゴリを選択してください',
-    submitSuccess: '情報が正常に送信されました',
-    submitError: '送信中にエラーが発生しました。もう一度お試しください。',
-  },
-};
-
-const japaneseTagLabels = {
-  'ด้านสิ่งแวดล้อม และการดำเนินงานตามหลัก ESG': '環境・ESG',
-  'การจัดการด้านสิ่งแวดล้อม / การประหยัดพลังงาน / การตอบโจทย์ ESG ยังดำเนินไปไม่ดี':
-    '環境・省エネ・ESG対応が進まない',
-  'การนำข้อมูลมาใช้งานให้เกิดประโยชน์': 'データ活用',
-  'ข้อมูลกระจัดกระจาย ไม่สามารถนำมาใช้งานได้จริง': 'データがバラバラで活用できない',
-  'การควบคุมคุณภาพ': '品質管理',
-  'มีปัญหาในการควบคุมคุณภาพและความปลอดภัย': '品質・安全管理に課題がある',
-  'การผูกงานไว้กับตัวบุคคล': '属人化',
-  'การทำงานที่พึ่งพาตัวบุคคลมากเกินไป และไม่สามารถลดความผิดพลาดได้':
-    '業務の属人化・ミスが減らない',
-  'บุคลากรและการมาตรฐานงาน': '人材・標準化',
-  'ขาดแคลนบุคลากร / การฝึกสอนหรือการส่งต่องานทำได้ไม่เพียงพอ':
-    '人材不足・教育／引き継ぎができない',
-  'การวางแผนการผลิต': '生産計画',
-  'การวางแผนการผลิต / การควบคุมกระบวนการ ทำได้ไม่ดี':
-    '生産計画／工程管理がうまくいかない',
-  'ลดการใช้กระดาษและ Excel': '紙・Excel削減',
-  'มีงานกระดาษ / Excel / งานแบบอนาล็อกจำนวนมาก': '紙・Excel・アナログ作業が多い',
-  'การทำให้มองเห็นได้ชัดเจน': '見える化',
-  'การมองเห็นภาพรวมของหน้างาน': '現場の「見える化」ができていない',
-};
 
 const getTagLabelByLanguage = (name, languageCode) => {
   if (languageCode === 'JP') {
@@ -100,6 +40,7 @@ export default function UserPanelPage() {
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
+  const { isAccepted, toggleConsent } = useConsent();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -107,8 +48,6 @@ export default function UserPanelPage() {
     contact: '',
     categories: ['', ''],
   });
-  const [pdpaAgreed, setPdpaAgreed] = useState(false);
-  const [hasAcceptedPDPA, setHasAcceptedPDPA] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const fallbackProblemTags = [
@@ -172,22 +111,22 @@ export default function UserPanelPage() {
     fetchProblemTags();
   }, []);
 
-  useEffect(() => {
-    const checkPDPAStatus = () => {
-      const accepted =
-        typeof window !== 'undefined' ? localStorage.getItem('pdpaAccepted') === 'true' : false;
-      setHasAcceptedPDPA(accepted);
-      if (accepted) {
-        setPdpaAgreed(true);
-      }
-    };
+  // useEffect(() => {
+  //   const checkPDPAStatus = () => {
+  //     const accepted =
+  //       typeof window !== 'undefined' ? localStorage.getItem('pdpaAccepted') === 'true' : false;
+  //     setHasAcceptedPDPA(accepted);
+  //     if (accepted) {
+  //       setPdpaAgreed(true);
+  //     }
+  //   };
 
-    checkPDPAStatus();
-    window.addEventListener('focus', checkPDPAStatus);
-    return () => {
-      window.removeEventListener('focus', checkPDPAStatus);
-    };
-  }, []);
+  //   checkPDPAStatus();
+  //   window.addEventListener('focus', checkPDPAStatus);
+  //   return () => {
+  //     window.removeEventListener('focus', checkPDPAStatus);
+  //   };
+  // }, []);
 
   const handleLanguageSelect = (option) => {
     setSelectedLanguage(option);
@@ -222,68 +161,15 @@ export default function UserPanelPage() {
       categories: newCategories,
     });
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!pdpaAgreed) {
-      setSubmitMessage(t.pdpaRequired);
-      return;
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('userInterests', JSON.stringify(e.selectedCategories));
     }
-
-    const selectedCategories = formData.categories.filter((item) => item);
-    if (selectedCategories.length === 0) {
-      setSubmitMessage(t.categoryRequired);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitMessage('');
-
-    const trimmedFullName = formData.fullName.trim();
-    const trimmedCompanyName = formData.companyName.trim();
-    const trimmedContact = formData.contact.trim();
-    const username = typeof window !== 'undefined' ? localStorage.getItem('username') : null;
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    const userEmail = typeof window !== 'undefined' ? localStorage.getItem('userEmail') : null;
-    const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-
-    try {
-      const docRef = await addDoc(collection(db, 'userPanelSubmissions'), {
-        fullName: trimmedFullName,
-        companyName: trimmedCompanyName,
-        contact: trimmedContact,
-        categories: selectedCategories,
-        language: selectedLanguage.code,
-        pdpaAccepted: true,
-        userId: userId || null,
-        createdAt: serverTimestamp(),
-      })
-
-    if(docRef.id){
-      console.log("บันทึกเสร็จเเล้ว ID", docRef.id)
-      const result = await createSesstion(docRef.id)
-      alert('Visiter ID ของคุณ คือ ' + result)
-    }
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('userInterests', JSON.stringify(selectedCategories));
-      }
-
-      setSubmitMessage(t.submitSuccess);
-      setFormData({
-        fullName: '',
-        companyName: '',
-        contact: '',
-        categories: ['', ''],
-      });
-      setPdpaAgreed(true);
-      router.push('/usermatching');
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setSubmitMessage(t.submitError);
-    } finally {
-      setIsSubmitting(false);
-    }
+    const formData = new FormData(e.currentTarget);
+    // 2. ส่งค่า isActionCared ไปให้ Server Action เป็นพารามิเตอร์ที่ 2
+    await sentForm(formData, isAccepted);
   };
 
   const t = translations[selectedLanguage.code];
@@ -291,7 +177,7 @@ export default function UserPanelPage() {
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
   return (
-    <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
+    <div className={`relative z-0 min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
         {/* Header with Logo and Language Selector */}
         <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px] flex-shrink-0">
@@ -302,10 +188,10 @@ export default function UserPanelPage() {
             onClick={() => router.push('/')}
             aria-label="กลับไปหน้าแรก"
           >
-            <Image 
-              src="/logo.svg" 
-              alt="alt design office" 
-              width={80} 
+            <Image
+              src="/logo.svg"
+              alt="alt design office"
+              width={80}
               height={39}
               className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
               priority
@@ -341,11 +227,10 @@ export default function UserPanelPage() {
                   <li key={option.code}>
                     <button
                       type="button"
-                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
-                        selectedLanguage.code === option.code
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
+                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${selectedLanguage.code === option.code
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-700 hover:bg-gray-50'
+                        }`}
                       onClick={() => handleLanguageSelect(option)}
                       role="option"
                       aria-selected={selectedLanguage.code === option.code}
@@ -427,13 +312,14 @@ export default function UserPanelPage() {
                   {t.problemCategory}
                 </label>
                 <div className="flex flex-col gap-2">
-                  {[0, 1].map((index) => {
+                  {[0].map((index) => {
                     const selectedCategory = formData.categories[index];
                     const selectedTag = problemTags.find((tag) => tag.name === selectedCategory);
                     return (
                       <div key={index} className="flex flex-col gap-1.5">
                         <select
                           value={selectedCategory}
+                          name="selectedCategories"
                           onChange={(e) => handleCategoryChange(index, e.target.value)}
                           className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base appearance-none bg-white"
                           style={{
@@ -448,7 +334,7 @@ export default function UserPanelPage() {
                             {tagsLoading && problemTags.length === 0 ? 'Loading...' : t.selectCategory}
                           </option>
                           {problemTags.map((tag) => (
-                            <option key={`${tag.name}-${index}`} value={tag.name}>
+                            <option key={`${tag.name}-${index}`}  value={tag.name}>
                               {getTagLabelByLanguage(tag.name, selectedLanguage.code)}
                             </option>
                           ))}
@@ -464,42 +350,20 @@ export default function UserPanelPage() {
                 </div>
               </div>
 
-              {/* PDPA Checkbox */}
-              <div className="flex flex-col gap-1">
-                <div className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    checked={pdpaAgreed}
-                    disabled={!hasAcceptedPDPA}
-                    onChange={(e) => setPdpaAgreed(e.target.checked)}
-                    className={`mt-1 w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 ${
-                      hasAcceptedPDPA ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => router.push('/pdpa')}
-                    className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 hover:underline text-left"
-                  >
-                    {t.pdpa}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 ml-6">{t.readPolicy}</p>
-              </div>
+              <UserPanelPDPA pdpa={t.pdpa} readPolicy={t.readPolicy} back={t.back} selectedLanguage={selectedLanguage} />
 
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isSubmitting || !pdpaAgreed}
+                // disabled={isSubmitting || !pdpaAgreed}
                 className="w-full bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base mt-3 sm:mt-4 hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? '...' : t.register}
               </button>
               {submitMessage && (
                 <p
-                  className={`text-xs sm:text-sm mt-2 ${
-                    submitMessage === t.submitSuccess ? 'text-green-600' : 'text-red-600'
-                  }`}
+                  className={`text-xs sm:text-sm mt-2 ${submitMessage === t.submitSuccess ? 'text-green-600' : 'text-red-600'
+                    }`}
                 >
                   {submitMessage}
                 </p>
