@@ -182,18 +182,20 @@ export default function UserMatchingPage() {
     loadProblemTags();
   }, []);
 
-  // Filter exhibitors based on selected filters
+  // Filter exhibitors based on visitor's selected interests
   let filteredExhibitors = exhibitors;
 
-  if (selectedCategory) {
-    const normalizedCategory = selectedCategory.toLowerCase();
-    filteredExhibitors = filteredExhibitors.filter(
-      (exhibitor) =>
-        exhibitor.categories &&
-        exhibitor.categories.some(
-          (category) => category && category.toLowerCase() === normalizedCategory
+  // Only show exhibitors whose categories match visitor's interests
+  if (userInterests.length > 0) {
+    filteredExhibitors = exhibitors.filter((exhibitor) => {
+      if (!exhibitor.categories || exhibitor.categories.length === 0) return false;
+      return exhibitor.categories.some((category) =>
+        userInterests.some((interest) =>
+          category.toLowerCase().includes(interest.toLowerCase()) ||
+          interest.toLowerCase().includes(category.toLowerCase())
         )
-    );
+      );
+    });
   }
 
   useEffect(() => {
@@ -331,25 +333,7 @@ export default function UserMatchingPage() {
             />
           </div>
 
-          {/* Filter Buttons */}
-          <div className="mb-4">
-            <div className="flex justify-start gap-4 items-center">
-              <button
-                type="button"
-                onClick={() => handleFilterClick('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  selectedFilter === 'all'
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-transparent text-gray-900 hover:text-gray-700'
-                }`}
-                aria-label="All"
-              >
-                ทั้งหมด
-              </button>
-            </div>
-          </div>
-
-          {/* Horizontal Store Cards */}
+          {/* Horizontal Store Cards - Show exhibitors matching visitor's interests */}
           {loading ? (
             <div className="text-center py-8 text-gray-500">
               {selectedLanguage.code === 'TH' ? 'กำลังโหลด...' : selectedLanguage.code === 'EN' ? 'Loading...' : '読み込み中...'}
@@ -559,11 +543,8 @@ export default function UserMatchingPage() {
           </div>
         </main>
       </div>
-
-      {/* Details Modal - Removed */}
-
-      {/* Notification - Removed */}
     </div>
   );
 }
+
 
