@@ -75,36 +75,6 @@ const translations = {
   },
 };
 
-const japaneseTagLabels = {
-  'ด้านสิ่งแวดล้อม และการดำเนินงานตามหลัก ESG': '環境・ESG',
-  'การจัดการด้านสิ่งแวดล้อม / การประหยัดพลังงาน / การตอบโจทย์ ESG ยังดำเนินไปไม่ดี':
-    '環境・省エネ・ESG対応が進まない',
-  'การนำข้อมูลมาใช้งานให้เกิดประโยชน์': 'データ活用',
-  'ข้อมูลกระจัดกระจาย ไม่สามารถนำมาใช้งานได้จริง': 'データがバラバラで活用できない',
-  'การควบคุมคุณภาพ': '品質管理',
-  'มีปัญหาในการควบคุมคุณภาพและความปลอดภัย': '品質・安全管理に課題がある',
-  'การผูกงานไว้กับตัวบุคคล': '属人化',
-  'การทำงานที่พึ่งพาตัวบุคคลมากเกินไป และไม่สามารถลดความผิดพลาดได้':
-    '業務の属人化・ミスが減らない',
-  'บุคลากรและการมาตรฐานงาน': '人材・標準化',
-  'ขาดแคลนบุคลากร / การฝึกสอนหรือการส่งต่องานทำได้ไม่เพียงพอ':
-    '人材不足・教育／引き継ぎができない',
-  'การวางแผนการผลิต': '生産計画',
-  'การวางแผนการผลิต / การควบคุมกระบวนการ ทำได้ไม่ดี':
-    '生産計画／工程管理がうまくいかない',
-  'ลดการใช้กระดาษและ Excel': '紙・Excel削減',
-  'มีงานกระดาษ / Excel / งานแบบอนาล็อกจำนวนมาก': '紙・Excel・アナログ作業が多い',
-  'การทำให้มองเห็นได้ชัดเจน': '見える化',
-  'การมองเห็นภาพรวมของหน้างาน': '現場の「見える化」ができていない',
-};
-
-const getTagLabelByLanguage = (name, languageCode) => {
-  if (languageCode === 'JP') {
-    return japaneseTagLabels[name] || name;
-  }
-  return name;
-};
-
 export default function UserMatchingPage() {
   const router = useRouter();
   const languageOptions = [
@@ -114,11 +84,8 @@ export default function UserMatchingPage() {
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const carouselRef = useRef(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [favorites, setFavorites] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [exhibitors, setExhibitors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -127,13 +94,7 @@ export default function UserMatchingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [problemTags, setProblemTags] = useState([]);
-
-  const toggleFavorite = (exhibitorId) => {
-    setFavorites((prev) => ({
-      ...prev,
-      [exhibitorId]: !prev[exhibitorId],
-    }));
-  };
+  const [contactedExhibitors, setContactedExhibitors] = useState([]);
 
   const handleFilterClick = (filterKey) => {
     setSelectedFilter(filterKey);
@@ -230,7 +191,11 @@ export default function UserMatchingPage() {
   // Filter exhibitors based on selected filters
   let filteredExhibitors = exhibitors;
 
-  if (selectedCategory) {
+  if (selectedFilter === 'contacted') {
+    filteredExhibitors = filteredExhibitors.filter((exhibitor) =>
+      contactedExhibitors.includes(exhibitor.id)
+    );
+  } else if (selectedCategory) {
     const normalizedCategory = selectedCategory.toLowerCase();
     filteredExhibitors = filteredExhibitors.filter(
       (exhibitor) =>
@@ -239,10 +204,6 @@ export default function UserMatchingPage() {
           (category) => category && category.toLowerCase() === normalizedCategory
         )
     );
-  }
-
-  if (selectedFilter === 'favorites') {
-    filteredExhibitors = filteredExhibitors.filter((exhibitor) => favorites[exhibitor.id]);
   }
 
   useEffect(() => {
@@ -270,6 +231,27 @@ export default function UserMatchingPage() {
     };
   }, []);
 
+  // Load contacted exhibitors from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('contactedExhibitors');
+      if (stored) {
+        try {
+          setContactedExhibitors(JSON.parse(stored));
+        } catch (e) {
+          console.error('Error parsing contactedExhibitors:', e);
+        }
+      }
+    }
+  }, []);
+
+  // Persist contacted exhibitors to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('contactedExhibitors', JSON.stringify(contactedExhibitors));
+    }
+  }, [contactedExhibitors]);
+
   const handleLanguageSelect = (option) => {
     setSelectedLanguage(option);
     if (typeof window !== 'undefined') {
@@ -278,37 +260,9 @@ export default function UserMatchingPage() {
     setIsLanguageOpen(false);
   };
 
-  // Handle carousel scroll to update dots
-  const handleCarouselScroll = () => {
-    if (carouselRef.current) {
-      const scrollLeft = carouselRef.current.scrollLeft;
-      const cardWidth = 180; // 180px card width
-      const gap = 10; // 10px gap between cards
-      const totalWidth = cardWidth + gap;
-      const currentIndex = Math.round(scrollLeft / totalWidth);
-      const clampedIndex = Math.max(0, Math.min(currentIndex, 2)); // Clamp between 0-2
-      setCurrentSlide(clampedIndex);
-    }
-  };
-
-  // Handle dot click to scroll to specific slide
-  const handleDotClick = (index) => {
-    if (carouselRef.current) {
-      const cardWidth = 180; // 180px card width
-      const gap = 10; // 10px gap between cards
-      const totalWidth = cardWidth + gap;
-      carouselRef.current.scrollTo({
-        left: index * totalWidth,
-        behavior: 'smooth',
-      });
-    }
-  };
-
   const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
-  const isSelectedFavorite =
-    selectedExhibitor && favorites ? Boolean(favorites[selectedExhibitor.id]) : false;
 
   const titleContent = t.titleLine2 ? (
     <>
@@ -397,114 +351,16 @@ export default function UserMatchingPage() {
             <p className="text-sm text-gray-600">{t.description}</p>
           </div>
 
-          {/* Store Cards Carousel */}
-          {loading ? (
-            <div className="mb-4 text-center py-8 text-gray-500">
-              {selectedLanguage.code === 'TH' ? 'กำลังโหลด...' : selectedLanguage.code === 'EN' ? 'Loading...' : '読み込み中...'}
-            </div>
-          ) : carouselExhibitors.length > 0 ? (
-            <div className="mb-4">
-              <div
-                ref={carouselRef}
-                onScroll={handleCarouselScroll}
-                className="carousel-container flex gap-[10px] overflow-x-auto snap-x snap-mandatory snap-start"
-                style={{
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  WebkitOverflowScrolling: 'touch',
-                }}
-              >
-                {carouselExhibitors.slice(0, 3).map((exhibitor, index) => (
-                  <div key={exhibitor.id} className="w-[180px] h-[256px] bg-white rounded-lg shadow-md border border-gray-200 flex flex-col items-center py-[10px] px-4 flex-shrink-0 snap-start">
-                    {/* Circular Image */}
-                    <div className="w-[80px] h-[80px] rounded-full overflow-hidden mb-2 flex-shrink-0 border border-gray-200">
-                      {exhibitor.logoUrl ? (
-                        <Image
-                          src={exhibitor.logoUrl}
-                          alt={exhibitor.companyName || t.storeName}
-                          width={80}
-                          height={80}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                          <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-gray-400">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Store Name */}
-                    <h3
-                      className={`${promptFont.className} text-[16px] font-bold text-gray-900 mb-1 text-center`}
-                    >
-                      {exhibitor.companyName || t.storeName}
-                    </h3>
-
-                    {/* Product Type */}
-                    {exhibitor.companyDescription && (
-                      <p
-                        className={`${promptFont.className} text-[11px] font-medium text-gray-700 mb-2 text-center line-clamp-2`}
-                      >
-                        {exhibitor.companyDescription.substring(0, 30)}...
-                      </p>
-                    )}
-
-                    {/* Category Buttons */}
-                    <div className="flex flex-wrap gap-1.5 justify-center mb-2 flex-1 items-start">
-                      {exhibitor.categories &&
-                        exhibitor.categories.slice(0, 3).map((category, catIndex) => (
-                          <span
-                            key={catIndex}
-                            className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded-full flex items-center justify-center max-w-[70px] truncate"
-                          >
-                            {getTagLabelByLanguage(category, selectedLanguage.code)}
-                          </span>
-                        ))}
-                    </div>
-
-                    {/* Details Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedExhibitor(exhibitor);
-                        setIsModalOpen(true);
-                      }}
-                      className="w-[95px] h-[36px] bg-gray-800 text-white rounded-lg text-sm font-semibold hover:bg-gray-900 transition mt-auto"
-                    >
-                      {t.details}
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Slide Dots */}
-              {filteredExhibitors.length > 1 && (
-                <div className="flex justify-center gap-2 mt-4">
-                  {[0, 1].slice(0, Math.min(2, Math.ceil(filteredExhibitors.length / 3))).map((index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleDotClick(index)}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        currentSlide === index ? 'bg-gray-800' : 'bg-gray-300'
-                      }`}
-                      aria-label={`Go to slide ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="mb-4 text-center py-8 text-gray-500">
-              {selectedLanguage.code === 'TH' 
-                ? 'ไม่พบผู้แสดงสินค้าที่ตรงกับความสนใจของคุณ' 
-                : selectedLanguage.code === 'EN' 
-                ? 'No exhibitors match your interests' 
-                : '興味に一致する出展者がありません'}
-            </div>
-          )}
+          {/* Map Image */}
+          <div className="mb-4">
+            <Image
+              src="/Map.jpg"
+              alt="Map"
+              width={358}
+              height={200}
+              className="w-full rounded-lg"
+            />
+          </div>
 
           {/* Filter Buttons */}
           <div className="mb-4">
@@ -517,65 +373,23 @@ export default function UserMatchingPage() {
                     ? 'bg-gray-800 text-white'
                     : 'bg-transparent text-gray-900 hover:text-gray-700'
                 }`}
-                aria-label={t.all}
+                aria-label="All"
               >
-                {t.all}
+                ทั้งหมด
               </button>
               <button
                 type="button"
-                onClick={() => handleFilterClick('problem')}
+                onClick={() => handleFilterClick('contacted')}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  selectedFilter === 'problem'
+                  selectedFilter === 'contacted'
                     ? 'bg-gray-800 text-white'
                     : 'bg-transparent text-gray-900 hover:text-gray-700'
                 }`}
-                aria-label={t.problem}
+                aria-label="Contacted"
               >
-                {t.problem}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFilterClick('favorites')}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1 ${
-                  selectedFilter === 'favorites'
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-transparent text-gray-900 hover:text-gray-700'
-                }`}
-                aria-label={t.favorites}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill={selectedFilter === 'favorites' ? 'white' : 'currentColor'}
-                  className="w-4 h-4"
-                >
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-                {t.favorites}
+                ติดต่อแล้ว
               </button>
             </div>
-            {problemTags.length > 0 && (
-              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                {problemTags.map((tag) => {
-                  const isActive = selectedCategory === tag;
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => handleCategorySelect(tag)}
-                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                        isActive
-                          ? 'bg-gray-900 text-white border-gray-900'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'
-                      }`}
-                    >
-                      {getTagLabelByLanguage(tag, selectedLanguage.code)}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* Horizontal Store Cards */}
@@ -626,11 +440,16 @@ export default function UserMatchingPage() {
                   <div className="flex-1 flex flex-col justify-between min-h-[80px]">
                     <div>
                       {/* Store Name */}
-                      <h3
-                        className={`${promptFont.className} text-[16px] font-bold text-gray-900 mb-1`}
-                      >
-                        {exhibitor.companyName || t.storeNameC}
-                      </h3>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3
+                          className={`${promptFont.className} text-[16px] font-bold text-gray-900 mb-1 flex-1`}
+                        >
+                          {exhibitor.companyName || t.storeNameC}
+                        </h3>
+                        {contactedExhibitors.includes(exhibitor.id) && (
+                          <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-800 text-[10px] rounded-full whitespace-nowrap">ติดต่อแล้ว</span>
+                        )}
+                      </div>
 
                       {/* Product Type */}
                       {exhibitor.companyDescription && (
@@ -647,9 +466,9 @@ export default function UserMatchingPage() {
                           {exhibitor.categories.slice(0, 2).map((category, catIndex) => (
                             <span
                               key={catIndex}
-                              className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded-full flex items-center justify-center border border-gray-300 flex-shrink-0 max-w-[70px] truncate"
+                              className="px-3 py-1 bg-gray-100 text-gray-700 text-[12px] rounded-full flex items-center justify-center border border-gray-300 min-w-[100px] max-w-[160px] truncate"
                             >
-                              {getTagLabelByLanguage(category, selectedLanguage.code)}
+                              {category}
                             </span>
                           ))}
                         </div>
@@ -657,42 +476,16 @@ export default function UserMatchingPage() {
                     </div>
                   </div>
 
-                  {/* Favorite Star Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(exhibitor.id);
-                    }}
-                    className="flex-shrink-0 p-2 hover:opacity-70 transition-opacity"
-                    aria-label={
-                      favorites[exhibitor.id]
-                        ? 'Remove from favorites'
-                        : 'Add to favorites'
-                    }
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill={favorites[exhibitor.id] ? '#fbbf24' : 'none'}
-                      stroke={favorites[exhibitor.id] ? '#fbbf24' : '#9ca3af'}
-                      strokeWidth="2"
-                      className="w-6 h-6"
-                    >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  </button>
                 </div>
               </div>
             ))
           ) : (
             <div className="w-full bg-gray-50 border border-dashed border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500 mb-4">
-              {selectedFilter === 'favorites' ? t.noFavorites : (selectedLanguage.code === 'TH' 
+              {selectedLanguage.code === 'TH' 
                 ? 'ไม่พบผู้แสดงสินค้า' 
                 : selectedLanguage.code === 'EN' 
                 ? 'No exhibitors found' 
-                : '出展者が見つかりません')}
+                : '出展者が見つかりません'}
             </div>
           )}
 
@@ -846,7 +639,7 @@ export default function UserMatchingPage() {
                               key={index}
                               className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
                             >
-                              {getTagLabelByLanguage(category, selectedLanguage.code)}
+                              {category}
                             </span>
                           ))}
                         </div>
@@ -856,62 +649,45 @@ export default function UserMatchingPage() {
 
             {/* Modal Footer */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3 flex justify-center items-center gap-3">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (selectedExhibitor) {
-                    toggleFavorite(selectedExhibitor.id);
-                  }
-                }}
-                className={`w-11 h-11 rounded-full border flex items-center justify-center transition ${
-                  isSelectedFavorite
-                    ? 'bg-yellow-400 border-yellow-400 text-white hover:bg-yellow-500'
-                    : 'border-gray-300 text-gray-500 hover:text-gray-700 hover:border-gray-400'
-                }`}
-                aria-label={isSelectedFavorite ? t.favorites : t.favorites}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill={isSelectedFavorite ? 'currentColor' : 'none'}
-                  stroke={isSelectedFavorite ? 'currentColor' : 'currentColor'}
-                  strokeWidth="2"
-                >
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-              </button>
+              {selectedExhibitor && contactedExhibitors.includes(selectedExhibitor.id) ? (
+                <div className="px-6 py-2 text-sm font-semibold text-gray-700">ติดต่อแล้ว</div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const visiterId = await lookSesstion();
+                    if (!visiterId) {
+                      return;
+                    }
+                    try {
+                      const washingtonRef = doc(db, 'userPanelSubmissions', visiterId);
+                      await updateDoc(
+                        washingtonRef,
+                        {
+                          exhibitorId: selectedExhibitor.id,
+                          createdAt: serverTimestamp(),
+                        },
+                        { merge: true }
+                      );
 
-              <button
-                type="button"
-                onClick={async () => {
-                  const visiterId = await  lookSesstion();
-                  if(!visiterId){
-                    
-                    return ;
-                  } 
-                  try {
-                    const washingtonRef = doc(db,  'userPanelSubmissions', visiterId);
-                    await updateDoc(washingtonRef, {
-                      exhibitorId: selectedExhibitor.id,
-                      createdAt: serverTimestamp(),
-                    }, { merge: true });
-                    setIsModalOpen(false);
-                    setSelectedExhibitor(null);
-                    setShowNotification(true);
-                    setTimeout(() => {
-                      setShowNotification(false);
-                    }, 5000);
-                  } catch (error) {
-                    console.error('Error saving contact:', error);
-                  }
-                }}
-                className="px-6 py-2 bg-gray-800 text-white rounded-lg text-sm font-semibold hover:bg-gray-900 transition"
-              >
-                {t.contact}
-              </button>
+                      // Add to contacted list
+                      setContactedExhibitors((prev) => [...new Set([...prev, selectedExhibitor.id])]);
+
+                      setIsModalOpen(false);
+                      setSelectedExhibitor(null);
+                      setShowNotification(true);
+                      setTimeout(() => {
+                        setShowNotification(false);
+                      }, 5000);
+                    } catch (error) {
+                      console.error('Error saving contact:', error);
+                    }
+                  }}
+                  className="px-6 py-2 bg-gray-800 text-white rounded-lg text-sm font-semibold hover:bg-gray-900 transition"
+                >
+                  {t.contact}
+                </button>
+              )}
             </div>
           </div>
         </div>
