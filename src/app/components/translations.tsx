@@ -30,7 +30,7 @@ const translations = {
       loginCta: 'เข้าสู่ระบบ',
     // Admin Dashboard
     dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'User Management', 'Problem Tag Management'],
+    tabs: ['DashBoard', 'User Management', 'Problem Tag Management', 'User Sessions'],
     searchPlaceholder: 'Search...',
     totalParticipants: 'จำนวนผู้เข้างานทั้งหมด',
     totalVisitors: 'จำนวนผู้เข้าชม',
@@ -79,6 +79,7 @@ const translations = {
     tagAddErrorProblemTagManagement: 'ไม่สามารถเพิ่มแท็กได้ กรุณาลองใหม่',
     tagDuplicateProblemTagManagement: 'แท็กนี้มีอยู่แล้ว',
     editButtonProblemTagManagement: 'แก้ไข',
+    deleteButtonProblemTagManagement: 'ลบ',
     updateButtonProblemTagManagement: 'บันทึก',
     cancelButtonProblemTagManagement: 'ยกเลิก',
     tagUpdateSuccess: 'บันทึกการแก้ไขแท็กสำเร็จ',
@@ -161,7 +162,7 @@ const translations = {
       loginCta: 'ログイン',
       // Admin Dashboard
       dashboard: 'ダッシュボード',
-      tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理'],
+      tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ユーザーセッション'],
       searchPlaceholder: '検索...',
       totalParticipants: '総参加者数',
       totalVisitors: '来場者数',
@@ -225,6 +226,7 @@ const translations = {
     tagAddErrorProblemTagManagement: 'タグを追加できません。もう一度お試しください。',
     tagDuplicateProblemTagManagement: 'このタグは既に存在します',
     editButtonProblemTagManagement: '編集',
+    deleteButtonProblemTagManagement: '削除',
     updateButtonProblemTagManagement: '保存',
     cancelButtonProblemTagManagement: 'キャンセル',
     tagUpdateSuccess: 'タグの変更を保存しました',

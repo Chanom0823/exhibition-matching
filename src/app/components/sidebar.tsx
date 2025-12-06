@@ -34,10 +34,15 @@ export default function Sidebar({ t, activeTab, setActiveTab, isSidebarOpen, set
     }
     if (index === 3) {
       return (
-        <Image src="/home.png" alt={tab} width={24} height={24} className="w-6 h-6" />
+        <Image src="/time.png" alt={tab} width={24} height={24} className="w-6 h-6" />
       );
     }
     if (index === 4) {
+      return (
+        <Image src="/home.png" alt={tab} width={24} height={24} className="w-6 h-6" />
+      );
+    }
+    if (index === 5) {
       return (
         <Image src="/verify.png" alt={tab} width={24} height={24} className="w-6 h-6" />
       );
@@ -60,7 +65,7 @@ export default function Sidebar({ t, activeTab, setActiveTab, isSidebarOpen, set
       <nav className="flex-1 px-4 py-4">
         <div className="flex flex-col gap-2">
           {t.tabs.map((tab: string, idx: number) => {
-            const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement'];
+            const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'userSessions'];
             const targetTab = tabKeys[idx] || 'dashboard';
 
             return (
@@ -73,6 +78,8 @@ export default function Sidebar({ t, activeTab, setActiveTab, isSidebarOpen, set
                     router.push('/admin-dashboard/user-management');
                   } else if (targetTab === 'problemTagManagement') {
                     router.push('/admin-dashboard/problem-tag-management');
+                  } else if (targetTab === 'userSessions') {
+                    router.push('/admin-dashboard/user-sessions');
                   } else if (targetTab === 'pdpaManagement') {
                     router.push('/admin-dashboard/pdpa-management');
                   }

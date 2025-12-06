@@ -40,7 +40,7 @@ const getInitialVisitorForm = () => ({
   fullName: '',
   companyName: '',
   contact: '',
-  categories: ['', ''],
+  categories: [''],
 });
 
 export default function UserManagementPage() {
@@ -75,7 +75,7 @@ export default function UserManagementPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [editFormData, setEditFormData] = useState(getInitialProfileForm());
-  const [editCategories, setEditCategories] = useState(['', '']);
+  const [editCategories, setEditCategories] = useState(['']);
   const [visitorFormData, setVisitorFormData] = useState(getInitialVisitorForm());
   const [editLoading, setEditLoading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
@@ -512,7 +512,7 @@ export default function UserManagementPage() {
 
   const resetEditState = () => {
     setEditFormData(getInitialProfileForm());
-    setEditCategories(['', '', '']);
+    setEditCategories(['']);
     setEditMessage({ type: '', text: '' });
     setEditTarget(null);
     setVisitorFormData(getInitialVisitorForm());
@@ -637,7 +637,7 @@ export default function UserManagementPage() {
     setEditLoading(true);
     setEditMessage({ type: '', text: '' });
     setEditFormData(getInitialProfileForm());
-    setEditCategories(['', '', '']);
+    setEditCategories(['']);
     setVisitorFormData(getInitialVisitorForm());
 
     try {
@@ -653,7 +653,6 @@ export default function UserManagementPage() {
               contact: submissionData.contact || user.email || '',
               categories: [
                 submissionData.categories?.[0] || '',
-                submissionData.categories?.[1] || '',
               ],
             });
           } else {
@@ -661,7 +660,7 @@ export default function UserManagementPage() {
               fullName: user.fullName || user.username || '',
               companyName: '',
               contact: user.email || '',
-              categories: ['', ''],
+              categories: [''],
             });
           }
         } else {
@@ -669,7 +668,7 @@ export default function UserManagementPage() {
             fullName: user.fullName || user.username || '',
             companyName: '',
             contact: user.email || '',
-            categories: ['', ''],
+            categories: [''],
           });
         }
         setEditLoading(false);
@@ -694,10 +693,10 @@ export default function UserManagementPage() {
         });
         if (data.categories && Array.isArray(data.categories)) {
           const filledCategories = [...data.categories];
-          while (filledCategories.length < 2) {
+          while (filledCategories.length < 1) {
             filledCategories.push('');
           }
-          setEditCategories(filledCategories.slice(0, 2));
+          setEditCategories(filledCategories.slice(0, 1));
         }
       } else {
         setEditFormData((prev) => ({
@@ -1513,7 +1512,7 @@ export default function UserManagementPage() {
                         {t.visitorCategoriesLabel}
                       </label>
                       <div className="space-y-2">
-                        {[0, 1].map((index) => {
+                        {[0].map((index) => {
                           const currentValue = visitorFormData.categories[index] || '';
                           const availableTags = getTagOptions(currentValue);
                           return (
@@ -1677,7 +1676,7 @@ export default function UserManagementPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-2">{t.tagsTitle}</label>
                       <div className="space-y-2">
-                        {[0, 1].map((index) => {
+                        {[0].map((index) => {
                           const currentValue = editCategories[index] || '';
                           const availableTags = getTagOptions(currentValue);
                           return (
