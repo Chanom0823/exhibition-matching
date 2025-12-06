@@ -11,7 +11,7 @@ export async function sentForm(formData: FormData, isAccepted: boolean) {
   const trimmedContact = formData.get('contact');
   const selectedCategories = formData.get('selectedCategories');
   const selectedLanguage = formData.get('selectedLanguage');
-  
+  let isSuccess = false;
   
   try {
     const docRef = await addDoc(collection(db, 'userPanelSubmissions'), {
@@ -22,11 +22,18 @@ export async function sentForm(formData: FormData, isAccepted: boolean) {
       language: selectedLanguage,
       pdpaAccepted: isAccepted,
       createdAt: serverTimestamp(),
+      
     })
-
+    if (docRef.id) {
+        console.log("บันทึกเสร็จเเล้ว ID:", docRef.id);
+        await createSesstion(docRef.id); 
+    }
+        isSuccess = true;
   } catch (error) {
     console.error('Error submitting form:', error);
   } finally {
-    redirect('/usermatching')
+    if (isSuccess) {
+        redirect('/usermatching');
+  }
   }
 }

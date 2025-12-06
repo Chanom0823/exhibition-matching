@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import localFont from 'next/font/local';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { lookSesstion } from '@/lib/auth';
 
 const promptFont = localFont({
   src: [
@@ -85,13 +86,11 @@ export default function UserMatchingPage() {
   const languageDropdownRef = useRef(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [exhibitors, setExhibitors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userInterests, setUserInterests] = useState([]);
   const [selectedExhibitor, setSelectedExhibitor] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showNotification, setShowNotification] = useState(false);
   const [problemTags, setProblemTags] = useState([]);
 
   const handleFilterClick = (filterKey) => {
@@ -101,31 +100,23 @@ export default function UserMatchingPage() {
     }
   };
 
-  const handleCategorySelect = (tag) => {
-    setSelectedFilter('problem');
-    setSelectedCategory((prev) => (prev === tag ? null : tag));
-  };
-  // Load user interests from localStorage or Firebase
-  //useEffect(() => {
-      // Try to get user interests from localStorage
-      // const storedInterests = localStorage?.getItem('userInterests');
-      // if (storedInterests) {
-      //   try {
-      //     setUserInterests(JSON.parse(storedInterests));
-      //   } catch (e) {
-      //     console.error('Error parsing user interests:', e);
-      //   }
-      // }
-  //}, []);
-
-  // Load exhibitors from Firebase
   useEffect(() => {
     const loadExhibitors = async () => {
       setLoading(true);
       try {
+        const visitorId = await lookSesstion();
+        const visitorDocRef = doc(db, 'userPanelSubmissions', visitorId);
+        const visitorSnap = await getDoc(visitorDocRef);
+        let visitorInterests = [];
+
+        if (visitorSnap.exists()) {
+          const data = visitorSnap.data();
+          visitorInterests = data.categories || [];
+        }
         const exhibitorsRef = collection(db, 'exhibitors');
-        const querySnapshot = await getDocs(exhibitorsRef);
-        
+        const q = query(exhibitorsRef, where('categories', 'array-contains-any', visitorInterests));
+        const querySnapshot = await getDocs(q);
+       
         const exhibitorsData = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
@@ -135,26 +126,10 @@ export default function UserMatchingPage() {
               id: doc.id,
               ...data,
             });
-            console.log('Loaded exhibitor:', data.companyName);
           }
         });
 
-        // Filter exhibitors by matching tags with user interests
-        let filteredExhibitors = exhibitorsData;
-        if (userInterests.length > 0) {
-          filteredExhibitors = exhibitorsData.filter((exhibitor) => {
-            if (!exhibitor.categories || exhibitor.categories.length === 0) return false;
-            // Check if any exhibitor category matches any user interest
-            return exhibitor.categories.some((category) =>
-              userInterests.some((interest) =>
-                category.toLowerCase().includes(interest.toLowerCase()) ||
-                interest.toLowerCase().includes(category.toLowerCase())
-              )
-            );
-          });
-        }
-
-        setExhibitors(filteredExhibitors);
+        setExhibitors(exhibitorsData);
       } catch (error) {
         console.error('Error loading exhibitors:', error);
       } finally {
@@ -163,7 +138,7 @@ export default function UserMatchingPage() {
     };
 
     loadExhibitors();
-  }, [userInterests]);
+  }, []);
 
   useEffect(() => {
     const loadProblemTags = async () => {
@@ -258,12 +233,12 @@ export default function UserMatchingPage() {
             aria-label="กลับไปหน้าแรก"
           >
             <Image
-              src="/logo.svg"
+              src={"/logo.svg"}
               alt="alt design office"
               width={80}
               height={39}
-              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
-              priority
+              className="w-20 h-auto md:w-25"
+              loading="eager"
             />
           </button>
           <div className="relative" ref={languageDropdownRef}>
@@ -295,11 +270,10 @@ export default function UserMatchingPage() {
                   <li key={option.code}>
                     <button
                       type="button"
-                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
-                        selectedLanguage.code === option.code
+                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${selectedLanguage.code === option.code
                           ? 'bg-gray-100 text-gray-900'
                           : 'text-gray-700 hover:bg-gray-50'
-                      }`}
+                        }`}
                       onClick={() => handleLanguageSelect(option)}
                       role="option"
                       aria-selected={selectedLanguage.code === option.code}
@@ -324,11 +298,12 @@ export default function UserMatchingPage() {
           {/* Map Image */}
           <div className="mb-4">
             <Image
-              src="/Map.jpg"
+              src={"/Map.jpg"}
               alt="Map"
               width={358}
               height={200}
-              className="w-full rounded-lg"
+              loading="eager"
+              className="w-full h-auto rounded-lg"
             />
           </div>
 
@@ -338,11 +313,11 @@ export default function UserMatchingPage() {
               {selectedLanguage.code === 'TH' ? 'กำลังโหลด...' : selectedLanguage.code === 'EN' ? 'Loading...' : '読み込み中...'}
             </div>
           ) : filteredExhibitors.length > 0 ? (
-            <div className="relative">
+            <div className="relative  w-full">
               {filteredExhibitors.map((exhibitor) => (
                 <div
                   key={exhibitor.id}
-                  className="w-full bg-white rounded-lg shadow-md border border-gray-200 p-3 mb-3 w-[358px] h-[100px] cursor-pointer transition hover:shadow-lg relative"
+                  className="w-full bg-white rounded-lg shadow-md border border-gray-200 p-3 mb-3  min-h-25 cursor-pointer transition hover:shadow-lg relative"
                   onClick={() => {
                     setSelectedExhibitor(selectedExhibitor?.id === exhibitor.id ? null : exhibitor);
                     setIsDropdownOpen(selectedExhibitor?.id === exhibitor.id ? !isDropdownOpen : true);
@@ -357,178 +332,160 @@ export default function UserMatchingPage() {
                     }
                   }}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center min-h-20 gap-4">
                     {/* Circular Image */}
-                    <div className="w-[60px] h-[60px] rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
-                      {exhibitor.logoUrl ? (
-                      <Image
-                        src={exhibitor.logoUrl}
-                        alt={exhibitor.companyName || t.storeNameC}
-                        width={60}
-                        height={60}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-gray-400">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Store Info and Actions */}
-                  <div className="flex-1 flex flex-col justify-between min-h-[80px]">
-                    <div>
-                      {/* Store Name */}
-                      <div className="flex items-start justify-between gap-2">
-                        <h3
-                          className={`${promptFont.className} text-[16px] font-bold text-gray-900 mb-1 flex-1`}
-                        >
-                          {exhibitor.companyName || t.storeNameC}
-                        </h3>
-                      </div>
-
-                      {/* Product Type */}
-                      {exhibitor.companyDescription && (
-                        <p
-                          className={`${promptFont.className} text-[11px] font-medium text-gray-700 mb-2 line-clamp-1`}
-                        >
-                          {exhibitor.companyDescription.substring(0, 40)}...
-                        </p>
-                      )}
-
-                      {/* Category Buttons */}
-                      {exhibitor.categories && exhibitor.categories.length > 0 && (
-                        <div className="flex gap-1.5 mb-2">
-                          {exhibitor.categories.slice(0, 2).map((category, catIndex) => (
-                            <span
-                              key={catIndex}
-                              className="px-3 py-1 bg-gray-100 text-gray-700 text-[12px] rounded-full flex items-center justify-center border border-gray-300 min-w-[100px] max-w-[160px] truncate"
-                            >
-                              {category}
-                            </span>
-                          ))}
+                    <div className="w-[60px] h-[60px] rounded-full overflow-hidden shrink-0 border border-gray-200">
+                      {exhibitor.logoUrl? (
+                        <Image
+                          src={exhibitor?.logoUrl}
+                          alt={exhibitor?.companyName || t.storeNameC}
+                          width={60}
+                          height={60}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-gray-400">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
                         </div>
                       )}
                     </div>
-                  </div>
 
-                </div>
-
-                {/* Red Dropdown Menu */}
-                {selectedExhibitor?.id === exhibitor.id && isDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white text-gray-900 rounded-lg shadow-lg p-4 z-20 w-full">
-                    {/* Company Name */}
-                    <div className="mb-3">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">{t.companyName}</label>
-                      <p className="text-sm text-gray-900">{selectedExhibitor.companyName || '-'}</p>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div className="space-y-2 mb-3">
-                      <label className="block text-xs font-semibold text-gray-600">{t.contactChannel}</label>
-                      
-                      {(selectedExhibitor.companyEmail || selectedExhibitor.email) && (
-                        <div>
-                          <span className="text-xs text-gray-500">{t.email}:</span>
-                          <p className="text-sm text-gray-900">{selectedExhibitor.companyEmail || selectedExhibitor.email}</p>
-                        </div>
-                      )}
-
-                      {(selectedExhibitor.companyPhone || selectedExhibitor.phone) && (
-                        <div>
-                          <span className="text-xs text-gray-500">{t.phone}:</span>
-                          <p className="text-sm text-gray-900">{selectedExhibitor.companyPhone || selectedExhibitor.phone}</p>
-                        </div>
-                      )}
-
-                      {(selectedExhibitor.companyWebsite || selectedExhibitor.website) && (
-                        <div>
-                          <span className="text-xs text-gray-500">{t.website}:</span>
-                          <a
-                            href={selectedExhibitor.companyWebsite || selectedExhibitor.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 underline hover:text-blue-800"
+                    {/* Store Info and Actions */}
+                    <div className="flex  flex-col   justify-between min-h-20">
+                      <div className='flex flex-col'>
+                        {/* Store Name */}
+                        <div className="flex items-start justify-between  gap-2">
+                          <h3
+                            className={`${promptFont.className} text-[16px] font-bold text-gray-900 mb-1 flex-1`}
                           >
-                            {selectedExhibitor.companyWebsite || selectedExhibitor.website}
-                          </a>
+                            {exhibitor.companyName || t.storeNameC}
+                          </h3>
                         </div>
-                      )}
 
-                      {selectedExhibitor.address && (
-                        <div>
-                          <span className="text-xs text-gray-500">{t.address}:</span>
-                          <p className="text-sm text-gray-900">{selectedExhibitor.address}</p>
-                        </div>
-                      )}
+                        {/* Product Type */}
+                        {exhibitor.companyDescription && (
+                          <p
+                            className={`${promptFont.className} text-[11px] font-medium text-gray-700 mb-2 line-clamp-1`}
+                          >
+                            {exhibitor.companyDescription.substring(0, 40)}...
+                          </p>
+                        )}
 
-                      {!(selectedExhibitor.companyEmail || selectedExhibitor.email) && 
-                       !(selectedExhibitor.companyPhone || selectedExhibitor.phone) && 
-                       !(selectedExhibitor.companyWebsite || selectedExhibitor.website) && 
-                       !selectedExhibitor.address && (
-                        <p className="text-xs text-gray-500">-</p>
-                      )}
+                        {/* Category Buttons */}
+                        {exhibitor.categories && exhibitor.categories.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {exhibitor.categories.slice(0, 2).map((category, catIndex) => (
+                              <span
+                                key={catIndex}
+                                className="px-3 py-1 bg-gray-100 text-gray-700 text-[12px] rounded-full flex items-center justify-center border border-gray-300 min-w-[100px] max-w-[160px] truncate"
+                              >
+                                {category}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Company Description */}
-                    {selectedExhibitor.companyDescription && (
-                      <div className="mb-3">
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t.companyDescription}</label>
-                        <p className="text-sm text-gray-900">{selectedExhibitor.companyDescription}</p>
-                      </div>
-                    )}
-
-                    {/* Categories */}
-                    {selectedExhibitor.categories && selectedExhibitor.categories.length > 0 && (
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-2">{t.categories}</label>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedExhibitor.categories.map((category, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full border border-gray-300"
-                            >
-                              {category}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
-                )}
-              </div>
+
+                  {/* Red Dropdown Menu */}
+                  {selectedExhibitor?.id === exhibitor.id && isDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white text-gray-900 rounded-lg shadow-lg p-4 z-20 w-full">
+                      {/* Company Name */}
+                      <div className="mb-3">
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t.companyName}</label>
+                        <p className="text-sm text-gray-900">{selectedExhibitor.companyName || '-'}</p>
+                      </div>
+
+                      {/* Contact Information */}
+                      <div className="space-y-2 mb-3">
+                        <label className="block text-xs font-semibold text-gray-600">{t.contactChannel}</label>
+
+                        {(selectedExhibitor.companyEmail || selectedExhibitor.email) && (
+                          <div>
+                            <span className="text-xs text-gray-500">{t.email}:</span>
+                            <p className="text-sm text-gray-900">{selectedExhibitor.companyEmail || selectedExhibitor.email}</p>
+                          </div>
+                        )}
+
+                        {(selectedExhibitor.companyPhone || selectedExhibitor.phone) && (
+                          <div>
+                            <span className="text-xs text-gray-500">{t.phone}:</span>
+                            <p className="text-sm text-gray-900">{selectedExhibitor.companyPhone || selectedExhibitor.phone}</p>
+                          </div>
+                        )}
+
+                        {(selectedExhibitor.companyWebsite || selectedExhibitor.website) && (
+                          <div>
+                            <span className="text-xs text-gray-500">{t.website}:</span>
+                            <a
+                              href={selectedExhibitor.companyWebsite || selectedExhibitor.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 underline hover:text-blue-800"
+                            >
+                              {selectedExhibitor.companyWebsite || selectedExhibitor.website}
+                            </a>
+                          </div>
+                        )}
+
+                        {selectedExhibitor.address && (
+                          <div>
+                            <span className="text-xs text-gray-500">{t.address}:</span>
+                            <p className="text-sm text-gray-900">{selectedExhibitor.address}</p>
+                          </div>
+                        )}
+
+                        {!(selectedExhibitor.companyEmail || selectedExhibitor.email) &&
+                          !(selectedExhibitor.companyPhone || selectedExhibitor.phone) &&
+                          !(selectedExhibitor.companyWebsite || selectedExhibitor.website) &&
+                          !selectedExhibitor.address && (
+                            <p className="text-xs text-gray-500">-</p>
+                          )}
+                      </div>
+
+                      {/* Company Description */}
+                      {selectedExhibitor.companyDescription && (
+                        <div className="mb-3">
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">{t.companyDescription}</label>
+                          <p className="text-sm text-gray-900">{selectedExhibitor.companyDescription}</p>
+                        </div>
+                      )}
+
+                      {/* Categories */}
+                      {selectedExhibitor.categories && selectedExhibitor.categories.length > 0 && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-2">{t.categories}</label>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedExhibitor.categories.map((category, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full border border-gray-300"
+                              >
+                                {category}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           ) : (
             <div className="w-full bg-gray-50 border border-dashed border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500 mb-4">
-              {selectedLanguage.code === 'TH' 
-                ? 'ไม่พบผู้แสดงสินค้า' 
-                : selectedLanguage.code === 'EN' 
-                ? 'No exhibitors found' 
-                : '出展者が見つかりません'}
+              {selectedLanguage.code === 'TH'
+                ? 'ไม่พบผู้แสดงสินค้า'
+                : selectedLanguage.code === 'EN'
+                  ? 'No exhibitors found'
+                  : '出展者が見つかりません'}
             </div>
           )}
 
-          {/* Pagination */}
-          <div className="flex justify-center gap-2 mb-4">
-            {[1, 2, 3, 4, 5].map((pageNumber) => (
-              <button
-                key={pageNumber}
-                type="button"
-                onClick={() => setCurrentPage(pageNumber)}
-                className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
-                  currentPage === pageNumber
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-                aria-label={`Go to page ${pageNumber}`}
-              >
-                {pageNumber}
-              </button>
-            ))}
-          </div>
 
           {/* Back Home Button */}
           <div className="text-center">
