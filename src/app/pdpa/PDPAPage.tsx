@@ -6,6 +6,8 @@ import Image from 'next/image';
 import localFont from 'next/font/local';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useConsent } from '../contexts/pdpa';
+import { useActionCared } from '../contexts/action-cared';
 
 const promptFont = localFont({
   src: [
@@ -451,49 +453,24 @@ const defaultTranslations = {
   },
 };
 
-export default function PDPAPage() {
-  const router = useRouter();
-  
+type props ={
+  selectedLanguage?: any;
+}
+
+const  PDPAPage =(props:props)=> {
+ 
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
+  const [selectedLanguage, setSelectedLanguage] = useState(props.selectedLanguage);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
-  const [isAccepted, setIsAccepted] = useState(false);
   const [translations, setTranslations] = useState(defaultTranslations);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const storedLanguage = typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
-    if (storedLanguage) {
-      const foundOption = languageOptions.find((option) => option.code === storedLanguage);
-      if (foundOption) {
-        setSelectedLanguage(foundOption);
-      }
-    }
-
-    // บันทึกว่าผู้ใช้ได้เข้าหน้า PDPA แล้ว
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('hasVisitedPDPA', 'true');
-    }
-
-    const handleClickOutside = (event) => {
-      if (
-        languageDropdownRef.current &&
-        !languageDropdownRef.current.contains(event.target)
-      ) {
-        setIsLanguageOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
+  const { isAccepted, toggleConsent } = useConsent();
+  const { isActionCared, toggleActionCared} = useActionCared();
+  
   // Load PDPA content from Firebase
   useEffect(() => {
     const loadPdpaContent = async () => {
@@ -569,111 +546,21 @@ export default function PDPAPage() {
     loadPdpaContent();
   }, []);
 
-  const handleLanguageSelect = (option) => {
-    setSelectedLanguage(option);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('selectedLanguage', option.code);
-    }
-    setIsLanguageOpen(false);
-  };
-
   const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
-  const handleAccept = (e) => {
-    e.preventDefault();
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('pdpaAccepted', 'true');
-    }
-    router.push('/user-panel');
-  };
+
+  const [isAcceptedPDPA, setIsAcceptedPDPA] = useState(isAccepted);
+  useEffect(() => {
+    setIsAcceptedPDPA(isAccepted);
+  }, [isAccepted]);
 
   return (
     <div
-      className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}
+      className={` -mt-5 ${currentFontClass}`}
     >
-      <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
-        {/* Navbar */}
-        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px] flex-shrink-0">
-          <button
-            type="button"
-            className="flex items-center"
-            onClick={() => router.push('/')}
-            aria-label="กลับไปหน้าแรก"
-          >
-            <Image
-              src="/logo.svg"
-              alt="alt design office"
-              width={80}
-              height={39}
-              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
-              priority
-            />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="relative" ref={languageDropdownRef}>
-              <button
-                type="button"
-                className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
-                onClick={() => setIsLanguageOpen((prev) => !prev)}
-                aria-haspopup="listbox"
-                aria-expanded={isLanguageOpen}
-              >
-                {selectedLanguage.code}{' '}
-                <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
-                  <path
-                    d="M1 1l5 5 5-5"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {isLanguageOpen && (
-                <ul
-                  className="absolute right-0 mt-2 w-32 md:w-36 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
-                  role="listbox"
-                  aria-label="เลือกภาษา"
-                >
-                  {languageOptions.map((option) => (
-                    <li key={option.code}>
-                      <button
-                        type="button"
-                        className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
-                          selectedLanguage.code === option.code
-                            ? 'bg-gray-100 text-gray-900'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                        onClick={() => handleLanguageSelect(option)}
-                        role="option"
-                        aria-selected={selectedLanguage.code === option.code}
-                      >
-                        <span>{option.label}</span>
-                        <span className="font-semibold">{option.code}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Back Button */}
-        <div className="px-4 md:px-8 lg:px-12 py-[10px]">
-          <button
-            type="button"
-            onClick={() => router.push('/user-panel')}
-            className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition"
-          >
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-              <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="text-sm md:text-base font-medium">{t.back}</span>
-          </button>
-        </div>
+      <div className="w-full  max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px]  flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
 
         {/* Content */}
         <main className="flex-1 flex flex-col px-4 sm:px-4 md:px-8 lg:px-12 py-4 sm:py-6 md:py-8 overflow-y-auto">
@@ -691,12 +578,12 @@ export default function PDPAPage() {
             dangerouslySetInnerHTML={{ __html: t.content }}
           />
 
-          <form onSubmit={handleAccept} className="mt-auto flex flex-col gap-4 pb-6">
+          <div  className="mt-auto gitflex flex-col gap-4 pb-6">
             <label className="flex items-start gap-3">
               <input
                 type="checkbox"
-                checked={isAccepted}
-                onChange={(e) => setIsAccepted(e.target.checked)}
+                checked={isAcceptedPDPA}
+                onChange={(e) => setIsAcceptedPDPA(e.target.checked)}
                     className="mt-1 w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900"
               />
               <span className="text-sm text-gray-700">
@@ -705,12 +592,16 @@ export default function PDPAPage() {
             </label>
             <button
               type="submit"
-              disabled={!isAccepted}
-                  className="w-full bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!isAcceptedPDPA}
+              onClick={() => {
+                toggleConsent(isAcceptedPDPA);
+                toggleActionCared(false)
+              }}
+                  className="w-full mt-5 bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t.acceptButton}
             </button>
-          </form>
+          </div>
             </>
           )}
         </main>
@@ -719,3 +610,4 @@ export default function PDPAPage() {
   );
 }
 
+export default PDPAPage;
