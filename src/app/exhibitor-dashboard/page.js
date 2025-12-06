@@ -5,11 +5,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import localFont from 'next/font/local';
-import { useRouter } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc, where, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import {signOut } from 'firebase/auth';
-import { lookSesstion } from '@/lib/auth';
+import { signOut } from 'firebase/auth';
+import { lookUidSesstion } from '@/lib/auth';
 
 const promptFont = localFont({
   src: [
@@ -116,6 +116,8 @@ const translations = {
   },
 };
 
+
+
 export default function ExhibitorDashboardPage() {
   const router = useRouter();
   const languageOptions = [
@@ -132,6 +134,9 @@ export default function ExhibitorDashboardPage() {
   const [canAcceptPdpa, setCanAcceptPdpa] = useState(false);
   const [pdpaContent, setPdpaContent] = useState(null);
   const pdpaContentRef = useRef(null);
+
+
+
 
   useEffect(() => {
     const storedLanguage =
@@ -161,20 +166,20 @@ export default function ExhibitorDashboardPage() {
   // Check PDPA acceptance for exhibitor
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     // Check if user is logged in as exhibitor
     const userRole = localStorage.getItem('userRole');
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    
+
     if (!isLoggedIn || userRole !== 'exhibitor') {
       // Not logged in or not an exhibitor, don't show modal
       setShowPdpaModal(false);
       return;
     }
-    
+
     // Check if exhibitor has accepted PDPA for dashboard
     const exhibitorAccepted = localStorage.getItem('exhibitorPdpaAccepted') === 'true';
-    
+
     if (exhibitorAccepted) {
       setIsPdpaAccepted(true);
       setShowPdpaModal(false);
@@ -193,101 +198,127 @@ export default function ExhibitorDashboardPage() {
       if (!currentUsername) return;
 
       try {
-        // Fetch exhibitor document to get exhibitor categories/tags
+        // 1. ดึงข้อมูล Exhibitor (เพื่อเอา Categories ของตัวเอง)
         const exhibitorDocRef = doc(db, 'exhibitors', currentUsername);
         const exhibitorSnap = await getDoc(exhibitorDocRef);
-        const exhibitorCategories = (exhibitorSnap.exists() && exhibitorSnap.data().categories) ? exhibitorSnap.data().categories : [];
 
-        // Fetch submissions specifically registered for this exhibitor
+        // ดึง Categories ออกมา (ถ้าไม่มีให้เป็น array ว่าง)
+        const exhibitorCategories = (exhibitorSnap.exists() && exhibitorSnap.data().categories)
+          ? exhibitorSnap.data().categories
+          : [];
+
+        // 2. ดึงข้อมูล Visitor ที่มีความสนใจ "ตรงกับเรา"
         const submissionsRef = collection(db, 'userPanelSubmissions');
-        const submissionsQuery = query(submissionsRef, where('exhibitorId', '==', currentUsername));
-        const submissionsSnapshot = await getDocs(submissionsQuery);
+        let submissionsQuery;
+        if (exhibitorCategories.length > 0) {
+          // ดึงตามประเภทเหมือนเดิม (ไม่กรอง PDPA ดังนั้น True/False มาหมด)
+          const searchCategories = exhibitorCategories.slice(0, 10);
+          submissionsQuery = query(
+            submissionsRef,
+            where('categories', 'array-contains-any', searchCategories)
+          );
+        } else {
+          submissionsQuery = query(submissionsRef, where('id', '==', 'impossible_id'));
+        }
 
+        const submissionsSnapshot = await getDocs(submissionsQuery);
         const submissions = [];
         submissionsSnapshot.forEach((d) => submissions.push({ id: d.id, ...d.data() }));
 
-        // Fetch ALL submissions to compute visitors whose selected problem tags match exhibitor categories
+        // 3. ดึงข้อมูล Visitor "ทุกคนในระบบ" (เอาไว้เทียบ Stats ภาพรวม)
         const allSubsSnapshot = await getDocs(collection(db, 'userPanelSubmissions'));
         const allSubs = [];
         allSubsSnapshot.forEach((d) => allSubs.push({ id: d.id, ...d.data() }));
 
-        // Count visitors whose categories intersect exhibitorCategories (case-insensitive)
+
         let visitorsMatchingCount = 0;
         if (Array.isArray(exhibitorCategories) && exhibitorCategories.length > 0) {
-          const normExCat = exhibitorCategories.map((c) => (c || '').toLowerCase());
+          const normExCat = exhibitorCategories.map((c) => (c || '').trim().toLowerCase());
           const seenVisitorIds = new Set();
           allSubs.forEach((s) => {
             if (!s.categories || !Array.isArray(s.categories) || seenVisitorIds.has(s.id)) return;
-            const sCatsNorm = s.categories.map((c) => (c || '').toLowerCase());
-            const intersects = sCatsNorm.some((c) => normExCat.includes(c));
-            if (intersects) {
+            const sCatsNorm = s.categories.map((c) => (c || '').trim().toLowerCase());
+            if (sCatsNorm.some((c) => normExCat.includes(c))) {
               visitorsMatchingCount += 1;
               seenVisitorIds.add(s.id);
             }
           });
         }
 
-        // Prepare table data from submissions (those who registered for this exhibitor)
+        // 5. เตรียมข้อมูลใส่ตาราง (Table Data) - จุดที่แก้ไขครับ
         const tableRows = submissions.map((sub, index) => {
           const isContacted = sub.isContacted || false;
           const contactStr = sub.contact || '';
           const isEmail = contactStr.includes('@');
-          const phone = isEmail ? '' : contactStr;
-          const email = isEmail ? contactStr : '';
+          if (sub.pdpaAccepted) {
+            return {
+              id: sub.id,
+              no: index + 1,
+              name: sub.fullName || 'N/A',
+              companyName: sub.companyName || '-',
+              phone: isEmail ? '' : contactStr,
+              email: isEmail ? contactStr : '',
+              categories: sub.categories || [],
+              isContacted,
+              contactDocId: sub.id || null,
+              pdpaAccepted: sub.pdpaAccepted ?? false
+            };
+          }else{
+            return {
+              id: sub.id,
+              no: index + 1,
+              name: 'User-' + sub.id || 'N/A',
+              companyName:  '-',
+              phone:  '-' ,
+              email:  '-',
+              categories: sub.categories || [],
+              isContacted,
+              contactDocId: sub.id || null,
+              pdpaAccepted: sub.pdpaAccepted ?? false
+            };
+          }
 
-          return {
-            id: sub.id,
-            no: index + 1,
-            name: sub.fullName || 'N/A',
-            companyName: sub.companyName || '-',
-            phone,
-            email,
-            categories: sub.categories || [],
-            isContacted,
-            contactDocId: sub.id || null,
-          };
         });
 
         setTableData(tableRows);
 
-        // Update category chart data (from submissions for this exhibitor)
+        // 6. เตรียมข้อมูลกราฟ (Chart Data)
         const categoryCounts = {};
         submissions.forEach((sub) => {
           if (sub.categories && Array.isArray(sub.categories)) {
             sub.categories.forEach((category) => {
               if (category && category.trim() !== '') {
-                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                const catName = category.trim();
+                categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
               }
             });
           }
         });
+
         const sortedCategories = Object.entries(categoryCounts)
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 6);
+
         setCategoryData(sortedCategories);
 
-        // Compute contacted count for table (exhibitor clicked contact)
+        // 7. สรุปยอด (Summary Cards)
         const contactedCount = tableRows.filter((r) => r.isContacted).length;
-
-        // Count unique visitors (all submissions - may have duplicates by visitor)
         const uniqueVisitorCount = new Set(allSubs.map((s) => s.id)).size;
 
-        // Set summary data: card1 = total number of all visitors who registered,
-        // card2 = visitorsMatchingCount (visitors who selected problem tags matching exhibitor),
-        // card3 = number of contacts (rows where exhibitor clicked contact)
         setSummaryData({
           totalInterests: uniqueVisitorCount,
           matched: visitorsMatchingCount,
-          notMatched: Math.max(tableRows.length - contactedCount, 0),
+          notMatched: Math.max(visitorsMatchingCount - contactedCount, 0),
           contacts: contactedCount,
           loading: false,
         });
+
       } catch (error) {
         console.error('Error fetching summary data:', error);
         setSummaryData((prev) => ({ ...prev, loading: false }));
       }
-    };
+    }
 
     fetchSummaryData();
   }, []);
@@ -318,14 +349,14 @@ export default function ExhibitorDashboardPage() {
       try {
         const docRef = doc(db, 'pdpaContent', 'active');
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.content) {
             const generateContent = (lang) => {
               const content = data.content[lang];
               if (!content) return '';
-              
+
               const sectionLabels = {
                 TH: {
                   section1: 'การเก็บรวบรวมข้อมูล',
@@ -340,7 +371,7 @@ export default function ExhibitorDashboardPage() {
                   section4: 'お客様の権利',
                 },
               };
-              
+
               return `
                 <h2 class="text-xl font-bold mb-4">${content.subtitle || ''}</h2>
                 <p class="mb-4">${content.intro || ''}</p>
@@ -358,7 +389,7 @@ export default function ExhibitorDashboardPage() {
                 <p class="mb-4">${content.section4 || ''}</p>
               `;
             };
-            
+
             setPdpaContent({
               TH: generateContent('TH'),
               JP: generateContent('JP'),
@@ -369,7 +400,7 @@ export default function ExhibitorDashboardPage() {
       } catch (error) {
         console.error('Error loading PDPA content:', error);
       }
-      
+
       // Use default content from pdpa page (full content)
       const defaultPdpaTranslations = {
         TH: {
@@ -789,32 +820,32 @@ export default function ExhibitorDashboardPage() {
           `,
         },
       };
-      
+
       setPdpaContent({
         TH: defaultPdpaTranslations.TH.content,
         JP: defaultPdpaTranslations.JP.content,
       });
     };
-    
+
     loadPdpaContent();
   }, []);
 
   // Scroll detection for PDPA content modal
   useEffect(() => {
     if (!showPdpaContentModal || !pdpaContentRef.current) return;
-    
+
     const contentElement = pdpaContentRef.current;
-    
+
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = contentElement;
       const isScrolledToBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px threshold
       setCanAcceptPdpa(isScrolledToBottom);
     };
-    
+
     contentElement.addEventListener('scroll', handleScroll);
     // Check initial state
     handleScroll();
-    
+
     return () => {
       contentElement.removeEventListener('scroll', handleScroll);
     };
@@ -842,7 +873,7 @@ export default function ExhibitorDashboardPage() {
       handleViewPolicy();
       return;
     }
-    
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('pdpaAccepted', 'true');
       localStorage.setItem('exhibitorPdpaAccepted', 'true');
@@ -855,7 +886,7 @@ export default function ExhibitorDashboardPage() {
     // 1) import jsPDF แบบ dynamic กัน error window is not defined
     const jsPDFModule = await import('jspdf');
     const jsPDF = jsPDFModule.default;
-  
+
     // 2) ใช้ text ที่จะใส่ใน PDF
     const pdfT = translations[selectedLanguage.code];
 
@@ -868,7 +899,7 @@ export default function ExhibitorDashboardPage() {
     const sectionSpacing = 15;
     const cardHeight = 25;
     const cardSpacing = 10;
-  
+
     // ... ที่เหลือใน handleExportPDF ของคุณใช้ได้เหมือนเดิม ...
   }
 
@@ -905,7 +936,7 @@ export default function ExhibitorDashboardPage() {
 
     FileSaver.default.saveAs(data, `exhibitor-dashboard-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
-  
+
 
   const toggleRow = (rowId) => {
     setExpandedRows((prev) => {
@@ -938,7 +969,7 @@ export default function ExhibitorDashboardPage() {
         if (row.contactDocId) {
           const washingtonRef = await doc(db, 'userPanelSubmissions', row.contactDocId);
           await updateDoc(washingtonRef, {
-            isContacted : false,
+            isContacted: false,
           });
         }
         setTableData((prevData) => {
@@ -952,7 +983,7 @@ export default function ExhibitorDashboardPage() {
         // Save contact to Firebase
         const washingtonRef = await doc(db, 'userPanelSubmissions', row.contactDocId);
         const docRef = await updateDoc(washingtonRef, {
-          isContacted : true,
+          isContacted: true,
         });
 
         // Update local state
@@ -976,7 +1007,7 @@ export default function ExhibitorDashboardPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userName] = useState('Emma Kwan');
-  
+
   // Summary Cards data
   const [summaryData, setSummaryData] = useState({
     totalInterests: 0,
@@ -988,7 +1019,7 @@ export default function ExhibitorDashboardPage() {
 
   // Category data for bar chart
   const [categoryData, setCategoryData] = useState([]);
-  
+
   // Table data
   const [tableData, setTableData] = useState([]);
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -1041,9 +1072,8 @@ export default function ExhibitorDashboardPage() {
 
         {/* Left Sidebar */}
         <aside
-          className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-[250px] bg-white border-r border-gray-200 flex-col transform transition-transform ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-          } md:flex`}
+          className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-[250px] bg-white border-r border-gray-200 flex-col transform transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            } md:flex`}
         >
           {/* Logo */}
           <div className="px-4 py-4 items-center justify-center flex">
@@ -1065,11 +1095,10 @@ export default function ExhibitorDashboardPage() {
                         router.push('/exhibitor-profile');
                       }
                     }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${
-                      activeTab === targetTab
-                        ? 'bg-gray-100 text-gray-600 font-medium'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${activeTab === targetTab
+                      ? 'bg-gray-100 text-gray-600 font-medium'
+                      : 'text-gray-600 hover:bg-gray-100'
+                      }`}
                   >
                     <Image
                       src={idx === 0 ? '/dashboard.png' : '/user.png'}
@@ -1102,7 +1131,7 @@ export default function ExhibitorDashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            
+
             <div className="flex items-end justify-end  w-full">
               <div className="relative" ref={languageDropdownRef}>
                 <div className="flex items-end justify-end gap-3 cursor-pointer">
@@ -1180,11 +1209,10 @@ export default function ExhibitorDashboardPage() {
                       <li key={option.code}>
                         <button
                           type="button"
-                          className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
-                            selectedLanguage.code === option.code
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'text-gray-700 hover:bg-gray-50'
-                          }`}
+                          className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${selectedLanguage.code === option.code
+                            ? 'bg-gray-100 text-gray-900'
+                            : 'text-gray-700 hover:bg-gray-50'
+                            }`}
                           onClick={() => handleLanguageSelect(option)}
                         >
                           <span>{option.label}</span>
@@ -1315,11 +1343,10 @@ export default function ExhibitorDashboardPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleContactClick(row)}
-                                      className={`px-3 h-[36px] text-sm font-medium rounded-lg transition flex items-center justify-center ${
-                                        row.isContacted
-                                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                          : 'text-white hover:opacity-90'
-                                      }`}
+                                      className={`px-3 h-[36px] text-sm font-medium rounded-lg transition flex items-center justify-center ${row.isContacted
+                                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                        : 'text-white hover:opacity-90'
+                                        }`}
                                       style={
                                         !row.isContacted
                                           ? { backgroundColor: '#1E2939' }
@@ -1418,11 +1445,10 @@ export default function ExhibitorDashboardPage() {
                 type="button"
                 onClick={handleExhibitorPdpaAccept}
                 disabled={!hasViewedPdpa}
-                className={`w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-semibold transition ${
-                  hasViewedPdpa
-                    ? 'bg-gray-900 text-white hover:bg-gray-800'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className={`w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-semibold transition ${hasViewedPdpa
+                  ? 'bg-gray-900 text-white hover:bg-gray-800'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
               >
                 {t.pdpaAccept}
               </button>
@@ -1465,19 +1491,18 @@ export default function ExhibitorDashboardPage() {
                   type="button"
                   onClick={handlePdpaContentAccept}
                   disabled={!canAcceptPdpa}
-                  className={`w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-semibold transition ${
-                    canAcceptPdpa
-                      ? 'bg-gray-900 text-white hover:bg-gray-800'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`w-full sm:w-auto px-4 py-2.5 rounded-full text-sm font-semibold transition ${canAcceptPdpa
+                    ? 'bg-gray-900 text-white hover:bg-gray-800'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                 >
                   {selectedLanguage.code === 'TH' ? 'ฉันยอมรับและต้องการเริ่มใช้งาน' : '同意してダッシュボードを利用する'}
                 </button>
               </div>
               {!canAcceptPdpa && (
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  {selectedLanguage.code === 'TH' 
-                    ? 'กรุณาเลื่อนอ่านเนื้อหาจนถึงท้ายสุดก่อนยอมรับ' 
+                  {selectedLanguage.code === 'TH'
+                    ? 'กรุณาเลื่อนอ่านเนื้อหาจนถึงท้ายสุดก่อนยอมรับ'
                     : '同意するには、最後までスクロールして内容を確認してください'}
                 </p>
               )}

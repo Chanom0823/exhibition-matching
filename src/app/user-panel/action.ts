@@ -18,7 +18,7 @@ export async function sentForm(formData: FormData, isAccepted: boolean) {
       fullName: trimmedFullName,
       companyName: trimmedCompanyName,
       contact: trimmedContact,
-      categories: selectedCategories,
+      categories: [selectedCategories],
       language: selectedLanguage,
       pdpaAccepted: isAccepted,
       createdAt: serverTimestamp(),
