@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import localFont from 'next/font/local';
-import { addDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { createSesstion } from '@/lib/auth';
 import translations, { japaneseTagLabels } from '../components/translations';
 import { sentForm } from './action';
 import UserPanelPDPA from '../components/ีuser-panels/UserPanelPDPA';
+import { useConsent } from '../contexts/pdpa';
 
 const promptFont = localFont({
   src: [
@@ -40,6 +40,7 @@ export default function UserPanelPage() {
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
+  const { isAccepted, toggleConsent } = useConsent();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -47,8 +48,6 @@ export default function UserPanelPage() {
     contact: '',
     categories: ['', ''],
   });
-  const [pdpaAgreed, setPdpaAgreed] = useState(false);
-  const [hasAcceptedPDPA, setHasAcceptedPDPA] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const fallbackProblemTags = [
@@ -162,64 +161,16 @@ export default function UserPanelPage() {
       categories: newCategories,
     });
   };
-
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-
-  //   if (!pdpaAgreed) {
-  //     setSubmitMessage(t.pdpaRequired);
-  //     return;
-  //   }
-
-  //   const selectedCategories = formData.categories.filter((item) => item);
-  //   if (selectedCategories.length === 0) {
-  //     setSubmitMessage(t.categoryRequired);
-  //     return;
-  //   }
-
-  //   setIsSubmitting(true);
-  //   setSubmitMessage('');
-
-  //   const trimmedFullName = formData.fullName.trim();
-  //   const trimmedCompanyName = formData.companyName.trim();
-  //   const trimmedContact = formData.contact.trim();
-
-  //   try {
-  //     const docRef = await addDoc(collection(db, 'userPanelSubmissions'), {
-  //       fullName: trimmedFullName,
-  //       companyName: trimmedCompanyName,
-  //       contact: trimmedContact,
-  //       categories: selectedCategories,
-  //       language: selectedLanguage.code,
-  //       pdpaAccepted: true,
-  //       createdAt: serverTimestamp(),
-  //     })
-
-  //   if(docRef.id){
-  //     console.log("บันทึกเสร็จเเล้ว ID", docRef.id)
-  //     const result = await createSesstion(docRef.id)
-  //     alert('Visiter ID ของคุณ คือ ' + result)
-  //   }
-  //     if (typeof window !== 'undefined') {
-  //       localStorage.setItem('userInterests', JSON.stringify(selectedCategories));
-  //     }
-
-  //     setSubmitMessage(t.submitSuccess);
-  //     setFormData({
-  //       fullName: '',
-  //       companyName: '',
-  //       contact: '',
-  //       categories: ['', ''],
-  //     });
-  //     setPdpaAgreed(true);
-  //     router.push('/usermatching');
-  //   } catch (error) {
-  //     console.error('Error submitting form:', error);
-  //     setSubmitMessage(t.submitError);
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('userInterests', JSON.stringify(e.selectedCategories));
+    }
+    const formData = new FormData(e.currentTarget);
+    // 2. ส่งค่า isActionCared ไปให้ Server Action เป็นพารามิเตอร์ที่ 2
+    await sentForm(formData, isAccepted);
+  };
 
   const t = translations[selectedLanguage.code];
   const currentFontClass =
@@ -277,8 +228,8 @@ export default function UserPanelPage() {
                     <button
                       type="button"
                       className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${selectedLanguage.code === option.code
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'text-gray-700 hover:bg-gray-50'
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-700 hover:bg-gray-50'
                         }`}
                       onClick={() => handleLanguageSelect(option)}
                       role="option"
@@ -296,7 +247,7 @@ export default function UserPanelPage() {
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
-          <form action={sentForm} className="w-full flex flex-col gap-3 sm:gap-4">
+          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3 sm:gap-4">
             {/* Title */}
             <div className="text-center mb-2">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">{t.title}</h1>
@@ -368,6 +319,7 @@ export default function UserPanelPage() {
                       <div key={index} className="flex flex-col gap-1.5">
                         <select
                           value={selectedCategory}
+                          name="selectedCategories"
                           onChange={(e) => handleCategoryChange(index, e.target.value)}
                           className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base appearance-none bg-white"
                           style={{
@@ -382,7 +334,7 @@ export default function UserPanelPage() {
                             {tagsLoading && problemTags.length === 0 ? 'Loading...' : t.selectCategory}
                           </option>
                           {problemTags.map((tag) => (
-                            <option key={`${tag.name}-${index}`} value={tag.name}>
+                            <option key={`${tag.name}-${index}`}  value={tag.name}>
                               {getTagLabelByLanguage(tag.name, selectedLanguage.code)}
                             </option>
                           ))}
@@ -397,28 +349,6 @@ export default function UserPanelPage() {
                   })}
                 </div>
               </div>
-
-              {/* PDPA Checkbox
-              <div className="flex flex-col gap-1">
-                <div className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    checked={pdpaAgreed}
-                    disabled={!hasAcceptedPDPA}
-                    onChange={(e) => setPdpaAgreed(e.target.checked)}
-                    className={`mt-1 w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 ${hasAcceptedPDPA ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
-                      }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => router.push('/pdpa')}
-                    className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 hover:underline text-left"
-                  >
-                    {t.pdpa}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 ml-6">{t.readPolicy}</p>
-              </div> */}
 
               <UserPanelPDPA pdpa={t.pdpa} readPolicy={t.readPolicy} back={t.back} selectedLanguage={selectedLanguage} />
 

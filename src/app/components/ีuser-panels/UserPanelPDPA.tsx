@@ -31,14 +31,6 @@ const UserPanelPDPA = (props: props) => {
       </div>}
 
       <div className="flex items-start gap-2">
-        {/* <input
-          type="checkbox"
-          checked={true}
-          onChange={(e) => {
-          }}
-          className={`mt-1 w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 `
-          }
-        /> */}
         <ButtonPDPA />
         <button
           type="button"
