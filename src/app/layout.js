@@ -1,6 +1,7 @@
 import '../styles/globals.css'
 import ActionCaredProvider from './contexts/action-cared'
 import PDPAProvider from './contexts/pdpa'
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Exhibition Matching',
