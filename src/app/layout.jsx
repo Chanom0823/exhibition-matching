@@ -9,6 +9,7 @@ import LanguageProvider from './contexts/LanguageProvider';
 import PDPAProvider from './contexts/pdpa';
 import '@/styles/globals.css'
 import { usePathname } from 'next/navigation';
+import localFont from 'next/font/local';
 
 const languageOptions = [
   { code: 'TH', label: 'ภาษาไทย' },
@@ -21,7 +22,19 @@ const defaultTranslations = {
 };
 
 
-export default function ClientLayout({ children, promptClassName, sawarabiClassName }) {
+const promptFont = localFont({
+  src: [
+    { path: '../../public/fonts/Prompt-Regular.ttf', weight: '400', style: 'normal' },
+    { path: '../../public/fonts/Prompt-Medium.ttf', weight: '500', style: 'normal' },
+    { path: '../../public/fonts/Prompt-Bold.ttf', weight: '700', style: 'normal' },
+  ],
+});
+
+const sawarabiFont = localFont({
+  src: [{ path: '../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
+});
+
+export default function ClientLayout({ children }) {
   // 1. ย้าย State มาไว้ที่นี่
 
 
@@ -34,7 +47,7 @@ export default function ClientLayout({ children, promptClassName, sawarabiClassN
   const [path, setPath] = useState(pathName);
 
   // 2. Logic การเลือก Font
-  const currentFontClass = selectedLanguage.code === 'JP' ? sawarabiClassName : promptClassName;
+  const currentFontClass = selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
   // ตัวแปร t สำหรับใช้งาน (เช็คว่ามีภาษานั้นไหม ถ้าไม่มีใช้ TH)
   const t = translations[selectedLanguage.code] || translations.TH || {};
@@ -95,29 +108,31 @@ export default function ClientLayout({ children, promptClassName, sawarabiClassN
   }, [pathName])
   return (
 
-    <html>
+    <html lang="en">
       <body>
         <LanguageProvider>
           <ActionCaredProvider>
             <PDPAProvider>
-              <div
-                className={`
+              <main>
+                <div
+                  className={`
                   min-h-screen  bg-white flex  items-center justify-center
                   ${path === '/' || path === '/user-panel' || path === '/usermatching' || path === '/login' ? 'flex-col' : 'flex-row'}  
                   ${currentFontClass}
                   `}>
-                {[ '/', '/user-panel', '/usermatching', '/login'].includes(pathName || '') &&
-                  <MainNavbar
-                    languageOptions={languageOptions}
-                    selectedLanguage={selectedLanguage}
-                    onLanguageSelect={handleLanguageSelect}
-                    loginLabel={t.loginCta}
-                  />
-                }
-                <div className="w-full max-w-[390px] md:max-w-full h-[844px] md:h-screen bg-white flex flex-col relative">
-                  {children}
+                  {['/', '/user-panel', '/usermatching', '/login'].includes(pathName || '') &&
+                    <MainNavbar
+                      languageOptions={languageOptions}
+                      selectedLanguage={selectedLanguage}
+                      onLanguageSelect={handleLanguageSelect}
+                      loginLabel={t.loginCta}
+                    />
+                  }
+                  <div className="w-full max-w-[390px] md:max-w-full h-[844px] md:h-screen bg-white flex flex-col relative">
+                    {children}
+                  </div>
                 </div>
-              </div>
+              </main>
             </PDPAProvider>
           </ActionCaredProvider>
         </LanguageProvider>

@@ -27,7 +27,7 @@ const UserPanelPDPA = (props: props) => {
             </svg>
           {props.back}
         </button>
-        <PDPAPage selectedLanguage={props.selectedLanguage} />
+        <PDPAPage  />
       </div>}
 
       <div className="flex items-start gap-2">

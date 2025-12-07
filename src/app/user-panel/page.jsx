@@ -2,48 +2,31 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import localFont from 'next/font/local';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import translations, { japaneseTagLabels } from '../components/translations';
 import { sentForm } from './action';
 import UserPanelPDPA from '../components/ีuser-panels/UserPanelPDPA';
 import { useConsent } from '../contexts/pdpa';
-
-const promptFont = localFont({
-  src: [
-    { path: '../../../public/fonts/Prompt-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Bold.ttf', weight: '700', style: 'normal' },
-  ],
-});
-
-const sawarabiFont = localFont({
-  src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
-});
+import { useLanguage } from '../contexts/LanguageProvider';
 
 
-const getTagLabelByLanguage = (name, languageCode) => {
-  if (languageCode === 'JP') {
-    return japaneseTagLabels[name] || name;
-  }
-  return name;
-};
 
 export default function UserPanelPage() {
   const router = useRouter();
-  const languageOptions = [
-    { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'JP', label: '日本語' },
-  ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
+
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
   const categoryDropdownRef = useRef(null);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const { isAccepted, toggleConsent } = useConsent();
+   const {language, toggleLanguage} = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
 
+  useEffect(()=>{
+    setSelectedLanguage(language);
+  }, [language])
   const [formData, setFormData] = useState({
     fullName: '',
     companyName: '',
@@ -62,35 +45,7 @@ export default function UserPanelPage() {
   const [problemTags, setProblemTags] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(true);
 
-  useEffect(() => {
-    const storedLanguage = typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
-    if (storedLanguage) {
-      const foundOption = languageOptions.find((option) => option.code === storedLanguage);
-      if (foundOption) {
-        setSelectedLanguage(foundOption);
-      }
-    }
 
-    const handleClickOutside = (event) => {
-      if (
-        languageDropdownRef.current &&
-        !languageDropdownRef.current.contains(event.target)
-      ) {
-        setIsLanguageOpen(false);
-      }
-      if (
-        categoryDropdownRef.current &&
-        !categoryDropdownRef.current.contains(event.target)
-      ) {
-        setIsCategoryOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   useEffect(() => {
     const fetchProblemTags = async () => {
@@ -169,12 +124,8 @@ export default function UserPanelPage() {
     }
   };
 
-  const t = translations[selectedLanguage.code];
-  const currentFontClass =
-    selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
-
   return (
-    <div className={`relative z-0 min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
+    <div className={`relative z-0 min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 `}>
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
         {/* Header with Logo and Language Selector */}
         {/* Main Content */}

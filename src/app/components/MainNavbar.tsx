@@ -36,8 +36,7 @@ export default function MainNavbar({
     setPath(path);
   }, [pathName])
 
-  const t = translations[selectedLanguage.code];
-  useEffect(() => {
+ useEffect(()=>{
     const handleClickOutside = (event: MouseEvent) => {
       if (
         languageDropdownRef.current &&
@@ -49,7 +48,14 @@ export default function MainNavbar({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // }, []);
+  }, [language])
+
+
+  const t = translations[selectedLanguage.code];
+
+  // useEffect(() => {
+    
 
   const handleLanguageClick = (option: LanguageOption) => {
     onLanguageSelect(option);
