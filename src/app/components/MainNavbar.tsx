@@ -27,15 +27,16 @@ export default function MainNavbar({
 }: MainNavbarProps) {
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef<HTMLDivElement | null>(null);
-  const {language, toggleLanguage} = useLanguage();
-  
-  const path = usePathname();
-  const [pathName, setPathName] = useState(path);
-  useEffect(()=>{
-    setPathName(path);
-  },[path ])
+  const { language, toggleLanguage } = useLanguage();
 
- const t = translations[selectedLanguage.code];
+  const pathName = usePathname();
+  const [path, setPath] = useState(pathName);
+
+  useEffect(() => {
+    setPath(path);
+  }, [pathName])
+
+  const t = translations[selectedLanguage.code];
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -100,11 +101,10 @@ export default function MainNavbar({
                 <li key={option.code}>
                   <button
                     type="button"
-                    className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${
-                      selectedLanguage.code === option.code
+                    className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${selectedLanguage.code === option.code
                         ? 'bg-gray-100 text-gray-900'
                         : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                      }`}
                     onClick={() => handleLanguageClick(option)}
                     role="option"
                     aria-selected={selectedLanguage.code === option.code}
@@ -118,12 +118,14 @@ export default function MainNavbar({
           )}
         </div>
 
-        <Link
-          href="/login"
-          className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-20 md:h-10 text-sm md:text-base flex items-center justify-center hover:bg-gray-700 transition"
-        >
-          {t.loginCta}
-        </Link>
+        {!['/usermatching', '/user-panel', '/login'].includes(pathName || '') && (
+          <Link
+            href="/login"
+            className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-20 md:h-10 text-sm md:text-base flex items-center justify-center hover:bg-gray-700 transition"
+          >
+            {t.loginCta}
+          </Link>
+        )}
       </div>
     </div>
   );
