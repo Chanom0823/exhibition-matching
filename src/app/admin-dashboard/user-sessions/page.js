@@ -8,9 +8,11 @@ import { collection, getDocs, query, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import ExportButtons from '@/app/components/ExportButtons';
-import translations from '@/app/components/translations';
 import Sidebar from '@/app/components/sidebar';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+import translations from '@/app/components/translations';
+
+
 
 const promptFont = localFont({
   src: [
@@ -30,12 +32,17 @@ export default function UserSessionsPage() {
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
   const [activeTab, setActiveTab] = useState('userSessions');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
 
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
   // Sessions data
   const [sessionsData, setSessionsData] = useState({
     sessions: [],
@@ -46,7 +53,6 @@ export default function UserSessionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const currentFontClass = selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
-  const t = translations[selectedLanguage.code];
 
   useEffect(() => {
     const storedLanguage =
@@ -196,16 +202,7 @@ export default function UserSessionsPage() {
           />
         )}
 
-        {/* Sidebar Component */}
-        <Sidebar
-          t={t}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          selectedLanguage={selectedLanguage}
-        />
-
+       
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Top Header */}

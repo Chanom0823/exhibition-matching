@@ -3,77 +3,31 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import localFont from 'next/font/local';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { lookSesstion } from '@/lib/auth';
+import { useLanguage } from '../contexts/LanguageProvider';
+import translations from '../components/translations';
 
-const promptFont = localFont({
-  src: [
-    { path: '../../../public/fonts/Prompt-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Bold.ttf', weight: '700', style: 'normal' },
-  ],
-});
+// Decide readable text color based on background color
+const getTextColorFromBg = (hex) => {
+  if (!hex) return '#111827';
+  let cleaned = hex.trim().replace('#', '');
+  if (cleaned.length === 3) {
+    cleaned = cleaned.split('').map((ch) => ch + ch).join('');
+  }
+  if (cleaned.length !== 6) return '#111827';
 
-const sawarabiFont = localFont({
-  src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
-});
+  const r = parseInt(cleaned.substring(0, 2), 16);
+  const g = parseInt(cleaned.substring(2, 4), 16);
+  const b = parseInt(cleaned.substring(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#111827';
 
-const translations = {
-  TH: {
-    title: 'ผู้แสดงสินค้าที่ตรงกับความสนใจของคุณ',
-    titleLine1: 'ผู้แสดงสินค้าที่ตรงกับ',
-    titleLine2: 'ความสนใจของคุณ',
-    description: 'ผู้แสดงสินค้าที่ตรงกับปัญหาของคุณมากที่สุด',
-    storeName: 'ร้าน A',
-    storeNameC: 'ร้านค้า C',
-    productType: 'ประเภทสินค้า',
-    category: 'หมวดหมู่ 1',
-    contact: 'ติดต่อ',
-    details: 'รายละเอียด',
-    contactChannel: 'ช่องทางติดต่อ',
-    noFavorites: 'ยังไม่มีรายการโปรด',
-    close: 'ปิด',
-    companyName: 'ชื่อบริษัท',
-    companyDescription: 'รายละเอียด',
-    categories: 'หมวดหมู่',
-    email: 'อีเมล',
-    phone: 'เบอร์โทรศัพท์',
-    website: 'เว็บไซต์',
-    address: 'ที่อยู่',
-    all: 'ทั้งหมด',
-    problem: 'ปัญหา',
-    favorites: 'รายการโปรด',
-    backHome: 'กลับสู่หน้าหลัก',
-    contactSuccess: 'ได้ติดต่อบริษัทแล้ว กรุณารอการติดต่อกลับ',
-  },
-  JP: {
-    title: '展示マッチングシステム',
-    description: 'あなたの課題に最も適した出展者',
-    storeName: '店舗A',
-    storeNameC: '店舗C',
-    productType: '商品タイプ',
-    category: 'カテゴリ1',
-    contact: '連絡先',
-    details: '詳細',
-    contactChannel: '連絡先',
-    noFavorites: 'お気に入りはまだありません',
-    close: '閉じる',
-    companyName: '会社名',
-    companyDescription: '詳細',
-    categories: 'カテゴリ',
-    email: 'メール',
-    phone: '電話番号',
-    website: 'ウェブサイト',
-    address: '住所',
-    all: 'すべて',
-    problem: '問題',
-    favorites: 'お気に入り',
-    backHome: 'ホームへ戻る',
-    contactSuccess: '会社に連絡しました。折り返しの連絡をお待ちください。',
-  },
+  const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return brightness > 0.6 ? '#111827' : '#ffffff';
 };
+
+
 
 export default function UserMatchingPage() {
   const router = useRouter();
@@ -81,7 +35,6 @@ export default function UserMatchingPage() {
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -92,7 +45,13 @@ export default function UserMatchingPage() {
   const [selectedExhibitor, setSelectedExhibitor] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [problemTags, setProblemTags] = useState([]);
+  const {language, toggleLanguage} = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
 
+  useEffect(()=>{
+    setSelectedLanguage(language);
+  }, [language])
   const handleFilterClick = (filterKey) => {
     setSelectedFilter(filterKey);
     if (filterKey !== 'problem') {
@@ -144,10 +103,18 @@ export default function UserMatchingPage() {
     const loadProblemTags = async () => {
       try {
         const tagsSnapshot = await getDocs(collection(db, 'problemTags'));
-        const tags = tagsSnapshot.docs
-          .map((docSnap) => docSnap.data()?.name?.trim())
-          .filter((name, index, self) => name && self.indexOf(name) === index);
-        setProblemTags(tags);
+        const tagMap = new Map();
+        tagsSnapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const name = data?.name?.trim();
+          if (!name) return;
+          const color = (data?.color || '#e5e7eb').trim();
+          const key = name.toLowerCase();
+          if (!tagMap.has(key)) {
+            tagMap.set(key, { name, color });
+          }
+        });
+        setProblemTags(Array.from(tagMap.values()));
       } catch (error) {
         console.error('Error loading problem tags:', error);
       }
@@ -155,6 +122,26 @@ export default function UserMatchingPage() {
 
     loadProblemTags();
   }, []);
+
+  const getTagStyle = (categoryName) => {
+    if (!categoryName) {
+      const fallback = '#e5e7eb';
+      return {
+        backgroundColor: fallback,
+        borderColor: fallback,
+        color: getTextColorFromBg(fallback),
+      };
+    }
+    const matchedTag = problemTags.find(
+      (tag) => tag.name.toLowerCase() === categoryName.toLowerCase()
+    );
+    const color = matchedTag?.color || '#e5e7eb';
+    return {
+      backgroundColor: color,
+      borderColor: color,
+      color: getTextColorFromBg(color),
+    };
+  };
 
   // Filter exhibitors based on visitor's selected interests
   let filteredExhibitors = exhibitors;
@@ -205,10 +192,6 @@ export default function UserMatchingPage() {
     setIsLanguageOpen(false);
   };
 
-  const t = translations[selectedLanguage.code];
-  const currentFontClass =
-    selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
-
   const titleContent = t.titleLine2 ? (
     <>
       {t.titleLine1}
@@ -221,72 +204,10 @@ export default function UserMatchingPage() {
 
   return (
     <div
-      className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}
+      className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 `}
     >
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
-        {/* Navbar */}
-        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px] flex-shrink-0">
-          <button
-            type="button"
-            className="flex items-center"
-            onClick={() => router.push('/')}
-            aria-label="กลับไปหน้าแรก"
-          >
-            <Image
-              src={"/logo.svg"}
-              alt="alt design office"
-              width={80}
-              height={39}
-              className="w-20 h-auto md:w-25"
-              loading="eager"
-            />
-          </button>
-          <div className="relative" ref={languageDropdownRef}>
-            <button
-              type="button"
-              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
-              onClick={() => setIsLanguageOpen((prev) => !prev)}
-              aria-haspopup="listbox"
-              aria-expanded={isLanguageOpen}
-            >
-              {selectedLanguage.code}{' '}
-              <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
-                <path
-                  d="M1 1l5 5 5-5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-            {isLanguageOpen && (
-              <ul
-                className="absolute right-0 mt-2 w-32 md:w-36 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
-                role="listbox"
-                aria-label="เลือกภาษา"
-              >
-                {languageOptions.map((option) => (
-                  <li key={option.code}>
-                    <button
-                      type="button"
-                      className={`w-full text-left px-4 py-2 md:py-2.5 text-sm md:text-base flex items-center justify-between ${selectedLanguage.code === option.code
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      onClick={() => handleLanguageSelect(option)}
-                      role="option"
-                      aria-selected={selectedLanguage.code === option.code}
-                    >
-                      <span>{option.label}</span>
-                      <span className="font-semibold">{option.code}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+      
 
         {/* Content */}
         <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
@@ -379,7 +300,8 @@ export default function UserMatchingPage() {
                             {exhibitor.categories.slice(0, 2).map((category, catIndex) => (
                               <span
                                 key={catIndex}
-                                className="px-3 py-1 bg-gray-100 text-gray-700 text-[12px] rounded-full flex items-center justify-center border border-gray-300 min-w-[100px] max-w-[160px] truncate"
+                                className="px-3 py-1 text-[12px] rounded-full flex items-center justify-center border"
+                                style={getTagStyle(category)}
                               >
                                 {category}
                               </span>
@@ -463,7 +385,8 @@ export default function UserMatchingPage() {
                             {selectedExhibitor.categories.map((category, index) => (
                               <span
                                 key={index}
-                                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full border border-gray-300"
+                                className="px-2 py-1 text-xs rounded-full border"
+                                style={getTagStyle(category)}
                               >
                                 {category}
                               </span>

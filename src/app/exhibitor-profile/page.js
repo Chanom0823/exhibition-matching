@@ -7,137 +7,47 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-
-const promptFont = localFont({
-  src: [
-    { path: '../../../public/fonts/Prompt-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Bold.ttf', weight: '700', style: 'normal' },
-  ],
-});
-
-const sawarabiFont = localFont({
-  src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
-});
-
-const translations = {
-  TH: {
-    dashboard: 'Dashboard',
-    tabs: ['DashBoard', 'Profile'],
-    searchPlaceholder: 'Search...',
-    logout: 'ออกจากระบบ',
-    export: 'Export',
-    profileTitle: 'Profile',
-    basicInfo: 'ข้อมูลพื้นฐาน',
-    contactInfo: 'ช่องทางติดต่อ',
-    tagsTitle: 'หมวดหมู่ความเชี่ยวชาญ',
-    selectCategory: 'เลือกหมวดหมู่ปัญหา',
-    descriptionTitle: 'รายละเอียดเพิ่มเติม',
-    address: 'ที่อยู่',
-    company: 'ชื่อบริษัท',
-    phone: 'เบอร์โทรศัพท์',
-    email: 'อีเมล',
-    userInformation: 'ข้อมูลบริษัท',
-    passwordSection: 'รหัสผ่าน',
-    saveNow: 'บันทึกข้อมูล',
-    currentPassword: 'รหัสผ่านปัจจุบัน',
-    newPassword: 'รหัสผ่านใหม่',
-    confirmNewPassword: 'ยืนยันรหัสผ่านใหม่',
-    closeAccount: 'ปิดบัญชี',
-    rating: 'คะแนน',
-    companyName: 'ชื่อบริษัท',
-    taxId: 'เลขประจำตัวผู้เสียภาษี',
-    branchId: 'สาขา',
-    companyEmail: 'อีเมลบริษัท',
-    companyPhone: 'เบอร์โทรบริษัท',
-    companyWebsite: 'เว็บไซต์บริษัท',
-    companyDescription: 'รายละเอียดเพิ่มเติม',
-    companyLogo: 'โลโก้บริษัท',
-  },
-  JP: {
-    dashboard: 'ダッシュボード',
-    tabs: ['ダッシュボード', 'プロフィール'],
-    searchPlaceholder: '検索...',
-    logout: 'ログアウト',
-    export: 'Export',
-    profileTitle: 'プロフィール',
-    basicInfo: '基本情報',
-    contactInfo: '連絡先',
-    tagsTitle: '専門タグ',
-    selectCategory: '問題カテゴリを選択',
-    descriptionTitle: '詳細',
-    address: '住所',
-    company: '会社名',
-    phone: '電話番号',
-    email: 'メール',
-    userInformation: '会社情報',
-    passwordSection: 'パスワード',
-    saveNow: '保存',
-    currentPassword: '現在のパスワード',
-    newPassword: '新しいパスワード',
-    confirmNewPassword: '新しいパスワード確認',
-    closeAccount: 'アカウントを閉じる',
-    rating: '評価',
-    companyName: '会社名',
-    taxId: '税番号',
-    branchId: '支店ID',
-    companyEmail: '会社メール',
-    companyPhone: '会社電話',
-    companyWebsite: '会社ウェブサイト',
-    companyDescription: '詳細',
-    companyLogo: '会社ロゴ',
-  },
-};
-
-const profileData = {
-  name: 'Emma Kwan',
-  company: 'Alt Design Office Co.,Ltd.',
-  taxId: '0105551234567',
-  branchId: 'BKK-001',
-  address: '64/5 Silom Rd, Bangkok, Thailand',
-  phone: '+66 2 123 4567',
-  email: 'emma.kwan@altdesign.com',
-  website: 'https://www.altdesign.com',
-  productType: 'Smart Retail Solutions',
-  description:
-    'We connect exhibitors with the right buyers through curated showcases and tailored matching sessions. Our focus is on sustainable design and innovative manufacturing partners.',
-  tags: ['Sustainable Design', 'OEM', 'Retail', 'Smart Manufacturing', 'Interior'],
-};
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+import translations from '@/app/components/translations';
+import TranslationSelection from '../components/TranslationSelection';
 
 export default function ExhibitorProfilePage() {
   const router = useRouter();
-  const languageOptions = [
-    { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'JP', label: '日本語' },
-  ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
+
+  const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
+
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
 
-  useEffect(() => {
-    const storedLanguage =
-      typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
-    if (storedLanguage) {
-      const foundOption = languageOptions.find((option) => option.code === storedLanguage);
-      if (foundOption) {
-        setSelectedLanguage(foundOption);
-      }
-    }
+  // useEffect(() => {
+  //   const storedLanguage =
+  //     typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
+  //   if (storedLanguage) {
+  //     const foundOption = languageOptions.find((option) => option.code === storedLanguage);
+  //     if (foundOption) {
+  //       setSelectedLanguage(foundOption);
+  //     }
+  //   }
 
-    const handleClickOutside = (event) => {
-      if (
-        languageDropdownRef.current &&
-        !languageDropdownRef.current.contains(event.target)
-      ) {
-        setIsLanguageOpen(false);
-      }
-    };
+  //   const handleClickOutside = (event) => {
+  //     if (
+  //       languageDropdownRef.current &&
+  //       !languageDropdownRef.current.contains(event.target)
+  //     ) {
+  //       setIsLanguageOpen(false);
+  //     }
+  //   };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  //   document.addEventListener('mousedown', handleClickOutside);
+  //   return () => {
+  //     document.removeEventListener('mousedown', handleClickOutside);
+  //   };
+  // }, []);
 
   const handleLanguageSelect = (option) => {
     setSelectedLanguage(option);
@@ -157,10 +67,6 @@ export default function ExhibitorProfilePage() {
     }
     router.push('/login');
   };
-
-  const t = translations[selectedLanguage.code];
-  const currentFontClass =
-    selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -429,7 +335,7 @@ export default function ExhibitorProfilePage() {
   };
 
   return (
-    <div className={`min-h-screen bg-[#f5f5f5] flex ${currentFontClass}`}>
+    <div className={`min-h-screen bg-[#f5f5f5] flex`}>
       <div className="w-full max-w-[390px] md:max-w-[1440px] mx-auto flex relative">
         {/* Mobile Sidebar Overlay */}
         {isSidebarOpen && (
@@ -439,47 +345,7 @@ export default function ExhibitorProfilePage() {
           />
         )}
 
-        {/* Left Sidebar */}
-        <aside
-          className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-[250px] bg-white border-r border-gray-200 flex-col transform transition-transform ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-          } md:flex`}
-        >
-          {/* Logo */}
-          <div className="px-4 py-4 items-center justify-center flex">
-            <Image src="/logo.svg" alt="alt design office" width={110} height={60} priority />
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-4">
-            <div className="flex flex-col gap-2">
-              {t.tabs.map((tab, idx) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => {
-                    const target = idx === 0 ? '/exhibitor-dashboard' : '/exhibitor-profile';
-                    router.push(target);
-                  }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${
-                    (idx === 0 ? 'dashboard' : 'profile') === activeTab
-                      ? 'bg-gray-100 text-gray-600 font-medium'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <Image
-                    src={idx === 0 ? '/dashboard.png' : '/user.png'}
-                    alt={tab}
-                    width={24}
-                    height={24}
-                    className="w-6 h-6"
-                  />
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </nav>
-        </aside>
+       
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
@@ -500,27 +366,12 @@ export default function ExhibitorProfilePage() {
             
             <div className="flex items-end justify-end w-full">
               <div className="relative" ref={languageDropdownRef}>
-                <div className="flex items-end justify-end gap-3 cursor-pointer">
-                  <button
-                    type="button"
-                    onClick={() => setIsLanguageOpen((prev) => !prev)}
-                    className="bg-gray-800 text-white rounded-lg w-[72px] h-[36px] text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
-                  >
-                    {selectedLanguage.code}
-                    <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
-                      <path
-                        d="M1 1l5 5 5-5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                <div className="flex items-end h-9 justify-end gap-3 cursor-pointer">
+                  <TranslationSelection />
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="bg-gray-800 text-white rounded-xl w-[40px] h-[36px] flex items-center justify-center hover:bg-gray-700 transition"
+                    className="bg-gray-800 text-white rounded-xl w-10 h-9 flex items-center justify-center hover:bg-gray-700 transition"
                     aria-label={t.logout}
                   >
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
@@ -534,29 +385,7 @@ export default function ExhibitorProfilePage() {
                     </svg>
                   </button>
                 </div>
-                {isLanguageOpen && (
-                  <ul
-                    className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
-                    role="listbox"
-                  >
-                    {languageOptions.map((option) => (
-                      <li key={option.code}>
-                        <button
-                          type="button"
-                          className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
-                            selectedLanguage.code === option.code
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'text-gray-700 hover:bg-gray-50'
-                          }`}
-                          onClick={() => handleLanguageSelect(option)}
-                        >
-                          <span>{option.label}</span>
-                          <span className="font-semibold">{option.code}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                
               </div>
             </div>
           </header>

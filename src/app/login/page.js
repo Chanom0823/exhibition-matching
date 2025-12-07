@@ -7,61 +7,9 @@ import { signInWithEmailAndPassword, signOut, getAuth } from 'firebase/auth';
 import AuthNavbar from '../components/AuthNavbar';
 import { auth, db } from '@/lib/firebase'; 
 import { doc, getDoc } from "firebase/firestore";
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+import translations from '../components/translations';
 
-const promptFont = localFont({
-  src: [
-    { path: '../../../public/fonts/Prompt-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Bold.ttf', weight: '700', style: 'normal' },
-  ],
-});
-
-const sawarabiFont = localFont({
-  src: [
-    { path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' },
-  ],
-});
-
-const translations = {
-  TH: {
-    loginTitle: 'เข้าสู่ระบบ',
-    loginDescription: 'กรุณากรอกชื่อผู้ใช้ หรืออีเมล และรหัสผ่านเพื่อเข้าสู่ระบบ',
-    usernameLabel: 'ผู้ใช้/อีเมล',
-    usernamePlaceholder: 'กรุณากรอกชื่อผู้ใช้ หรือ อีเมล',
-    passwordLabel: 'รหัสผ่าน',
-    passwordPlaceholder: 'กรุณากรอกรหัสผ่าน',
-    rememberMe: 'จดจำการเข้าสู่ระบบของฉัน',
-    forgotPassword: 'ลืมรหัสผ่าน?',
-    forgotPasswordAlert: 'ฟีเจอร์ลืมรหัสผ่านยังไม่พร้อมใช้งาน',
-    loginButton: 'เข้าสู่ระบบ',
-    loadingButton: 'กำลังเข้าสู่ระบบ...',
-    registerQuestion: 'ยังไม่มีบัญชีใช่ไหม?',
-    registerCTA: 'ลงทะเบียน',
-    errors: {
-      invalidCredentials: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',
-      general: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง',
-    },
-  },
-  JP: {
-    loginTitle: 'ログイン',
-    loginDescription: 'ユーザー名またはメールアドレスとパスワードを入力してください。',
-    usernameLabel: 'ユーザー名 / メール',
-    usernamePlaceholder: 'ユーザー名またはメールアドレスを入力',
-    passwordLabel: 'パスワード',
-    passwordPlaceholder: 'パスワードを入力してください',
-    rememberMe: 'ログイン状態を保存する',
-    forgotPassword: 'パスワードをお忘れですか？',
-    forgotPasswordAlert: 'パスワードリセット機能はまだ利用できません。',
-    loginButton: 'ログイン',
-    loadingButton: 'ログイン中...',
-    registerQuestion: 'アカウントをお持ちではありませんか？',
-    registerCTA: '登録する',
-    errors: {
-      invalidCredentials: 'ユーザー名またはパスワードが正しくありません。',
-      general: 'エラーが発生しました。もう一度お試しください。',
-    },
-  },
-};
 
 const verifyEligibility = async () => {
   const uid = await lookUidSesstion();
@@ -75,45 +23,14 @@ export default function LoginPage() {
   const [errorKey, setErrorKey] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const languageOptions = [
-    { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'JP', label: '日本語' },
-  ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-  const languageDropdownRef = useRef(null);
 
-  useEffect(() => {
-    const storedLanguage = typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
-    if (storedLanguage) {
-      const foundOption = languageOptions.find((option) => option.code === storedLanguage);
-      if (foundOption) {
-        setSelectedLanguage(foundOption);
-      }
-    }
+  const {language, toggleLanguage} = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
 
-    const handleClickOutside = (event) => {
-      if (
-        languageDropdownRef.current &&
-        !languageDropdownRef.current.contains(event.target)
-      ) {
-        setIsLanguageOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleLanguageSelect = (option) => {
-    setSelectedLanguage(option);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('selectedLanguage', option.code);
-    }
-    setIsLanguageOpen(false);
-  };
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -158,21 +75,11 @@ export default function LoginPage() {
     }
   };
 
-  const t = translations[selectedLanguage.code];
 
-  const currentFontClass =
-    selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
   return (
-    <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
+    <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6`}>
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none">
-        {/* Header with Logo and Language Selector */}
-        <AuthNavbar
-          languageOptions={languageOptions}
-          selectedLanguage={selectedLanguage}
-          onLanguageSelect={handleLanguageSelect}
-        />
-
         {/* Login Form - Centered */}
         <div className="flex-1 flex items-start sm:items-center justify-center px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
           <form

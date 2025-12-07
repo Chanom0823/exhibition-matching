@@ -11,6 +11,9 @@ import jsPDF from 'jspdf';
 import ExportButtons from '@/app/components/ExportButtons';
 import translations from '@/app/components/translations';
 import Sidebar from '@/app/components/sidebar';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+
+
 
 const promptFont = localFont({
   src: [
@@ -30,10 +33,15 @@ export default function AdminDashboardPage() {
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
+  const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
 
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
   useEffect(() => {
     const storedLanguage =
       typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
@@ -558,7 +566,6 @@ export default function AdminDashboardPage() {
     pdf.save(fileName);
   };
 
-  const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
@@ -618,17 +625,7 @@ export default function AdminDashboardPage() {
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
-
-        {/* Left Sidebar */}
-        <Sidebar
-          t={t}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          selectedLanguage={selectedLanguage}
-        />
-
+        
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Top Header */}

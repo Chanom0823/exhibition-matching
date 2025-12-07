@@ -10,6 +10,9 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import jsPDF from 'jspdf';
 import ExportButtons from '@/app/components/ExportButtons';
 import translations from '@/app/components/translations';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+
+
 
 const promptFont = localFont({
   src: [
@@ -49,12 +52,17 @@ export default function UserManagementPage() {
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
   const [activeTab, setActiveTab] = useState('userManagement');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
 
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
   // Summary Cards data
   const [summaryData, setSummaryData] = useState({
     totalParticipants: 0,
@@ -501,7 +509,6 @@ export default function UserManagementPage() {
     pdf.save(fileName);
   };
 
-  const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
   const filteredUsers = usersData.users.filter((user) => {
@@ -901,102 +908,7 @@ export default function UserManagementPage() {
         )}
 
         {/* Left Sidebar */}
-        <aside
-          className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-[250px] bg-white border-r border-gray-200 flex-col transform transition-transform ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-          } md:flex`}
-        >
-          {/* Logo */}
-          <div className="px-4 py-4 items-center justify-center flex">
-            <Image src="/logo.svg" alt="alt design office" width={110} height={60} priority />
-          </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-4">
-            <div className="flex flex-col gap-2">
-              {t.tabs.map((tab, idx) => {
-                const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement'];
-                const targetTab = tabKeys[idx] || 'dashboard';
-                
-                // Icon mapping
-                const getIcon = (index) => {
-                  if (index === 0) {
-                    return (
-                      <Image
-                        src="/dashboard.png"
-                        alt={tab}
-                        width={24}
-                        height={24}
-                        className="w-6 h-6"
-                      />
-                    );
-                  }
-                  if (index === 1) {
-                    return (
-                      <Image
-                        src="/user.png"
-                        alt={tab}
-                        width={24}
-                        height={24}
-                        className="w-6 h-6"
-                      />
-                    );
-                  }
-                  if (index === 2) {
-                    return (
-                      <Image
-                        src="/file.png"
-                        alt={tab}
-                        width={24}
-                        height={24}
-                        className="w-6 h-6"
-                      />
-                    );
-                  }
-                  if (index === 3) {
-                    return (
-                      <Image
-                        src="/home.png"
-                        alt={tab}
-                        width={24}
-                        height={24}
-                        className="w-6 h-6"
-                      />
-                    );
-                  }
-                  if (index === 4) {
-                    return (
-                      <Image
-                        src="/verify.png"
-                        alt={tab}
-                        width={24}
-                        height={24}
-                        className="w-6 h-6"
-                      />
-                    );
-                  }
-                  return null;
-                };
-                
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => handleTabClick(targetTab)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${
-                      activeTab === targetTab
-                        ? 'bg-gray-100 text-gray-600 font-medium'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    {getIcon(idx)}
-                    {tab}
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        </aside>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
