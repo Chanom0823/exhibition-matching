@@ -8,6 +8,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useConsent } from '../contexts/pdpa';
 import { useActionCared } from '../contexts/action-cared';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+import translations from '@/app/components/translations';
 
 const promptFont = localFont({
   src: [
@@ -21,7 +23,7 @@ const sawarabiFont = localFont({
   src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
 
-const defaultTranslations = {
+// const defaultTranslations = {
   TH: {
     title: 'นโยบายความเป็นส่วนตัวและการคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
     back: 'ย้อนกลับ',
@@ -451,7 +453,7 @@ const defaultTranslations = {
       </p>
     `,
   },
-};
+//};
 
 type props ={
   selectedLanguage?: any;
@@ -459,18 +461,26 @@ type props ={
 
 const  PDPAPage =(props:props)=> {
  
-  const languageOptions = [
-    { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'JP', label: '日本語' },
-  ];
-  const [selectedLanguage, setSelectedLanguage] = useState(props.selectedLanguage);
+  // const languageOptions = [
+  //   { code: 'TH', label: 'ภาษาไทย' },
+  //   { code: 'JP', label: '日本語' },
+  // ];
+  //const [selectedLanguage, setSelectedLanguage] = useState(props.selectedLanguage);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
-  const [translations, setTranslations] = useState(defaultTranslations);
+  //const [translations, setTranslations] = useState(defaultTranslations);
   const [isLoading, setIsLoading] = useState(true);
   const { isAccepted, toggleConsent } = useConsent();
   const { isActionCared, toggleActionCared} = useActionCared();
   
+  const {language, toggleLanguage} = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
+
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
+
   // Load PDPA content from Firebase
   useEffect(() => {
     const loadPdpaContent = async () => {
@@ -520,20 +530,20 @@ const  PDPAPage =(props:props)=> {
               `;
             };
             
-            const newTranslations = {
-              TH: {
-                ...defaultTranslations.TH,
-                title: data.content.TH?.title || defaultTranslations.TH.title,
-                content: generateContent('TH') || defaultTranslations.TH.content,
-              },
-              JP: {
-                ...defaultTranslations.JP,
-                title: data.content.JP?.title || defaultTranslations.JP.title,
-                content: generateContent('JP') || defaultTranslations.JP.content,
-              },
-            };
+            // const newTranslations = {
+            //   TH: {
+            //     ...defaultTranslations.TH,
+            //     title: data.content.TH?.title || defaultTranslations.TH.title,
+            //     content: generateContent('TH') || defaultTranslations.TH.content,
+            //   },
+            //   JP: {
+            //     ...defaultTranslations.JP,
+            //     title: data.content.JP?.title || defaultTranslations.JP.title,
+            //     content: generateContent('JP') || defaultTranslations.JP.content,
+            //   },
+            // };
             
-            setTranslations(newTranslations);
+            // setTranslations(newTranslations);
           }
         }
       } catch (error) {
@@ -545,8 +555,6 @@ const  PDPAPage =(props:props)=> {
 
     loadPdpaContent();
   }, []);
-
-  const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
@@ -563,7 +571,7 @@ const  PDPAPage =(props:props)=> {
       <div className="w-full  max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px]  flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
 
         {/* Content */}
-        <main className="flex-1 flex flex-col px-4 sm:px-4 md:px-8 lg:px-12 py-4 sm:py-6 md:py-8 overflow-y-auto">
+        <div className="flex-1 flex flex-col px-4 sm:px-4 md:px-8 lg:px-12 py-4 sm:py-6 md:py-8 overflow-y-auto">
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <p className="text-gray-500">Loading...</p>
@@ -571,11 +579,11 @@ const  PDPAPage =(props:props)=> {
           ) : (
             <>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-6">
-                {t.title}
+                {t.pdpaTitle}
               </h1>
               <div 
                 className="text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed mb-6"
-            dangerouslySetInnerHTML={{ __html: t.content }}
+            dangerouslySetInnerHTML={{ __html: t.pdpaContent }}
           />
 
           <div  className="mt-auto gitflex flex-col gap-4 pb-6">
@@ -587,7 +595,7 @@ const  PDPAPage =(props:props)=> {
                     className="mt-1 w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900"
               />
               <span className="text-sm text-gray-700">
-                {t.acceptLabel}
+                {t.pdpaAcceptLabel}
               </span>
             </label>
             <button
@@ -599,12 +607,12 @@ const  PDPAPage =(props:props)=> {
               }}
                   className="w-full mt-5 bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t.acceptButton}
+              {t.pdpaAcceptButton}
             </button>
           </div>
             </>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );

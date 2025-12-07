@@ -8,9 +8,17 @@ import { collection, getDocs, query, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import ExportButtons from '@/app/components/ExportButtons';
-import translations from '@/app/components/translations';
 import Sidebar from '@/app/components/sidebar';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+import translations from '@/app/components/translations';
+
+const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
+
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
 
 const promptFont = localFont({
   src: [
@@ -46,7 +54,6 @@ export default function UserSessionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const currentFontClass = selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
-  const t = translations[selectedLanguage.code];
 
   useEffect(() => {
     const storedLanguage =

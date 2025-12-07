@@ -10,6 +10,16 @@ import { collection, getDocs, query, addDoc, serverTimestamp, deleteDoc, doc, wh
 import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { lookUidSesstion } from '@/lib/auth';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+import translations from '@/app/components/translations';
+
+const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
+
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
 
 const promptFont = localFont({
   src: [
@@ -1000,7 +1010,6 @@ export default function ExhibitorDashboardPage() {
     }
   };
 
-  const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 

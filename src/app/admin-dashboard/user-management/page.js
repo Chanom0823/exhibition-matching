@@ -10,6 +10,15 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import jsPDF from 'jspdf';
 import ExportButtons from '@/app/components/ExportButtons';
 import translations from '@/app/components/translations';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+
+const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
+
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
 
 const promptFont = localFont({
   src: [
@@ -501,7 +510,6 @@ export default function UserManagementPage() {
     pdf.save(fileName);
   };
 
-  const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
   const filteredUsers = usersData.users.filter((user) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
@@ -16,7 +16,16 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
 import translations from '@/app/components/translations';
+
+const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
+
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
 
 const promptFont = localFont({
   src: [
@@ -37,12 +46,10 @@ export default function ProblemTagManagementPage() {
     { code: 'JP', label: '日本語' },
   ];
 
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('problemTagManagement');
   const languageDropdownRef = useRef(null);
-
   const [tags, setTags] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(true);
   const [newTagName, setNewTagName] = useState('');
@@ -55,7 +62,6 @@ export default function ProblemTagManagementPage() {
   const [editingDescription, setEditingDescription] = useState('');
   const [editingColor, setEditingColor] = useState('#000000');
 
-  const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 

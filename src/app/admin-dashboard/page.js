@@ -11,6 +11,15 @@ import jsPDF from 'jspdf';
 import ExportButtons from '@/app/components/ExportButtons';
 import translations from '@/app/components/translations';
 import Sidebar from '@/app/components/sidebar';
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+
+const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
+
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
 
 const promptFont = localFont({
   src: [
@@ -558,7 +567,6 @@ export default function AdminDashboardPage() {
     pdf.save(fileName);
   };
 
-  const t = translations[selectedLanguage.code];
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 

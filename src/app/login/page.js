@@ -7,6 +7,16 @@ import { signInWithEmailAndPassword, signOut, getAuth } from 'firebase/auth';
 import AuthNavbar from '../components/AuthNavbar';
 import { auth, db } from '@/lib/firebase'; 
 import { doc, getDoc } from "firebase/firestore";
+import { useLanguage } from '@/app/contexts/LanguageProvider';
+import translations from '@/app/components/translations';
+
+const {language, toggleLanguage} = useLanguage();
+const [selectedLanguage, setSelectedLanguage] = useState(language);
+const t = translations[selectedLanguage.code];
+
+useEffect(() => {
+  setSelectedLanguage(language);
+}, [language]);
 
 const promptFont = localFont({
   src: [
@@ -157,8 +167,6 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
-  const t = translations[selectedLanguage.code];
 
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
