@@ -10,6 +10,8 @@ import PDPAProvider from './contexts/pdpa';
 import '@/styles/globals.css'
 import { usePathname } from 'next/navigation';
 import localFont from 'next/font/local';
+import Sidebar from './components/sidebar';
+import ExhibitorSidebar from './components/ExhibitorSidebar';
 
 const languageOptions = [
   { code: 'TH', label: 'ภาษาไทย' },
@@ -115,9 +117,8 @@ export default function ClientLayout({ children }) {
             <PDPAProvider>
               <main>
                 <div
-                  className={`
-                  min-h-screen  bg-white flex  items-center justify-center
-                  ${path === '/' || path === '/user-panel' || path === '/usermatching' || path === '/login' ? 'flex-col' : 'flex-row'}  
+                  className={`min-h-screen  bg-white flex   justify-center
+                  ${path === '/' || path === '/user-panel' || path === '/usermatching' || path === '/login' ? 'flex-col items-center' : 'flex-row'}  
                   ${currentFontClass}
                   `}>
                   {['/', '/user-panel', '/usermatching', '/login'].includes(pathName || '') &&
@@ -127,6 +128,12 @@ export default function ClientLayout({ children }) {
                       onLanguageSelect={handleLanguageSelect}
                       loginLabel={t.loginCta}
                     />
+                  }
+                  {['/admin-dashboard', '/admin-dashboard/problem-tag-management', '/admin-dashboard/user-management', '/admin-dashboard/user-sessions'].includes(pathName || '') &&
+                    <Sidebar />
+                  }
+                  {['/exhibitor-dashboard', '/exhibitor-profile'].includes(pathName || '') &&
+                    <ExhibitorSidebar />
                   }
                   <div className="w-full max-w-[390px] md:max-w-full h-[844px] md:h-screen bg-white flex flex-col relative">
                     {children}

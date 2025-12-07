@@ -92,16 +92,16 @@ useEffect(() => {
     <div
       className={` -mt-5 `}
     >
-      <div className="w-full  max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px]  flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
+      <div className="w-full  max-w-[390px]  sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px]  flex flex-col relative shadow-sm sm:shadow-none ">
 
         {/* Content */}
-        <div className="flex-1 flex flex-col px-4 sm:px-4 md:px-8 lg:px-12 py-4 sm:py-6 md:py-8 overflow-y-auto">
+        <div className="flex-1 flex flex-col w-full px-4 sm:px-4 md:px-8 lg:px-12 py-4 sm:py-6 md:py-8 ">
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <p className="text-gray-500">Loading...</p>
             </div>
           ) : (
-            <>
+            <div className='w-full '>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-6">
                 {t.pdpaTitle}
               </h1>
@@ -134,7 +134,7 @@ useEffect(() => {
               {t.pdpaAcceptButton}
             </button>
           </div>
-            </>
+            </div>
           )}
         </div>
       </div>
