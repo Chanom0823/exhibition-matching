@@ -34,9 +34,8 @@ export default function MainNavbar({
   useEffect(()=>{
     setPathName(path);
   },[path ])
-  
+
  const t = translations[selectedLanguage.code];
- console.log("check t " , t)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

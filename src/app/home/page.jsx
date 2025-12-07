@@ -7,10 +7,6 @@ import translations from '../components/translations';
 
 export default function HomePage() {
   
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-  const languageDropdownRef = useRef(null);
-  const [isLoading, setIsLoading] = useState(true);
-
   const {language, toggleLanguage} = useLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const t = translations[selectedLanguage.code];
