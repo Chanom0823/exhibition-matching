@@ -135,12 +135,14 @@ const translations = {
     previewVisitorSection: 'ข้อมูลผู้เข้าชม',
     previewContact: 'ช่องทางติดต่อ',
     previewNoData: 'ไม่พบข้อมูลการลงทะเบียน',
-
-     title: 'ยินดีต้อนรับ',
+    // User Panel Registration Form
+    title: 'ยินดีต้อนรับ',
     instruction: 'กรอกข้อมูลที่จำเป็นเพื่อดำเนินการต่อ',
     fullName: 'ชื่อ-นามสกุล*',
     fullNamePlaceholder: 'ชื่อ-นามสกุล',
     companyNamePlaceholder: 'ชื่อบริษัท',
+    position: 'ตำแหน่งงาน*',
+    positionPlaceholder: 'ตำแหน่งงาน',
     contactInfo: 'อีเมล / เบอร์โทรศัพท์ (อย่างน้อย 1 ช่องทาง)',
     contactPlaceholder: 'อีเมล / เบอร์โทรศัพท์',
     problemCategory: 'หมวดปัญหา',
@@ -287,12 +289,14 @@ const translations = {
     previewVisitorSection: '訪問者情報',
     previewContact: '連絡先',
     previewNoData: '登録情報が見つかりません',
-
+    // User Panel Registration Form
     title: 'ようこそ',
     instruction: '必要事項を入力して続行してください',
     fullName: '氏名*',
     fullNamePlaceholder: '氏名',
     companyNamePlaceholder: '会社名',
+    position: '役職*',
+    positionPlaceholder: '役職',
     contactInfo: 'メール / 電話番号 (少なくとも1つの連絡先)',
     contactPlaceholder: 'メール / 電話番号',
     problemCategory: '問題カテゴリ',

@@ -16,7 +16,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "plugins": [
       {
         "name": "next"
@@ -37,8 +37,9 @@
     "**/*.ts",
     "**/*.tsx",
     "src/lib/auth.js",
-    "src/app/admin-dashboard/problem-tag-management/page.js"
-, "src/app/user-panel/page.jsx"  ],
+    "src/app/admin-dashboard/problem-tag-management/page.js",
+    "src/app/user-panel/page.jsx"
+  ],
   "exclude": [
     "node_modules"
   ]

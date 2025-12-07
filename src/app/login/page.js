@@ -25,9 +25,9 @@ const sawarabiFont = localFont({
 const translations = {
   TH: {
     loginTitle: 'เข้าสู่ระบบ',
-    loginDescription: 'กรุณากรอกชื่อผู้ใช้ หรืออีเมล และรหัสผ่านเพื่อเข้าสู่ระบบ',
-    usernameLabel: 'ผู้ใช้/อีเมล',
-    usernamePlaceholder: 'กรุณากรอกชื่อผู้ใช้ หรือ อีเมล',
+    loginDescription: 'กรุณากรอกอีเมล และรหัสผ่านเพื่อเข้าสู่ระบบ',
+    usernameLabel: 'อีเมล',
+    usernamePlaceholder: 'กรุณากรอกอีเมล',
     passwordLabel: 'รหัสผ่าน',
     passwordPlaceholder: 'กรุณากรอกรหัสผ่าน',
     rememberMe: 'จดจำการเข้าสู่ระบบของฉัน',
@@ -44,9 +44,9 @@ const translations = {
   },
   JP: {
     loginTitle: 'ログイン',
-    loginDescription: 'ユーザー名またはメールアドレスとパスワードを入力してください。',
-    usernameLabel: 'ユーザー名 / メール',
-    usernamePlaceholder: 'ユーザー名またはメールアドレスを入力',
+    loginDescription: 'メールアドレスとパスワードを入力してログインしてください。',
+    usernameLabel: 'メール',
+    usernamePlaceholder: 'メールアドレスを入力してください',
     passwordLabel: 'パスワード',
     passwordPlaceholder: 'パスワードを入力してください',
     rememberMe: 'ログイン状態を保存する',

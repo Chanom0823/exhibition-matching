@@ -40,6 +40,8 @@ export default function UserPanelPage() {
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
+  const categoryDropdownRef = useRef(null);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const { isAccepted, toggleConsent } = useConsent();
 
   const [formData, setFormData] = useState({
@@ -75,6 +77,12 @@ export default function UserPanelPage() {
         !languageDropdownRef.current.contains(event.target)
       ) {
         setIsLanguageOpen(false);
+      }
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target)
+      ) {
+        setIsCategoryOpen(false);
       }
     };
 
@@ -143,6 +151,7 @@ export default function UserPanelPage() {
       ...formData,
       categories: newCategories,
     });
+    setIsCategoryOpen(false);
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -278,6 +287,23 @@ export default function UserPanelPage() {
                 />
               </div>
 
+              {/* Position */}
+              <div>
+                <label htmlFor="position" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
+                  {t.position}
+                </label>
+                <input
+                  id="position"
+                  name="position"
+                  type="text"
+                  value={formData.position}
+                  onChange={handleTextInput}
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base"
+                  placeholder={t.positionPlaceholder}
+                  required
+                />
+              </div>
+
               {/* Contact Info */}
               <div>
                 <label htmlFor="contact" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
@@ -303,30 +329,54 @@ export default function UserPanelPage() {
                   {[0].map((index) => {
                     const selectedCategory = formData.categories[index];
                     const selectedTag = problemTags.find((tag) => tag.name === selectedCategory);
+                    const placeholder =
+                      tagsLoading && problemTags.length === 0 ? 'Loading...' : t.selectCategory;
                     return (
-                      <div key={index} className="flex flex-col gap-1.5">
-                        <select
-                          value={selectedCategory}
-                          name="selectedCategories"
-                          onChange={(e) => handleCategoryChange(index, e.target.value)}
-                          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base appearance-none bg-white"
-                          style={{
-                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                            backgroundPosition: 'right 0.5rem center',
-                            backgroundRepeat: 'no-repeat',
-                            backgroundSize: '1.5em 1.5em',
-                            paddingRight: '2.5rem',
-                          }}
+                      <div key={index} className="flex flex-col gap-1.5 relative" ref={categoryDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => setIsCategoryOpen((prev) => !prev)}
+                          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-left text-sm sm:text-base bg-white flex items-center justify-between"
                         >
-                          <option value="">
-                            {tagsLoading && problemTags.length === 0 ? 'Loading...' : t.selectCategory}
-                          </option>
-                          {problemTags.map((tag) => (
-                            <option key={`${tag.name}-${index}`}  value={tag.name}>
-                              {getTagLabelByLanguage(tag.name, selectedLanguage.code)}
-                            </option>
-                          ))}
-                        </select>
+                          <span className={`${selectedCategory ? 'text-gray-900' : 'text-gray-400'}`}>
+                            {selectedCategory
+                              ? getTagLabelByLanguage(selectedCategory, selectedLanguage.code)
+                              : placeholder}
+                          </span>
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`text-gray-500 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`}
+                          >
+                            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                        {isCategoryOpen && (
+                          <div className="absolute z-20 mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                            <button
+                              type="button"
+                              onClick={() => handleCategoryChange(index, '')}
+                              className="w-full text-left px-3 py-2 text-sm sm:text-base text-gray-700 hover:bg-gray-50"
+                            >
+                              {placeholder}
+                            </button>
+                            {problemTags.map((tag) => (
+                              <button
+                                key={`${tag.name}-${index}`}
+                                type="button"
+                                onClick={() => handleCategoryChange(index, tag.name)}
+                                className={`w-full text-left px-3 py-2 text-sm sm:text-base hover:bg-gray-50 ${
+                                  selectedCategory === tag.name ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                                }`}
+                              >
+                                {getTagLabelByLanguage(tag.name, selectedLanguage.code)}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         {selectedTag && selectedTag.description && (
                           <p className="text-xs sm:text-sm text-gray-600 px-3 sm:px-4 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
                             {selectedTag.description}

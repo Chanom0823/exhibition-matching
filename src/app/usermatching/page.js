@@ -20,6 +20,24 @@ const sawarabiFont = localFont({
   src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
 
+// Decide readable text color based on background color
+const getTextColorFromBg = (hex) => {
+  if (!hex) return '#111827';
+  let cleaned = hex.trim().replace('#', '');
+  if (cleaned.length === 3) {
+    cleaned = cleaned.split('').map((ch) => ch + ch).join('');
+  }
+  if (cleaned.length !== 6) return '#111827';
+
+  const r = parseInt(cleaned.substring(0, 2), 16);
+  const g = parseInt(cleaned.substring(2, 4), 16);
+  const b = parseInt(cleaned.substring(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#111827';
+
+  const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return brightness > 0.6 ? '#111827' : '#ffffff';
+};
+
 const translations = {
   TH: {
     title: 'ผู้แสดงสินค้าที่ตรงกับความสนใจของคุณ',
@@ -144,10 +162,18 @@ export default function UserMatchingPage() {
     const loadProblemTags = async () => {
       try {
         const tagsSnapshot = await getDocs(collection(db, 'problemTags'));
-        const tags = tagsSnapshot.docs
-          .map((docSnap) => docSnap.data()?.name?.trim())
-          .filter((name, index, self) => name && self.indexOf(name) === index);
-        setProblemTags(tags);
+        const tagMap = new Map();
+        tagsSnapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const name = data?.name?.trim();
+          if (!name) return;
+          const color = (data?.color || '#e5e7eb').trim();
+          const key = name.toLowerCase();
+          if (!tagMap.has(key)) {
+            tagMap.set(key, { name, color });
+          }
+        });
+        setProblemTags(Array.from(tagMap.values()));
       } catch (error) {
         console.error('Error loading problem tags:', error);
       }
@@ -155,6 +181,26 @@ export default function UserMatchingPage() {
 
     loadProblemTags();
   }, []);
+
+  const getTagStyle = (categoryName) => {
+    if (!categoryName) {
+      const fallback = '#e5e7eb';
+      return {
+        backgroundColor: fallback,
+        borderColor: fallback,
+        color: getTextColorFromBg(fallback),
+      };
+    }
+    const matchedTag = problemTags.find(
+      (tag) => tag.name.toLowerCase() === categoryName.toLowerCase()
+    );
+    const color = matchedTag?.color || '#e5e7eb';
+    return {
+      backgroundColor: color,
+      borderColor: color,
+      color: getTextColorFromBg(color),
+    };
+  };
 
   // Filter exhibitors based on visitor's selected interests
   let filteredExhibitors = exhibitors;
@@ -379,7 +425,8 @@ export default function UserMatchingPage() {
                             {exhibitor.categories.slice(0, 2).map((category, catIndex) => (
                               <span
                                 key={catIndex}
-                                className="px-3 py-1 bg-gray-100 text-gray-700 text-[12px] rounded-full flex items-center justify-center border border-gray-300 min-w-[100px] max-w-[160px] truncate"
+                                className="px-3 py-1 text-[12px] rounded-full flex items-center justify-center border"
+                                style={getTagStyle(category)}
                               >
                                 {category}
                               </span>
@@ -463,7 +510,8 @@ export default function UserMatchingPage() {
                             {selectedExhibitor.categories.map((category, index) => (
                               <span
                                 key={index}
-                                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full border border-gray-300"
+                                className="px-2 py-1 text-xs rounded-full border"
+                                style={getTagStyle(category)}
                               >
                                 {category}
                               </span>

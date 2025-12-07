@@ -11,6 +11,7 @@ export async function sentForm(formData: FormData, isAccepted: boolean) {
   const trimmedContact = formData.get('contact');
   const selectedCategories = formData.get('selectedCategories');
   const selectedLanguage = formData.get('selectedLanguage');
+  const selectedPosition = formData.get('position');
   let isSuccess = false;
 
   try {
@@ -20,6 +21,7 @@ export async function sentForm(formData: FormData, isAccepted: boolean) {
       contact: trimmedContact,
       categories: [selectedCategories],
       language: selectedLanguage,
+      position: selectedPosition,
       pdpaAccepted: isAccepted,
       createdAt: serverTimestamp(),
     })
