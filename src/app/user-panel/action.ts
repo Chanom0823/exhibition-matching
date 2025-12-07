@@ -13,7 +13,6 @@ export async function sentForm(formData: FormData, isAccepted: boolean) {
   const selectedLanguage = formData.get('selectedLanguage');
   const selectedPosition = formData.get('position');
   let isSuccess = false;
-
   try {
     const docRef = await addDoc(collection(db, 'userPanelSubmissions'), {
       fullName: trimmedFullName,
