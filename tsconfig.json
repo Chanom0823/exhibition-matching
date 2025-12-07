@@ -16,7 +16,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "plugins": [
       {
         "name": "next"
@@ -24,7 +24,9 @@
     ],
     "strictNullChecks": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
@@ -33,8 +35,10 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "**/*.ts",
-    "**/*.tsx"
-, "src/lib/auth.js"  ],
+    "**/*.tsx",
+    "src/lib/auth.js",
+    "src/app/admin-dashboard/problem-tag-management/page.js"
+, "src/app/user-panel/page.jsx"  ],
   "exclude": [
     "node_modules"
   ]

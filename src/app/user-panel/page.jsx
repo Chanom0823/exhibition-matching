@@ -111,23 +111,6 @@ export default function UserPanelPage() {
     fetchProblemTags();
   }, []);
 
-  // useEffect(() => {
-  //   const checkPDPAStatus = () => {
-  //     const accepted =
-  //       typeof window !== 'undefined' ? localStorage.getItem('pdpaAccepted') === 'true' : false;
-  //     setHasAcceptedPDPA(accepted);
-  //     if (accepted) {
-  //       setPdpaAgreed(true);
-  //     }
-  //   };
-
-  //   checkPDPAStatus();
-  //   window.addEventListener('focus', checkPDPAStatus);
-  //   return () => {
-  //     window.removeEventListener('focus', checkPDPAStatus);
-  //   };
-  // }, []);
-
   const handleLanguageSelect = (option) => {
     setSelectedLanguage(option);
     if (typeof window !== 'undefined') {
@@ -163,13 +146,18 @@ export default function UserPanelPage() {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setIsSubmitting(true)
     if (typeof window !== 'undefined') {
       localStorage.setItem('userInterests', JSON.stringify(e.selectedCategories));
     }
     const formData = new FormData(e.currentTarget);
     // 2. ส่งค่า isActionCared ไปให้ Server Action เป็นพารามิเตอร์ที่ 2
-    await sentForm(formData, isAccepted);
+    const  result = await sentForm(formData, isAccepted);
+    if(result){
+      router.replace('/usermatching');
+    }else{
+      setIsSubmitting(false)
+    }
   };
 
   const t = translations[selectedLanguage.code];
@@ -180,7 +168,7 @@ export default function UserPanelPage() {
     <div className={`relative z-0 min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
         {/* Header with Logo and Language Selector */}
-        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px] flex-shrink-0">
+        <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-16 md:h-20 flex justify-between items-center px-4 md:px-8 lg:px-12 py-2.5 shrink-0">
           {/* Logo - Top Left */}
           <button
             type="button"
@@ -193,7 +181,7 @@ export default function UserPanelPage() {
               alt="alt design office"
               width={80}
               height={39}
-              className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
+              className="w-20 h-[39px] md:w-[100px] md:h-[49px]"
               priority
             />
           </button>
@@ -201,7 +189,7 @@ export default function UserPanelPage() {
           <div className="relative" ref={languageDropdownRef}>
             <button
               type="button"
-              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
+              className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-20 md:h-10 text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
               onClick={() => setIsLanguageOpen((prev) => !prev)}
               aria-haspopup="listbox"
               aria-expanded={isLanguageOpen}
@@ -355,7 +343,7 @@ export default function UserPanelPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                // disabled={isSubmitting || !pdpaAgreed}
+                disabled={isSubmitting}
                 className="w-full bg-gray-800 text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base mt-3 sm:mt-4 hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? '...' : t.register}
