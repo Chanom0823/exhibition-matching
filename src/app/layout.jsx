@@ -24,7 +24,7 @@ const defaultTranslations = {
 export default function ClientLayout({ children, promptClassName, sawarabiClassName }) {
   // 1. ย้าย State มาไว้ที่นี่
 
-  
+
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [translations, setTranslations] = useState(defaultTranslations);
@@ -90,7 +90,7 @@ export default function ClientLayout({ children, promptClassName, sawarabiClassN
     setIsLanguageOpen(false);
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     setPath(pathName);
   }, [pathName])
   return (
@@ -100,18 +100,20 @@ export default function ClientLayout({ children, promptClassName, sawarabiClassN
         <LanguageProvider>
           <ActionCaredProvider>
             <PDPAProvider>
-              <div 
+              <div
                 className={`
                   min-h-screen  bg-white flex  items-center justify-center
-                  ${path === '/' || path === '/user-panel' || path === '/usermatching' ? 'flex-col' : 'flex-row'}  
+                  ${path === '/' || path === '/user-panel' || path === '/usermatching' || path === '/login' ? 'flex-col' : 'flex-row'}  
                   ${currentFontClass}
                   `}>
-                <MainNavbar
-                  languageOptions={languageOptions}
-                  selectedLanguage={selectedLanguage}
-                  onLanguageSelect={handleLanguageSelect}
-                  loginLabel={t.loginCta}
-                />
+                {[ '/', '/user-panel', '/usermatching', '/login'].includes(pathName || '') &&
+                  <MainNavbar
+                    languageOptions={languageOptions}
+                    selectedLanguage={selectedLanguage}
+                    onLanguageSelect={handleLanguageSelect}
+                    loginLabel={t.loginCta}
+                  />
+                }
                 <div className="w-full max-w-[390px] md:max-w-full h-[844px] md:h-screen bg-white flex flex-col relative">
                   {children}
                 </div>

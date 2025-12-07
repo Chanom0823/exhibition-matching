@@ -166,12 +166,7 @@ export default function LoginPage() {
   return (
     <div className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none">
-        {/* Header with Logo and Language Selector */}
-        <AuthNavbar
-          languageOptions={languageOptions}
-          selectedLanguage={selectedLanguage}
-          onLanguageSelect={handleLanguageSelect}
-        />
+        
 
         {/* Login Form - Centered */}
         <div className="flex-1 flex items-start sm:items-center justify-center px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
