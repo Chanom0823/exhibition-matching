@@ -22,8 +22,6 @@ const MENU_CONFIG = [
   { key: 'userManagement', icon: '/user.png', path: '/admin-dashboard/user-management' },
   { key: 'problemTagManagement', icon: '/file.png', path: '/admin-dashboard/problem-tag-management' },
   { key: 'userSessions', icon: '/time.png', path: '/admin-dashboard/user-sessions' },
-  { key: 'pdpaManagement', icon: '/home.png', path: '/admin-dashboard/pdpa-management' },
-  { key: 'verify', icon: '/verify.png', path: '/admin-dashboard/verify' },
 ];
 
 export default function Sidebar({ setActiveTab, isSidebarOpen }: Props) {
@@ -45,7 +43,7 @@ export default function Sidebar({ setActiveTab, isSidebarOpen }: Props) {
 
   return (
     <aside
-      className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-[250px] bg-white border-r border-gray-200 flex-col transform transition-transform ${
+      className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-xs bg-white border-r border-gray-200 flex-col transform transition-transform ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       } md:flex`}
     >
