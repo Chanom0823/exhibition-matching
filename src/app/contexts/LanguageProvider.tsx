@@ -1,26 +1,28 @@
 'use client'
 
-import { createContext,  useContext,  useState } from "react"
+import { createContext, useContext, useState } from "react"
 
-type languageType = {
-  language?: string;
-  toggleLanguage? : (value : string) => void;
+export type LanguageOption = {
+  code: string;
+  label: string;
 }
 
-export const languageContext = createContext<languageType | undefined>(undefined);
+type LanguageContextType = {
+  language: LanguageOption; 
+  toggleLanguage: (value: LanguageOption) => void;
+}
 
-export default function LanguageProvider({children,
-}:{
-  children: React.ReactNode
-}){
-  const [language, setLanguage] = useState('JP')
+export const languageContext = createContext<LanguageContextType | undefined>(undefined);
 
-  const toggleLanguage =(value : string)=>{
-    setLanguage(value)
+export default function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguage] = useState<LanguageOption>({ code: 'JP', label: '日本語' });
+
+  const toggleLanguage = (value: LanguageOption) => {
+    setLanguage(value);
   }
 
   return(
-    <languageContext.Provider value={{language, toggleLanguage}}>
+    <languageContext.Provider value={{ language, toggleLanguage }}>
       {children}
     </languageContext.Provider>
   )
@@ -28,6 +30,8 @@ export default function LanguageProvider({children,
 
 export const useLanguage = () => {
   const context = useContext(languageContext);
-  if (!context) throw new Error("useLanguage ต้องใช้ภายใน LanguageProvider");
+  if (!context) {
+    throw new Error("useLanguage ต้องใช้ภายใน LanguageProvider");
+  }
   return context;
 };

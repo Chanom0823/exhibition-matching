@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useLanguage } from '../contexts/LanguageProvider';
+import translations from './translations';
 
 type LanguageOption = {
   code: string;   // 'TH' | 'JP'
@@ -24,7 +27,16 @@ export default function MainNavbar({
 }: MainNavbarProps) {
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef<HTMLDivElement | null>(null);
-
+  const {language, toggleLanguage} = useLanguage();
+  
+  const path = usePathname();
+  const [pathName, setPathName] = useState(path);
+  useEffect(()=>{
+    setPathName(path);
+  },[path ])
+  
+ const t = translations[selectedLanguage.code];
+ console.log("check t " , t)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -41,18 +53,19 @@ export default function MainNavbar({
 
   const handleLanguageClick = (option: LanguageOption) => {
     onLanguageSelect(option);
+    toggleLanguage(option)
     setIsLanguageOpen(false);
   };
 
   return (
-    <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-[64px] md:h-[80px] flex justify-between items-center px-4 md:px-8 lg:px-12 py-[10px]">
+    <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-16 md:h-20 flex justify-between items-center px-4 md:px-8 lg:px-12 py-2.5">
       <div className="flex items-center">
         <Image
           src="/logo.svg"
           alt="alt design office"
           width={80}
           height={39}
-          className="w-[80px] h-[39px] md:w-[100px] md:h-[49px]"
+          className="w-20 h-[39px] md:w-[100px] md:h-[49px]"
           priority
         />
       </div>
@@ -61,7 +74,7 @@ export default function MainNavbar({
         <div className="relative" ref={languageDropdownRef}>
           <button
             type="button"
-            className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
+            className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-20 md:h-10 text-sm md:text-base flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
             onClick={() => setIsLanguageOpen(prev => !prev)}
             aria-haspopup="listbox"
             aria-expanded={isLanguageOpen}
@@ -108,9 +121,9 @@ export default function MainNavbar({
 
         <Link
           href="/login"
-          className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-[80px] md:h-[40px] text-sm md:text-base flex items-center justify-center hover:bg-gray-700 transition"
+          className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-20 md:h-10 text-sm md:text-base flex items-center justify-center hover:bg-gray-700 transition"
         >
-          {loginLabel}
+          {t.loginCta}
         </Link>
       </div>
     </div>
