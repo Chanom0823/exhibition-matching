@@ -48,10 +48,12 @@ export default function UserMatchingPage() {
   const {language, toggleLanguage} = useLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const t = translations[selectedLanguage.code];
+  
 
   useEffect(()=>{
     setSelectedLanguage(language);
   }, [language])
+  
   const handleFilterClick = (filterKey) => {
     setSelectedFilter(filterKey);
     if (filterKey !== 'problem') {
@@ -71,14 +73,15 @@ export default function UserMatchingPage() {
         if (visitorSnap.exists()) {
           const data = visitorSnap.data();
           visitorInterests = data.categories || [];
+          
         }
         const exhibitorsRef = collection(db, 'exhibitors');
         const q = query(exhibitorsRef, where('categories', 'array-contains-any', visitorInterests));
         const querySnapshot = await getDocs(q);
-       
         const exhibitorsData = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+
           // Only include exhibitors that have been saved (have companyName and isComplete flag)
           if (data.isComplete && data.companyName && data.categories && data.categories.length > 0) {
             exhibitorsData.push({
@@ -279,7 +282,7 @@ export default function UserMatchingPage() {
                         {/* Store Name */}
                         <div className="flex items-start justify-between  gap-2">
                           <h3
-                            className={`${promptFont.className} text-[16px] font-bold text-gray-900 mb-1 flex-1`}
+                            className={`text-[16px] font-bold text-gray-900 mb-1 flex-1`}
                           >
                             {exhibitor.companyName || t.storeNameC}
                           </h3>
