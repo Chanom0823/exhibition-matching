@@ -3,22 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import localFont from 'next/font/local';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { lookSesstion } from '@/lib/auth';
-
-const promptFont = localFont({
-  src: [
-    { path: '../../../public/fonts/Prompt-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Bold.ttf', weight: '700', style: 'normal' },
-  ],
-});
-
-const sawarabiFont = localFont({
-  src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
-});
+import { useLanguage } from '../contexts/LanguageProvider';
+import translations from '../components/translations';
 
 // Decide readable text color based on background color
 const getTextColorFromBg = (hex) => {
@@ -38,60 +27,7 @@ const getTextColorFromBg = (hex) => {
   return brightness > 0.6 ? '#111827' : '#ffffff';
 };
 
-const translations = {
-  TH: {
-    title: 'ผู้แสดงสินค้าที่ตรงกับความสนใจของคุณ',
-    titleLine1: 'ผู้แสดงสินค้าที่ตรงกับ',
-    titleLine2: 'ความสนใจของคุณ',
-    description: 'ผู้แสดงสินค้าที่ตรงกับปัญหาของคุณมากที่สุด',
-    storeName: 'ร้าน A',
-    storeNameC: 'ร้านค้า C',
-    productType: 'ประเภทสินค้า',
-    category: 'หมวดหมู่ 1',
-    contact: 'ติดต่อ',
-    details: 'รายละเอียด',
-    contactChannel: 'ช่องทางติดต่อ',
-    noFavorites: 'ยังไม่มีรายการโปรด',
-    close: 'ปิด',
-    companyName: 'ชื่อบริษัท',
-    companyDescription: 'รายละเอียด',
-    categories: 'หมวดหมู่',
-    email: 'อีเมล',
-    phone: 'เบอร์โทรศัพท์',
-    website: 'เว็บไซต์',
-    address: 'ที่อยู่',
-    all: 'ทั้งหมด',
-    problem: 'ปัญหา',
-    favorites: 'รายการโปรด',
-    backHome: 'กลับสู่หน้าหลัก',
-    contactSuccess: 'ได้ติดต่อบริษัทแล้ว กรุณารอการติดต่อกลับ',
-  },
-  JP: {
-    title: '展示マッチングシステム',
-    description: 'あなたの課題に最も適した出展者',
-    storeName: '店舗A',
-    storeNameC: '店舗C',
-    productType: '商品タイプ',
-    category: 'カテゴリ1',
-    contact: '連絡先',
-    details: '詳細',
-    contactChannel: '連絡先',
-    noFavorites: 'お気に入りはまだありません',
-    close: '閉じる',
-    companyName: '会社名',
-    companyDescription: '詳細',
-    categories: 'カテゴリ',
-    email: 'メール',
-    phone: '電話番号',
-    website: 'ウェブサイト',
-    address: '住所',
-    all: 'すべて',
-    problem: '問題',
-    favorites: 'お気に入り',
-    backHome: 'ホームへ戻る',
-    contactSuccess: '会社に連絡しました。折り返しの連絡をお待ちください。',
-  },
-};
+
 
 export default function UserMatchingPage() {
   const router = useRouter();
@@ -99,7 +35,6 @@ export default function UserMatchingPage() {
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -110,7 +45,13 @@ export default function UserMatchingPage() {
   const [selectedExhibitor, setSelectedExhibitor] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [problemTags, setProblemTags] = useState([]);
+  const {language, toggleLanguage} = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
 
+  useEffect(()=>{
+    setSelectedLanguage(language);
+  }, [language])
   const handleFilterClick = (filterKey) => {
     setSelectedFilter(filterKey);
     if (filterKey !== 'problem') {
@@ -251,10 +192,6 @@ export default function UserMatchingPage() {
     setIsLanguageOpen(false);
   };
 
-  const t = translations[selectedLanguage.code];
-  const currentFontClass =
-    selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
-
   const titleContent = t.titleLine2 ? (
     <>
       {t.titleLine1}
@@ -267,7 +204,7 @@ export default function UserMatchingPage() {
 
   return (
     <div
-      className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}
+      className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 `}
     >
       <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
       

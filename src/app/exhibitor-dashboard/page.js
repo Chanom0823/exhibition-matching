@@ -11,121 +11,8 @@ import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { lookUidSesstion } from '@/lib/auth';
 import { useLanguage } from '@/app/contexts/LanguageProvider';
-import translations from '@/app/components/translations';
-
-const {language, toggleLanguage} = useLanguage();
-const [selectedLanguage, setSelectedLanguage] = useState(language);
-const t = translations[selectedLanguage.code];
-
-useEffect(() => {
-  setSelectedLanguage(language);
-}, [language]);
-
-const promptFont = localFont({
-  src: [
-    { path: '../../../public/fonts/Prompt-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Bold.ttf', weight: '700', style: 'normal' },
-  ],
-});
-
-const sawarabiFont = localFont({
-  src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
-});
-
-const translations = {
-  TH: {
-    dashboard: 'Dashboard',
-    tabs: ['Dashboard', 'Profile'],
-    searchPlaceholder: 'Search...',
-    totalInterests: 'ผู้เข้าร่วมงานทั้งหมด',
-    totalInterestsValue: '3,256',
-    matched: 'ยอดสนใจ',
-    matchedValue: '394',
-    notMatched: 'ไม่ใช่ตัวเลือก',
-    notMatchedValue: '2,536',
-    contacts: 'การติดต่อ',
-    contactsValue: '38',
-    trendTitle: 'ปัญหาที่คนให้ความสนใจ',
-    trendOutpatients: 'ยอดสนใจ',
-    trendInpatients: 'ไม่ได้ติดต่อ',
-    patientsByCategory: 'ผู้สนใจตามหมวดหมู่',
-    timeAdmitted: 'ช่วงเวลาที่ติดต่อ',
-    divisionLabel: 'หมวดหมู่',
-    patientsLabel: 'จำนวน',
-    logout: 'ออกจากระบบ',
-    export: 'Export',
-    tableNo: 'ลำดับ',
-    tableName: 'รายชื่อที่สนใจ',
-    tableContact: 'การติดต่อ',
-    details: 'รายละเอียด',
-    contact: 'ติดต่อ',
-    contacted: 'ติดต่อแล้ว',
-    notContacted: 'ยังไม่ติดต่อ',
-    name: 'ชื่อ',
-    company: 'ชื่อบริษัท',
-    phone: 'เบอร์โทร',
-    email: 'อีเมล',
-    problems: 'ปัญหาที่เลือก',
-    filterAll: 'ทั้งหมด',
-    filterNotContacted: 'ยังไม่ติดต่อ',
-    filterContacted: 'ติดต่อแล้ว',
-    userContactsLabel: 'ผู้ใช้งานกดติดต่อ',
-    exhibitorContactsLabel: 'Exhibitor กดติดต่อแล้ว',
-    pdpaTitle: 'นโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
-    pdpaMessage:
-      'เพื่อความปลอดภัยและเป็นไปตามกฎหมายคุ้มครองข้อมูลส่วนบุคคล (PDPA) กรุณาอ่านและยอมรับนโยบายก่อนใช้งานแดชบอร์ดสำหรับ Exhibitor',
-    pdpaNote: 'หากท่านไม่ได้ทำเครื่องหมายยินยอมตาม PDPA ระบบจะแสดงเฉพาะรายชื่อบริษัทที่ตรงกับการแมตช์ให้เท่านั้น และจะไม่ส่งข้อมูลส่วนบุคคลของท่านให้กับบริษัทใด ๆ',
-    pdpaViewPolicy: 'ดูนโยบายฉบับเต็ม',
-    pdpaAccept: 'ฉันยอมรับและต้องการเริ่มใช้งาน',
-  },
-  JP: {
-    dashboard: 'ダッシュボード',
-    tabs: ['ダッシュボード', 'プロフィール'],
-    searchPlaceholder: '検索...',
-    totalInterests: '総参加者',
-    totalInterestsValue: '3,256',
-    matched: 'マッチ',
-    matchedValue: '394',
-    notMatched: '非マッチ',
-    notMatchedValue: '2,536',
-    contacts: '連絡先',
-    contactsValue: '38',
-    trendTitle: '人々が関心を持つ問題',
-    trendOutpatients: 'マッチ',
-    trendInpatients: '未連絡',
-    patientsByCategory: 'カテゴリ別興味',
-    timeAdmitted: '連絡時間',
-    divisionLabel: 'カテゴリ',
-    patientsLabel: '数',
-    logout: 'ログアウト',
-    export: 'Export',
-    tableNo: '番号',
-    tableName: '興味のある名前',
-    tableContact: '連絡先',
-    details: '詳細',
-    contact: '連絡',
-    contacted: '連絡済み',
-    notContacted: '未連絡',
-    name: '名前',
-    company: '会社名',
-    phone: '電話',
-    email: 'メール',
-    problems: '選択された問題',
-    filterAll: 'すべて',
-    filterNotContacted: '未連絡',
-    filterContacted: '連絡済み',
-    userContactsLabel: 'ユーザー連絡',
-    exhibitorContactsLabel: '出展者連絡済み',
-    pdpaTitle: 'プライバシーポリシー／個人情報保護方針（PDPA）',
-    pdpaMessage:
-      'セキュリティ確保および個人情報保護法（PDPA）遵守のため、出展者ダッシュボードをご利用いただく前に、ポリシーを確認し同意してください。',
-    pdpaNote: 'PDPAに同意しない場合、システムはマッチングした会社名のみを表示し、お客様の個人情報をいかなる会社にも送信しません。',
-    pdpaViewPolicy: 'ポリシー全文を表示',
-    pdpaAccept: '同意してダッシュボードを利用する',
-  },
-};
-
+import translations from '../components/translations';
+import TranslationSelection from '../components/TranslationSelection';
 
 
 export default function ExhibitorDashboardPage() {
@@ -134,7 +21,9 @@ export default function ExhibitorDashboardPage() {
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
+  const {language, toggleLanguage} = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
   const [showPdpaModal, setShowPdpaModal] = useState(false);
@@ -1010,9 +899,6 @@ export default function ExhibitorDashboardPage() {
     }
   };
 
-  const currentFontClass =
-    selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
-
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userName] = useState('Emma Kwan');
@@ -1067,9 +953,13 @@ export default function ExhibitorDashboardPage() {
   const exhibitorOffset = -circumference * userContactRatio;
   const userPercentage = Math.round(userContactRatio * 100);
   const exhibitorPercentage = Math.round(exhibitorContactRatio * 100);
+ 
 
+  useEffect(()=>{
+    setSelectedLanguage(language);
+  }, [language])
   return (
-    <div className={`min-h-screen bg-[#f5f5f5] flex ${currentFontClass}`}>
+    <div className={`min-h-screen bg-[#f5f5f5] flex`}>
       <div className="w-full max-w-[390px] md:max-w-[1440px] mx-auto flex relative">
         {/* Mobile Sidebar Overlay */}
         {isSidebarOpen && (
@@ -1080,49 +970,7 @@ export default function ExhibitorDashboardPage() {
         )}
 
         {/* Left Sidebar */}
-        <aside
-          className={`fixed md:static inset-y-0 left-0 z-50 md:z-auto w-[250px] bg-white border-r border-gray-200 flex-col transform transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-            } md:flex`}
-        >
-          {/* Logo */}
-          <div className="px-4 py-4 items-center justify-center flex">
-            <Image src="/logo.svg" alt="alt design office" width={110} height={60} priority />
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-4">
-            <div className="flex flex-col gap-2">
-              {t.tabs.map((tab, idx) => {
-                const targetTab = idx === 0 ? 'dashboard' : 'profile';
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(targetTab);
-                      if (targetTab === 'profile') {
-                        router.push('/exhibitor-profile');
-                      }
-                    }}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${activeTab === targetTab
-                      ? 'bg-gray-100 text-gray-600 font-medium'
-                      : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                  >
-                    <Image
-                      src={idx === 0 ? '/dashboard.png' : '/user.png'}
-                      alt={tab}
-                      width={24}
-                      height={24}
-                      className="w-6 h-6"
-                    />
-                    {tab}
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        </aside>
+        
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
@@ -1141,13 +989,13 @@ export default function ExhibitorDashboardPage() {
               </svg>
             </button>
 
-            <div className="flex items-end justify-end  w-full">
-              <div className="relative" ref={languageDropdownRef}>
-                <div className="flex items-end justify-end gap-3 cursor-pointer">
+            <div className="flex items-end  justify-end  w-full">
+              <div className="relative " ref={languageDropdownRef}>
+                <div className="flex items-end h-9 justify-end gap-3 cursor-pointer">
                   <button
                     type="button"
                     onClick={handleExportPDF}
-                    className="bg-gray-800 text-white rounded-lg px-3 h-[36px] flex items-center justify-center gap-2 hover:bg-gray-700 transition"
+                    className="bg-gray-800 text-white rounded-lg px-3 h-9 flex items-center justify-center gap-2 hover:bg-gray-700 transition"
                     aria-label={t.export}
                     title={t.export}
                   >
@@ -1163,7 +1011,7 @@ export default function ExhibitorDashboardPage() {
                   <button
                     type="button"
                     onClick={handleExportExcel}
-                    className="bg-gray-800 text-white rounded-lg px-3 h-[36px] flex items-center justify-center gap-2 hover:bg-gray-700 transition"
+                    className="bg-gray-800 text-white rounded-lg px-3 h-9 flex items-center justify-center gap-2 hover:bg-gray-700 transition"
                     aria-label="Export Excel"
                     title="Export Excel"
                   >
@@ -1176,22 +1024,8 @@ export default function ExhibitorDashboardPage() {
                     />
                     <span className="text-sm">{t.export} Excel</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsLanguageOpen((prev) => !prev)}
-                    className="bg-gray-800 text-white rounded-lg w-[72px] h-[36px] text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 transition"
-                  >
-                    {selectedLanguage.code}
-                    <svg width="12" height="8" fill="none" viewBox="0 0 12 8">
-                      <path
-                        d="M1 1l5 5 5-5"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+
+                  <TranslationSelection />
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -1209,28 +1043,6 @@ export default function ExhibitorDashboardPage() {
                     </svg>
                   </button>
                 </div>
-                {isLanguageOpen && (
-                  <ul
-                    className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-10"
-                    role="listbox"
-                  >
-                    {languageOptions.map((option) => (
-                      <li key={option.code}>
-                        <button
-                          type="button"
-                          className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${selectedLanguage.code === option.code
-                            ? 'bg-gray-100 text-gray-900'
-                            : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          onClick={() => handleLanguageSelect(option)}
-                        >
-                          <span>{option.label}</span>
-                          <span className="font-semibold">{option.code}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
             </div>
           </header>

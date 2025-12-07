@@ -10,18 +10,7 @@ import translations, { japaneseTagLabels } from '../components/translations';
 import { sentForm } from './action';
 import UserPanelPDPA from '../components/ีuser-panels/UserPanelPDPA';
 import { useConsent } from '../contexts/pdpa';
-
-const promptFont = localFont({
-  src: [
-    { path: '../../../public/fonts/Prompt-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../../../public/fonts/Prompt-Bold.ttf', weight: '700', style: 'normal' },
-  ],
-});
-
-const sawarabiFont = localFont({
-  src: [{ path: '../../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
-});
+import { useLanguage } from '../contexts/LanguageProvider';
 
 
 const getTagLabelByLanguage = (name, languageCode) => {
@@ -37,12 +26,18 @@ export default function UserPanelPage() {
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
-  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const languageDropdownRef = useRef(null);
   const categoryDropdownRef = useRef(null);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const { isAccepted, toggleConsent } = useConsent();
+  const { language, toggleLanguage } = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
+
+  useEffect(() => {
+    setSelectedLanguage(language);
+  }, [language])
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -161,21 +156,18 @@ export default function UserPanelPage() {
     }
     const formData = new FormData(e.currentTarget);
     // 2. ส่งค่า isActionCared ไปให้ Server Action เป็นพารามิเตอร์ที่ 2
-    const  result = await sentForm(formData, isAccepted);
-    if(result){
+    const result = await sentForm(formData, isAccepted);
+    if (result) {
       router.replace('/usermatching');
-    }else{
+    } else {
       setIsSubmitting(false)
     }
   };
 
-  const t = translations[selectedLanguage.code];
-  const currentFontClass =
-    selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
   return (
-    <div className={`relative z-0 min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 ${currentFontClass}`}>
-      <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
+    <div className={`relative z-0 min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 `}>
+      <div className="w-full max-w-[390px] lg:max-w-xl sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
         {/* Header with Logo and Language Selector */}
         {/* Main Content */}
         <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
@@ -303,9 +295,8 @@ export default function UserPanelPage() {
                                 key={`${tag.name}-${index}`}
                                 type="button"
                                 onClick={() => handleCategoryChange(index, tag.name)}
-                                className={`w-full text-left px-3 py-2 text-sm sm:text-base hover:bg-gray-50 ${
-                                  selectedCategory === tag.name ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
-                                }`}
+                                className={`w-full text-left px-3 py-2 text-sm sm:text-base hover:bg-gray-50 ${selectedCategory === tag.name ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                                  }`}
                               >
                                 {getTagLabelByLanguage(tag.name, selectedLanguage.code)}
                               </button>

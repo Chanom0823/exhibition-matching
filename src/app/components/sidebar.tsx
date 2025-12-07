@@ -1,8 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useLanguage } from '../contexts/LanguageProvider';
+import translations from './translations';
 
 type Props = {
   t: any;
@@ -13,42 +16,32 @@ type Props = {
   selectedLanguage: any;
 };
 
-export default function Sidebar({ t, activeTab, setActiveTab, isSidebarOpen, setIsSidebarOpen, selectedLanguage }: Props) {
-  const router = useRouter();
+// 1. สร้าง Config สำหรับเมนูทั้งหมดไว้ที่เดียว (ดูง่าย แก้ข่าย)
+const MENU_CONFIG = [
+  { key: 'dashboard', icon: '/dashboard.png', path: '/admin-dashboard' },
+  { key: 'userManagement', icon: '/user.png', path: '/admin-dashboard/user-management' },
+  { key: 'problemTagManagement', icon: '/file.png', path: '/admin-dashboard/problem-tag-management' },
+  { key: 'userSessions', icon: '/time.png', path: '/admin-dashboard/user-sessions' },
+  { key: 'pdpaManagement', icon: '/home.png', path: '/admin-dashboard/pdpa-management' },
+  { key: 'verify', icon: '/verify.png', path: '/admin-dashboard/verify' },
+];
 
-  const getIcon = (index: number, tab: string) => {
-    if (index === 0) {
-      return (
-        <Image src="/dashboard.png" alt={tab} width={24} height={24} className="w-6 h-6" />
-      );
+export default function Sidebar({ setActiveTab, isSidebarOpen }: Props) {
+  const router = useRouter();
+  const pathName = usePathname();
+  const handleMenuClick = (key: string, path: string) => {
+    setActiveTab(key);
+    if (path) {
+      router.push(path);
     }
-    if (index === 1) {
-      return (
-        <Image src="/user.png" alt={tab} width={24} height={24} className="w-6 h-6" />
-      );
-    }
-    if (index === 2) {
-      return (
-        <Image src="/file.png" alt={tab} width={24} height={24} className="w-6 h-6" />
-      );
-    }
-    if (index === 3) {
-      return (
-        <Image src="/time.png" alt={tab} width={24} height={24} className="w-6 h-6" />
-      );
-    }
-    if (index === 4) {
-      return (
-        <Image src="/home.png" alt={tab} width={24} height={24} className="w-6 h-6" />
-      );
-    }
-    if (index === 5) {
-      return (
-        <Image src="/verify.png" alt={tab} width={24} height={24} className="w-6 h-6" />
-      );
-    }
-    return null;
   };
+  const {language, toggleLanguage} = useLanguage();
+    const [selectedLanguage, setSelectedLanguage] = useState(language);
+    const t = translations[selectedLanguage.code];
+  
+    useEffect(()=>{
+      setSelectedLanguage(language);
+    }, [language])
 
   return (
     <aside
@@ -64,35 +57,31 @@ export default function Sidebar({ t, activeTab, setActiveTab, isSidebarOpen, set
       {/* Navigation */}
       <nav className="flex-1 px-4 py-4">
         <div className="flex flex-col gap-2">
-          {t.tabs.map((tab: string, idx: number) => {
-            const tabKeys = ['dashboard', 'userManagement', 'problemTagManagement', 'userSessions'];
-            const targetTab = tabKeys[idx] || 'dashboard';
+          {/* ใช้ MENU_CONFIG เป็นหลักในการวนลูป */}
+          {MENU_CONFIG.map((menu, idx) => {
+            // ดึงชื่อแท็บจาก translation โดยใช้ index
+            // (ต้องมั่นใจว่าลำดับใน t.tabs ตรงกับ MENU_CONFIG นะ)
+            const tabName = menu.icon || menu.key; 
 
             return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => {
-                  setActiveTab(targetTab);
-                  if (targetTab === 'userManagement') {
-                    router.push('/admin-dashboard/user-management');
-                  } else if (targetTab === 'problemTagManagement') {
-                    router.push('/admin-dashboard/problem-tag-management');
-                  } else if (targetTab === 'userSessions') {
-                    router.push('/admin-dashboard/user-sessions');
-                  } else if (targetTab === 'pdpaManagement') {
-                    router.push('/admin-dashboard/pdpa-management');
-                  }
-                }}
+              <Link
+                key={menu.key}
+                href={menu.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition ${
-                  activeTab === targetTab
+                  pathName === menu.path
                     ? 'bg-gray-100 text-gray-600 font-medium'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                {getIcon(idx, tab)}
-                {tab}
-              </button>
+                <Image 
+                  src={menu.icon} 
+                  alt={tabName} 
+                  width={24} 
+                  height={24} 
+                  className="w-6 h-6" 
+                />
+                {menu.key}
+              </Link>
             );
           })}
         </div>
