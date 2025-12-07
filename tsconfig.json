@@ -36,8 +36,9 @@
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx",
-    "src/lib/auth.js"
-, "src/app/admin-dashboard/problem-tag-management/page.js"  ],
+    "src/lib/auth.js",
+    "src/app/admin-dashboard/problem-tag-management/page.js"
+, "src/app/user-panel/page.jsx"  ],
   "exclude": [
     "node_modules"
   ]
