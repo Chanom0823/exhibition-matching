@@ -155,6 +155,11 @@ const translations = {
     submitError: 'เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่',
 
     back:'ย้อนกลับ',
+
+    headingHome: 'ยินดีต้อนรับสู่ alt design office',
+    descriptionHome:
+      'ส่งเสริมประสบการณ์นิทรรศการผ่านการจับคู่ที่ใช่ สำรวจงานและผู้จัดได้จากที่นี่',
+    exploreButtonHome: 'สำรวจงานนิทรรศการ',
     },
     JP: {
     // Homepage
@@ -303,6 +308,11 @@ const translations = {
     submitSuccess: '情報が正常に送信されました',
     submitError: '送信中にエラーが発生しました。もう一度お試しください。',
     back: '戻る',
+
+    headingHome: 'alt design office へようこそ',
+    descriptionHome:
+      '最適なマッチングで展示体験を向上しましょう。注目イベントをここからチェック。',
+    exploreButtonHome: '展示を探す',
     },
   };
 export default translations;
