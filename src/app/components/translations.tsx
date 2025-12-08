@@ -432,7 +432,7 @@ const translations = {
     heading: '製造業向けDX・AIセミナー＆商談会 2025',
     description: '事前に、皆様の課題に合った出展企業ブースをご案内いたします。ご入力いただいた個人情報は、JETROが厳重に保管・管理いたします。',
     exploreButton: '来場登録を行う',
-    loginCta: '管理者ログイン',
+    loginCta: 'ログイン',
     // Admin Dashboard
     dashboard: 'ダッシュボード',
     tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ユーザーセッション'],

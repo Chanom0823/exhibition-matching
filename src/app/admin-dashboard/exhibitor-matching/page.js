@@ -56,13 +56,13 @@ export default function UserManagementPage() {
   const languageDropdownRef = useRef(null);
   const [activeTab, setActiveTab] = useState('userManagement');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-const {language, toggleLanguage} = useLanguage();
-const [selectedLanguage, setSelectedLanguage] = useState(language);
-const t = translations[selectedLanguage.code];
+  const { language, toggleLanguage } = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
 
-useEffect(() => {
-  setSelectedLanguage(language);
-}, [language]);
+  useEffect(() => {
+    setSelectedLanguage(language);
+  }, [language]);
   // Summary Cards data
   const [summaryData, setSummaryData] = useState({
     totalParticipants: 0,
@@ -248,7 +248,7 @@ useEffect(() => {
           const email = normalizeContact(data.email);
           const phoneNumber = normalizeContact(data.phoneNumber);
           const fullName = normalizeName(data.fullName);
-          
+
           let matchedSubmission = null;
           if (email && submissionsContacts.has(email)) {
             matchedSubmission = submissionsContacts.get(email);
@@ -361,14 +361,14 @@ useEffect(() => {
   const handleExportPDF = () => {
     // Use English translations for PDF export
     const pdfT = translations.EN;
-    
+
     // Calculate filtered users for export
     const filteredUsersForExport = usersData.users.filter((user) => {
       if (roleFilter === 'visitors') return user.role === 'visitor';
       if (roleFilter === 'exhibitors') return user.role === 'exhibitor';
       return true;
     });
-    
+
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -417,17 +417,17 @@ useEffect(() => {
 
     summaryCards.forEach((card, index) => {
       const xPos = margin + index * (cardWidth + cardSpacing);
-      
+
       // Draw card background
       pdf.setDrawColor(200, 200, 200);
       pdf.setFillColor(255, 255, 255);
       pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, 'FD');
-      
+
       // Card content
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'bold');
       pdf.text(card.value, xPos + 5, yPosition + 10);
-      
+
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
       const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
@@ -439,11 +439,11 @@ useEffect(() => {
     checkNewPage(lineHeight + 5);
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
-    const filterText = roleFilter === 'all' 
-      ? pdfT.filterAllUsers 
-      : roleFilter === 'visitors' 
-      ? pdfT.filterVisitors 
-      : pdfT.filterExhibitors;
+    const filterText = roleFilter === 'all'
+      ? pdfT.filterAllUsers
+      : roleFilter === 'visitors'
+        ? pdfT.filterVisitors
+        : pdfT.filterExhibitors;
     pdf.text(`Filter: ${filterText}`, margin, yPosition);
     yPosition += sectionSpacing;
 
@@ -458,7 +458,7 @@ useEffect(() => {
       // Table Header with background
       pdf.setFillColor(240, 240, 240);
       pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, lineHeight + 4, 'F');
-      
+
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       const colWidths = [15, 60, 50, 60];
@@ -476,12 +476,12 @@ useEffect(() => {
       pdf.setDrawColor(220, 220, 220);
       filteredUsersForExport.forEach((user, index) => {
         checkNewPage(lineHeight + 3);
-        
+
         // Draw row border
         pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
-        
+
         xPosition = margin + 3;
-        
+
         // No.
         pdf.text(String(index + 1), xPosition, yPosition);
         xPosition += colWidths[0];
@@ -509,7 +509,7 @@ useEffect(() => {
           });
         }
         pdf.text(createdAtText, xPosition, yPosition);
-        
+
         yPosition += lineHeight + 2;
       });
     } else {
@@ -518,7 +518,7 @@ useEffect(() => {
       pdf.setFont('helvetica', 'bold');
       pdf.text('User List', margin, yPosition);
       yPosition += lineHeight + 5;
-      
+
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(150, 150, 150);
@@ -743,8 +743,8 @@ useEffect(() => {
           selectedLanguage.code === 'TH'
             ? 'ไม่สามารถโหลดข้อมูลโปรไฟล์ได้'
             : selectedLanguage.code === 'JP'
-            ? 'プロフィール情報を読み込めませんでした'
-            : 'Unable to load profile information',
+              ? 'プロフィール情報を読み込めませんでした'
+              : 'Unable to load profile information',
       });
     } finally {
       setEditLoading(false);
@@ -803,11 +803,11 @@ useEffect(() => {
           users: prev.users.map((user) =>
             user.id === editTarget.id
               ? {
-                  ...user,
-                  role: 'visitor',
-                  visitorSubmissionId: submissionId,
-                  visitorSubmissionData: submissionPayload,
-                }
+                ...user,
+                role: 'visitor',
+                visitorSubmissionId: submissionId,
+                visitorSubmissionData: submissionPayload,
+              }
               : user
           ),
         }));
@@ -866,10 +866,10 @@ useEffect(() => {
           (editTarget.role === 'visitor'
             ? t.visitorSaveError
             : selectedLanguage.code === 'TH'
-            ? 'ไม่สามารถบันทึกข้อมูลได้'
-            : selectedLanguage.code === 'JP'
-            ? '保存できませんでした'
-            : 'Unable to save profile'),
+              ? 'ไม่สามารถบันทึกข้อมูลได้'
+              : selectedLanguage.code === 'JP'
+                ? '保存できませんでした'
+                : 'Unable to save profile'),
       });
     } finally {
       setEditSaving(false);
@@ -911,8 +911,8 @@ useEffect(() => {
         selectedLanguage.code === 'TH'
           ? 'ไม่สามารถลบผู้ใช้งานได้ กรุณาลองใหม่อีกครั้ง'
           : selectedLanguage.code === 'JP'
-          ? 'ユーザーを削除できませんでした。もう一度お試しください。'
-          : 'Unable to delete user. Please try again.';
+            ? 'ユーザーを削除できませんでした。もう一度お試しください。'
+            : 'Unable to delete user. Please try again.';
       alert(errorMessage);
     } finally {
       setDeletingUserId(null);
@@ -949,11 +949,11 @@ useEffect(() => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            
+
             <div className="flex items-end justify-end w-full">
               <div className="relative" ref={languageDropdownRef}>
                 <div className="flex items-end justify-end gap-3 cursor-pointer">
-                  <ExportButtons 
+                  <ExportButtons
                     exportPdfLabel={`${t.export} PDF`}
                     exportExcelLabel={`${t.export} Excel`}
                     summaryData={summaryData}
@@ -1005,11 +1005,10 @@ useEffect(() => {
                       <li key={option.code}>
                         <button
                           type="button"
-                          className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${
-                            selectedLanguage.code === option.code
+                          className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${selectedLanguage.code === option.code
                               ? 'bg-gray-100 text-gray-900'
                               : 'text-gray-700 hover:bg-gray-50'
-                          }`}
+                            }`}
                           onClick={() => handleLanguageSelect(option)}
                         >
                           <span>{option.label}</span>
@@ -1138,151 +1137,151 @@ useEffect(() => {
                       </tr>
                     </thead>
                     <tbody>
-                                            {exhibitorUsers.map((user, index) => {
+                      {exhibitorUsers.map((user, index) => {
                         const exhibitorCategories = user.exhibitorProfile?.categories || [];
                         const primaryTag = exhibitorCategories[0] || '';
                         const primaryTagColor = primaryTag ? getTagColor(primaryTag) : '';
                         return (
                           <Fragment key={user.id}>
-                          <tr className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4 text-sm text-gray-900">
-                          {index + 1}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-900 w-2/5 min-w-[220px] whitespace-normal break-words">
-                          {user.username}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-900">
-                          {primaryTag ? (
-                          <div className="flex items-center gap-2">
-                          <span
-                          className="w-4 h-4 rounded border border-gray-200"
-                          style={{ backgroundColor: primaryTagColor || "#e5e7eb" }}
-                          />
-                          <span className="text-xs font-mono text-gray-700">
-                          {primaryTagColor || "-"}
-                          </span>
-                          </div>
-                          ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                          )}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-900">
-                          {primaryTag || "-"}
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                          <div className="flex items-center gap-2">
-                          <button
-                          type="button"
-                          className="p-2 rounded-full bg-[#00B8D9] hover:bg-[#0095b3] transition"
-                          aria-label="Preview user"
-                          onClick={() => handleTogglePreview(user)}
-                          >
-                          <Image
-                          src="/eye.png"
-                          alt="Preview"
-                          width={18}
-                          height={18}
-                          className="w-4 h-4 brightness-0 invert"
-                          />
-                          </button>
-                          </div>
-                          </td>
-                          </tr>
-                          {previewUserId === user.id && (
-                          <tr className="border-b border-gray-100">
-                          <td colSpan={5} className="bg-gray-50 px-4 py-4">
-                          {previewLoading ? (
-                          <div className="text-sm text-gray-500">{selectedLanguage.code === 'TH' ? t.loading : t.loadingJP}</div>
-                          ) : !previewData ? (
-                          <div className="text-sm text-gray-500">{t.previewNoData}</div>
-                          ) : previewData.type === 'visitor' ? (
-                          <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                          <h4 className="text-sm font-semibold text-gray-900 mb-3">{selectedLanguage.code === 'TH' ? t.previewVisitorSection : t.previewVisitorSectionJP}</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
-                          <div>
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorFullName : t.visitorFullNameJP}</p>
-                          <p className="font-medium">{previewData.payload?.fullName || '-'}</p>
-                          </div>
-                          <div>
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorCompanyName : t.visitorCompanyNameJP}</p>
-                          <p className="font-medium">{previewData.payload?.companyName || '-'}</p>
-                          </div>
-                          <div>
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.previewContact : t.previewContactJP}</p>
-                          <p className="font-medium">{previewData.payload?.contact || '-'}</p>
-                          </div>
-                          <div>
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorCategoriesLabel : t.visitorCategoriesLabelJP}</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                          {(previewData.payload?.categories || []).length > 0 ? (
-                          previewData.payload.categories.map((category, idx) => (
-                          <span
-                          key={`${user.id}-visitor-cat-${idx}`}
-                          className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs"
-                          >
-                          {category}
-                          </span>
-                          ))
-                          ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                          )}
-                          </div>
-                          </div>
-                          </div>
-                          </div>
-                          ) : (
-                          <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                          <h4 className="text-sm font-semibold text-gray-900 mb-3">{selectedLanguage.code === 'TH' ? t.previewExhibitorSection : t.previewExhibitorSectionJP}</h4>
-                          {previewData.payload ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
-                          <div>
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyName : t.companyNameJP}</p>
-                          <p className="font-medium">{previewData.payload.companyName || '-'}</p>
-                          </div>
-                          <div>
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyEmail : t.companyEmailJP}</p>
-                          <p className="font-medium">{previewData.payload.companyEmail || '-'}</p>
-                          </div>
-                          <div>
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyPhone : t.companyPhoneJP}</p>
-                          <p className="font-medium">{previewData.payload.companyPhone || '-'}</p>
-                          </div>
-                          <div>
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyWebsite : t.companyWebsiteJP}</p>
-                          <p className="font-medium">{previewData.payload.website || '-'}</p>
-                          </div>
-                          <div className="md:col-span-2">
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyDescription : t.companyDescriptionJP}</p>
-                          <p className="font-medium mt-1 text-gray-700">
-                          {previewData.payload.companyDescription || '-'}
-                          </p>
-                          </div>
-                          <div className="md:col-span-2">
-                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.tagsTitle : t.tagsTitleJP}</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                          {(previewData.payload.categories || []).length > 0 ? (
-                          previewData.payload.categories.map((category, idx) => (
-                          <span
-                          key={`${user.id}-exhibitor-cat-${idx}`}
-                          className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs"
-                          >
-                          {category}
-                          </span>
-                          ))
-                          ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                          )}
-                          </div>
-                          </div>
-                          </div>
-                          ) : (
-                          <div className="text-sm text-gray-500">{selectedLanguage.code === 'TH' ? t.previewNoData : t.previewNoDataJP}</div>
-                          )}
-                          </div>
-                          )}
-                          </td>
-                          </tr>
-                          )}
+                            <tr className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-3 px-4 text-sm text-gray-900">
+                                {index + 1}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-gray-900 w-2/5 min-w-[220px] whitespace-normal break-words">
+                                {user.username}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-gray-900">
+                                {primaryTag ? (
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className="w-4 h-4 rounded border border-gray-200"
+                                      style={{ backgroundColor: primaryTagColor || "#e5e7eb" }}
+                                    />
+                                    <span className="text-xs font-mono text-gray-700">
+                                      {primaryTagColor || "-"}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-400">-</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-gray-900">
+                                {primaryTag || "-"}
+                              </td>
+                              <td className="py-3 px-4 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="p-2 rounded-full bg-[#00B8D9] hover:bg-[#0095b3] transition"
+                                    aria-label="Preview user"
+                                    onClick={() => handleTogglePreview(user)}
+                                  >
+                                    <Image
+                                      src="/eye.png"
+                                      alt="Preview"
+                                      width={18}
+                                      height={18}
+                                      className="w-4 h-4 brightness-0 invert"
+                                    />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {previewUserId === user.id && (
+                              <tr className="border-b border-gray-100">
+                                <td colSpan={5} className="bg-gray-50 px-4 py-4">
+                                  {previewLoading ? (
+                                    <div className="text-sm text-gray-500">{selectedLanguage.code === 'TH' ? t.loading : t.loadingJP}</div>
+                                  ) : !previewData ? (
+                                    <div className="text-sm text-gray-500">{t.previewNoData}</div>
+                                  ) : previewData.type === 'visitor' ? (
+                                    <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+                                      <h4 className="text-sm font-semibold text-gray-900 mb-3">{selectedLanguage.code === 'TH' ? t.previewVisitorSection : t.previewVisitorSectionJP}</h4>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
+                                        <div>
+                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorFullName : t.visitorFullNameJP}</p>
+                                          <p className="font-medium">{previewData.payload?.fullName || '-'}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorCompanyName : t.visitorCompanyNameJP}</p>
+                                          <p className="font-medium">{previewData.payload?.companyName || '-'}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.previewContact : t.previewContactJP}</p>
+                                          <p className="font-medium">{previewData.payload?.contact || '-'}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorCategoriesLabel : t.visitorCategoriesLabelJP}</p>
+                                          <div className="flex flex-wrap gap-1 mt-1">
+                                            {(previewData.payload?.categories || []).length > 0 ? (
+                                              previewData.payload.categories.map((category, idx) => (
+                                                <span
+                                                  key={`${user.id}-visitor-cat-${idx}`}
+                                                  className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs"
+                                                >
+                                                  {category}
+                                                </span>
+                                              ))
+                                            ) : (
+                                              <span className="text-xs text-gray-400">-</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+                                      <h4 className="text-sm font-semibold text-gray-900 mb-3">{selectedLanguage.code === 'TH' ? t.previewExhibitorSection : t.previewExhibitorSectionJP}</h4>
+                                      {previewData.payload ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
+                                          <div>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyName : t.companyNameJP}</p>
+                                            <p className="font-medium">{previewData.payload.companyName || '-'}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyEmail : t.companyEmailJP}</p>
+                                            <p className="font-medium">{previewData.payload.companyEmail || '-'}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyPhone : t.companyPhoneJP}</p>
+                                            <p className="font-medium">{previewData.payload.companyPhone || '-'}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyWebsite : t.companyWebsiteJP}</p>
+                                            <p className="font-medium">{previewData.payload.website || '-'}</p>
+                                          </div>
+                                          <div className="md:col-span-2">
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyDescription : t.companyDescriptionJP}</p>
+                                            <p className="font-medium mt-1 text-gray-700">
+                                              {previewData.payload.companyDescription || '-'}
+                                            </p>
+                                          </div>
+                                          <div className="md:col-span-2">
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.tagsTitle : t.tagsTitleJP}</p>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                              {(previewData.payload.categories || []).length > 0 ? (
+                                                previewData.payload.categories.map((category, idx) => (
+                                                  <span
+                                                    key={`${user.id}-exhibitor-cat-${idx}`}
+                                                    className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs"
+                                                  >
+                                                    {category}
+                                                  </span>
+                                                ))
+                                              ) : (
+                                                <span className="text-xs text-gray-400">-</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-sm text-gray-500">{selectedLanguage.code === 'TH' ? t.previewNoData : t.previewNoDataJP}</div>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
                           </Fragment>
                         );
                       })}
