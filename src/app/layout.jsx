@@ -8,10 +8,11 @@ import ActionCaredProvider from './contexts/action-cared';
 import LanguageProvider from './contexts/LanguageProvider';
 import PDPAProvider from './contexts/pdpa';
 import '@/styles/globals.css'
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import localFont from 'next/font/local';
 import Sidebar from './components/sidebar';
 import ExhibitorSidebar from './components/ExhibitorSidebar';
+import { createSesstion, lookSesstion } from '@/lib/auth';
 
 const languageOptions = [
   { code: 'TH', label: 'ภาษาไทย' },
@@ -36,6 +37,7 @@ const sawarabiFont = localFont({
   src: [{ path: '../../public/fonts/SawarabiGothic-Regular.ttf', weight: '400', style: 'normal' }],
 });
 
+
 export default function ClientLayout({ children }) {
   // 1. ย้าย State มาไว้ที่นี่
 
@@ -47,12 +49,24 @@ export default function ClientLayout({ children }) {
   const languageDropdownRef = useRef(null);
   const pathName = usePathname();
   const [path, setPath] = useState(pathName);
-
+  const router = useRouter();
   // 2. Logic การเลือก Font
   const currentFontClass = selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
   // ตัวแปร t สำหรับใช้งาน (เช็คว่ามีภาษานั้นไหม ถ้าไม่มีใช้ TH)
   const t = translations[selectedLanguage.code] || translations.TH || {};
+
+  useEffect(() => {
+    const pathUserMatching = "/user-panel";
+    const look = async () => {
+      const lookCokie = await lookSesstion();
+      const myCookie = await createSesstion(lookCokie);
+      if (myCookie === "/usermatching") return router.replace(myCookie);
+    }
+    if(pathName === pathUserMatching){
+      look();
+    }
+  }, [pathName])
 
   // 3. ย้าย useEffect ทั้งหมดมาที่นี่
   useEffect(() => {
@@ -129,7 +143,7 @@ export default function ClientLayout({ children }) {
                       loginLabel={t.loginCta}
                     />
                   }
-                  {['/admin-dashboard', '/admin-dashboard/problem-tag-management', '/admin-dashboard/exhibitor-matching','/admin-dashboard/user-management', '/admin-dashboard/user-sessions'].includes(pathName || '') &&
+                  {['/admin-dashboard', '/admin-dashboard/problem-tag-management', '/admin-dashboard/exhibitor-matching', '/admin-dashboard/user-management', '/admin-dashboard/user-sessions'].includes(pathName || '') &&
                     <Sidebar />
                   }
                   {['/exhibitor-dashboard', '/exhibitor-profile'].includes(pathName || '') &&
