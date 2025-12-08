@@ -39,7 +39,7 @@ export default function MainNavbar({ languageOptions, onLanguageSelect, loginLab
 
   return (
     <div className="w-full max-w-[2270.4px] md:max-w-7xl mx-auto h-16 md:h-20 flex justify-between items-center px-4 md:px-8 lg:px-12 py-2.5">
-      <div className="flex items-center">
+      <Link href={'/'} className="flex items-center">
         <Image
           src="/logo.svg"
           alt="alt design office"
@@ -48,7 +48,7 @@ export default function MainNavbar({ languageOptions, onLanguageSelect, loginLab
           className="w-20 h-[39px] md:w-[100px] md:h-[49px]"
           priority
         />
-      </div>
+      </Link>
 
       <div className="flex items-center gap-2  md:gap-4">
         <div className='h-[35px]  md:h-10'>
