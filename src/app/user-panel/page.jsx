@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import translations, { japaneseTagLabels } from '../components/translations';
 import { sentForm } from './action';
 import { useLanguage } from '../contexts/LanguageProvider';
-import { createSesstion, lookSesstion } from '@/lib/auth';
+
 import { useRouter } from 'next/navigation';
 
 const getTagLabelByLanguage = (name, languageCode) => {
@@ -16,12 +16,6 @@ const getTagLabelByLanguage = (name, languageCode) => {
   return name;
 };
 
-// const look = async () =>{
-//   const router = useRouter();
-//   const lookCokie = await  lookSesstion();
-//   const myCookie = await createSesstion(lookCokie);
-//   if (myCookie === "/usermatching") return router.replace(myCookie);
-// }
 export default function UserPanelPage() {
   const router = useRouter();
   const languageOptions = [

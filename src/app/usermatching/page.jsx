@@ -31,11 +31,7 @@ const getTextColorFromBg = (hex) => {
 
 export default function UserMatchingPage() {
   const router = useRouter();
-  const languageOptions = [
-    { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'JP', label: '日本語' },
-  ];
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+
   const languageDropdownRef = useRef(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -66,6 +62,7 @@ export default function UserMatchingPage() {
       setLoading(true);
       try {
         const visitorId = await lookSesstion();
+        
         const visitorDocRef = doc(db, 'userPanelSubmissions', visitorId);
         const visitorSnap = await getDoc(visitorDocRef);
         let visitorInterests = [];
@@ -73,11 +70,11 @@ export default function UserMatchingPage() {
         if (visitorSnap.exists()) {
           const data = visitorSnap.data();
           visitorInterests = data.categories || [];
-          
         }
         const exhibitorsRef = collection(db, 'exhibitors');
         const q = query(exhibitorsRef, where('categories', 'array-contains-any', visitorInterests));
         const querySnapshot = await getDocs(q);
+
         const exhibitorsData = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
@@ -90,7 +87,6 @@ export default function UserMatchingPage() {
             });
           }
         });
-
         setExhibitors(exhibitorsData);
       } catch (error) {
         console.error('Error loading exhibitors:', error);
@@ -162,38 +158,8 @@ export default function UserMatchingPage() {
     });
   }
 
-  useEffect(() => {
-    const storedLanguage =
-      typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
-    if (storedLanguage) {
-      const foundOption = languageOptions.find((option) => option.code === storedLanguage);
-      if (foundOption) {
-        setSelectedLanguage(foundOption);
-      }
-    }
-
-    const handleClickOutside = (event) => {
-      if (
-        languageDropdownRef.current &&
-        !languageDropdownRef.current.contains(event.target)
-      ) {
-        setIsLanguageOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const handleLanguageSelect = (option) => {
-    setSelectedLanguage(option);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('selectedLanguage', option.code);
-    }
-    setIsLanguageOpen(false);
-  };
+  
+  
 
   const titleContent = t.titleLine2 ? (
     <>
@@ -213,7 +179,7 @@ export default function UserMatchingPage() {
       
 
         {/* Content */}
-        <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
+        <div className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <div className="text-center mb-4">
             <h1 className="text-3xl font-semibold text-gray-900 leading-snug mb-2">{t.titleUsermatching}</h1>
             <p className="text-xl text-gray-600">{t.descriptionUsermatching}</p>
@@ -404,7 +370,7 @@ export default function UserMatchingPage() {
               {t.backHome}
             </button>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );
