@@ -56,18 +56,6 @@ export default function ClientLayout({ children }) {
   // ตัวแปร t สำหรับใช้งาน (เช็คว่ามีภาษานั้นไหม ถ้าไม่มีใช้ TH)
   const t = translations[selectedLanguage.code] || translations.TH || {};
 
-  useEffect(() => {
-    const pathUserMatching = "/user-panel";
-    const look = async () => {
-      const lookCokie = await lookSesstion();
-      const myCookie = await createSesstion(lookCokie);
-      if (myCookie === "/usermatching") return router.replace(myCookie);
-    }
-    if(pathName === pathUserMatching){
-      look();
-    }
-  }, [pathName])
-
   // 3. ย้าย useEffect ทั้งหมดมาที่นี่
   useEffect(() => {
     const storedLanguage = typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
