@@ -215,8 +215,8 @@ export default function UserMatchingPage() {
         {/* Content */}
         <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <div className="text-center mb-4">
-            <h1 className="text-2xl font-semibold text-gray-900 leading-snug mb-2">{titleContent}</h1>
-            <p className="text-sm text-gray-600">{t.description}</p>
+            <h1 className="text-2xl font-semibold text-gray-900 leading-snug mb-2">{t.titleUsermatching}</h1>
+            <p className="text-sm text-gray-600">{t.descriptionUsermatching}</p>
           </div>
 
           {/* Map Image */}
@@ -329,7 +329,7 @@ export default function UserMatchingPage() {
                       <div className="space-y-2 mb-3">
                         <label className="block text-xs font-semibold text-gray-600">{t.contactChannel}</label>
 
-                        {(selectedExhibitor.companyEmail || selectedExhibitor.email) && (
+                        {/* {(selectedExhibitor.companyEmail || selectedExhibitor.email) && (
                           <div>
                             <span className="text-xs text-gray-500">{t.email}:</span>
                             <p className="text-sm text-gray-900">{selectedExhibitor.companyEmail || selectedExhibitor.email}</p>
@@ -341,7 +341,7 @@ export default function UserMatchingPage() {
                             <span className="text-xs text-gray-500">{t.phone}:</span>
                             <p className="text-sm text-gray-900">{selectedExhibitor.companyPhone || selectedExhibitor.phone}</p>
                           </div>
-                        )}
+                        )} */}
 
                         {(selectedExhibitor.companyWebsite || selectedExhibitor.website) && (
                           <div>

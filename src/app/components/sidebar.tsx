@@ -18,10 +18,11 @@ type Props = {
 
 // 1. สร้าง Config สำหรับเมนูทั้งหมดไว้ที่เดียว (ดูง่าย แก้ข่าย)
 const MENU_CONFIG = [
-  { key: 'dashboard', icon: '/dashboard.png', path: '/admin-dashboard' },
-  { key: 'userManagement', icon: '/user.png', path: '/admin-dashboard/user-management' },
-  { key: 'problemTagManagement', icon: '/file.png', path: '/admin-dashboard/problem-tag-management' },
-  { key: 'userSessions', icon: '/time.png', path: '/admin-dashboard/user-sessions' },
+  { key: 'Dashboard', icon: '/dashboard.png', path: '/admin-dashboard' },
+  { key: 'UserManagement', icon: '/user.png', path: '/admin-dashboard/user-management' },
+  { key: 'ExhibitorMatching', icon: '/exbihitor.png', path: '/admin-dashboard/exhibitor-matching' },
+  { key: 'ProblemTagManagement', icon: '/file.png', path: '/admin-dashboard/problem-tag-management' },
+  { key: 'UserSessions', icon: '/time.png', path: '/admin-dashboard/user-sessions' },
 ];
 
 export default function Sidebar({ setActiveTab, isSidebarOpen }: Props) {
