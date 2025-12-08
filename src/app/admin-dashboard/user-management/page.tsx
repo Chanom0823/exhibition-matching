@@ -12,28 +12,28 @@ import translations from '@/app/components/translations';
 import { useLanguage } from '@/app/contexts/LanguageProvider';
 
 // ตรวจสอบว่าลิงก์รูปโหลดสำเร็จและมีขนาด ≥ 300px
-const validateImageUrl = (url) => {
-  return new Promise((resolve) => {
-    const img = new Image();
+// const validateImageUrl = (url) => {
+//   return new Promise((resolve) => {
+//     const img = new Image();
 
-    img.onload = () => {
-      if (img.naturalWidth >= 300 && img.naturalHeight >= 300) {
-        resolve({ valid: true });
-      } else {
-        resolve({
-          valid: false,
-          error: "รูปต้องมีขนาดขั้นต่ำ 300px ทั้งด้านกว้างและสูง",
-        });
-      }
-    };
+//     img.onload = () => {
+//       if (img.naturalWidth >= 300 && img.naturalHeight >= 300) {
+//         resolve({ valid: true });
+//       } else {
+//         resolve({
+//           valid: false,
+//           error: "รูปต้องมีขนาดขั้นต่ำ 300px ทั้งด้านกว้างและสูง",
+//         });
+//       }
+//     };
 
-    img.onerror = () => {
-      resolve({ valid: false, error: "ไม่สามารถโหลดรูปจากลิงก์นี้ได้" });
-    };
+//     img.onerror = () => {
+//       resolve({ valid: false, error: "ไม่สามารถโหลดรูปจากลิงก์นี้ได้" });
+//     };
 
-    img.src = url + "?cache=" + Date.now(); // ป้องกัน cache
-  });
-};
+//     img.src = url + "?cache=" + Date.now(); // ป้องกัน cache
+//   });
+// };
 
 const promptFont = localFont({
   src: [
@@ -325,7 +325,7 @@ export default function UserManagementPage() {
     fetchUsersData();
   }, []);
 
-  const handleLanguageSelect = (option: { code: 'TH' | 'JP'; label: string }) => {
+  const handleLanguageSelect = (option) => {
     setSelectedLanguage(option);
     if (typeof window !== 'undefined') {
       localStorage.setItem('selectedLanguage', option.code);
@@ -355,168 +355,168 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleExportPDF = () => {
-    const pdfT = translations.EN;
+  // const handleExportPDF = () => {
+  //   const pdfT = translations.EN;
 
-    const filteredUsersForExport = usersData.users.filter((user) => {
-      if (roleFilter === 'visitors') return user.role === 'visitor';
-      if (roleFilter === 'exhibitors') return user.role === 'exhibitor';
-      return true;
-    });
+  //   const filteredUsersForExport = usersData.users.filter((user) => {
+  //     if (roleFilter === 'visitors') return user.role === 'visitor';
+  //     if (roleFilter === 'exhibitors') return user.role === 'exhibitor';
+  //     return true;
+  //   });
 
-    const pdf = new jsPDF();
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    let yPosition = 20;
-    const margin = 20;
-    const lineHeight = 7;
-    const sectionSpacing = 15;
-    const cardHeight = 25;
-    const cardSpacing = 10;
+  //   const pdf = new jsPDF();
+  //   const pageWidth = pdf.internal.pageSize.getWidth();
+  //   const pageHeight = pdf.internal.pageSize.getHeight();
+  //   let yPosition = 20;
+  //   const margin = 20;
+  //   const lineHeight = 7;
+  //   const sectionSpacing = 15;
+  //   const cardHeight = 25;
+  //   const cardSpacing = 10;
 
-    const checkNewPage = (requiredSpace: number) => {
-      if (yPosition + requiredSpace > pageHeight - margin) {
-        pdf.addPage();
-        yPosition = 20;
-        return true;
-      }
-      return false;
-    };
+  //   const checkNewPage = (requiredSpace: number) => {
+  //     if (yPosition + requiredSpace > pageHeight - margin) {
+  //       pdf.addPage();
+  //       yPosition = 20;
+  //       return true;
+  //     }
+  //     return false;
+  //   };
 
-    pdf.setFontSize(20);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(pdfT.userManagement, margin, yPosition);
-    yPosition += lineHeight + 8;
+  //   pdf.setFontSize(20);
+  //   pdf.setFont('helvetica', 'bold');
+  //   pdf.text(pdfT.userManagement, margin, yPosition);
+  //   yPosition += lineHeight + 8;
 
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    const currentDate = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    pdf.text(`Date: ${currentDate}`, margin, yPosition);
-    yPosition += sectionSpacing + 5;
+  //   pdf.setFontSize(10);
+  //   pdf.setFont('helvetica', 'normal');
+  //   const currentDate = new Date().toLocaleDateString('en-US', {
+  //     year: 'numeric',
+  //     month: 'long',
+  //     day: 'numeric',
+  //   });
+  //   pdf.text(`Date: ${currentDate}`, margin, yPosition);
+  //   yPosition += sectionSpacing + 5;
 
-    checkNewPage(cardHeight + 10);
-    const cardWidth = (pageWidth - margin * 2 - cardSpacing * 2) / 3;
-    const summaryCards = [
-      { label: pdfT.totalParticipants, value: summaryData.totalParticipants.toLocaleString() },
-      { label: pdfT.totalVisitors, value: summaryData.totalVisitors.toLocaleString() },
-      { label: pdfT.totalExhibitors, value: summaryData.totalExhibitors.toLocaleString() },
-    ];
+  //   checkNewPage(cardHeight + 10);
+  //   const cardWidth = (pageWidth - margin * 2 - cardSpacing * 2) / 3;
+  //   const summaryCards = [
+  //     { label: pdfT.totalParticipants, value: summaryData.totalParticipants.toLocaleString() },
+  //     { label: pdfT.totalVisitors, value: summaryData.totalVisitors.toLocaleString() },
+  //     { label: pdfT.totalExhibitors, value: summaryData.totalExhibitors.toLocaleString() },
+  //   ];
 
-    summaryCards.forEach((card, index) => {
-      const xPos = margin + index * (cardWidth + cardSpacing);
+  //   summaryCards.forEach((card, index) => {
+  //     const xPos = margin + index * (cardWidth + cardSpacing);
 
-      pdf.setDrawColor(200, 200, 200);
-      pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, 'FD');
+  //     pdf.setDrawColor(200, 200, 200);
+  //     pdf.setFillColor(255, 255, 255);
+  //     pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, 'FD');
 
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(card.value, xPos + 5, yPosition + 10);
+  //     pdf.setFontSize(12);
+  //     pdf.setFont('helvetica', 'bold');
+  //     pdf.text(card.value, xPos + 5, yPosition + 10);
 
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'normal');
-      const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
-      pdf.text(labelLines, xPos + 5, yPosition + 16);
-    });
-    yPosition += cardHeight + sectionSpacing;
+  //     pdf.setFontSize(8);
+  //     pdf.setFont('helvetica', 'normal');
+  //     const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
+  //     pdf.text(labelLines, xPos + 5, yPosition + 16);
+  //   });
+  //   yPosition += cardHeight + sectionSpacing;
 
-    checkNewPage(lineHeight + 5);
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    const filterText =
-      roleFilter === 'all'
-        ? pdfT.filterAllUsers
-        : roleFilter === 'visitors'
-        ? pdfT.filterVisitors
-        : pdfT.filterExhibitors;
-    pdf.text(`Filter: ${filterText}`, margin, yPosition);
-    yPosition += sectionSpacing;
+  //   checkNewPage(lineHeight + 5);
+  //   pdf.setFontSize(10);
+  //   pdf.setFont('helvetica', 'normal');
+  //   const filterText =
+  //     roleFilter === 'all'
+  //       ? pdfT.filterAllUsers
+  //       : roleFilter === 'visitors'
+  //       ? pdfT.filterVisitors
+  //       : pdfT.filterExhibitors;
+  //   pdf.text(`Filter: ${filterText}`, margin, yPosition);
+  //   yPosition += sectionSpacing;
 
-    if (filteredUsersForExport.length > 0) {
-      checkNewPage(sectionSpacing + lineHeight * 3);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('User List', margin, yPosition);
-      yPosition += lineHeight + 5;
+  //   if (filteredUsersForExport.length > 0) {
+  //     checkNewPage(sectionSpacing + lineHeight * 3);
+  //     pdf.setFontSize(14);
+  //     pdf.setFont('helvetica', 'bold');
+  //     pdf.text('User List', margin, yPosition);
+  //     yPosition += lineHeight + 5;
 
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, lineHeight + 4, 'F');
+  //     pdf.setFillColor(240, 240, 240);
+  //     pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, lineHeight + 4, 'F');
 
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      const colWidths = [15, 60, 50, 60];
-      const headers = [pdfT.tableNo, pdfT.tableUsername, pdfT.tableRole, pdfT.tableCreatedAt];
-      let xPosition = margin + 3;
+  //     pdf.setFontSize(10);
+  //     pdf.setFont('helvetica', 'bold');
+  //     const colWidths = [15, 60, 50, 60];
+  //     const headers = [pdfT.tableNo, pdfT.tableUsername, pdfT.tableRole, pdfT.tableCreatedAt];
+  //     let xPosition = margin + 3;
 
-      headers.forEach((header, index) => {
-        pdf.text(header, xPosition, yPosition);
-        xPosition += colWidths[index];
-      });
-      yPosition += lineHeight + 3;
+  //     headers.forEach((header, index) => {
+  //       pdf.text(header, xPosition, yPosition);
+  //       xPosition += colWidths[index];
+  //     });
+  //     yPosition += lineHeight + 3;
 
-      pdf.setFont('helvetica', 'normal');
-      pdf.setDrawColor(220, 220, 220);
-      filteredUsersForExport.forEach((user, index) => {
-        checkNewPage(lineHeight + 3);
+  //     pdf.setFont('helvetica', 'normal');
+  //     pdf.setDrawColor(220, 220, 220);
+  //     filteredUsersForExport.forEach((user, index) => {
+  //       checkNewPage(lineHeight + 3);
 
-        pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+  //       pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
 
-        xPosition = margin + 3;
+  //       xPosition = margin + 3;
 
-        pdf.text(String(index + 1), xPosition, yPosition);
-        xPosition += colWidths[0];
+  //       pdf.text(String(index + 1), xPosition, yPosition);
+  //       xPosition += colWidths[0];
 
-        const username =
-          user.username.length > 25 ? user.username.substring(0, 22) + '...' : user.username;
-        pdf.text(username, xPosition, yPosition);
-        xPosition += colWidths[1];
+  //       const username =
+  //         user.username.length > 25 ? user.username.substring(0, 22) + '...' : user.username;
+  //       pdf.text(username, xPosition, yPosition);
+  //       xPosition += colWidths[1];
 
-        const roleText =
-          user.role === 'visitor'
-            ? 'Visitors'
-            : user.role === 'exhibitor'
-            ? 'Exhibitor'
-            : user.role;
-        pdf.text(roleText, xPosition, yPosition);
-        xPosition += colWidths[2];
+  //       const roleText =
+  //         user.role === 'visitor'
+  //           ? 'Visitors'
+  //           : user.role === 'exhibitor'
+  //           ? 'Exhibitor'
+  //           : user.role;
+  //       pdf.text(roleText, xPosition, yPosition);
+  //       xPosition += colWidths[2];
 
-        let createdAtText = '-';
-        if (user.createdAt) {
-          const date =
-            user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
-          createdAtText = date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-        }
-        pdf.text(createdAtText, xPosition, yPosition);
+  //       let createdAtText = '-';
+  //       if (user.createdAt) {
+  //         const date =
+  //           user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
+  //         createdAtText = date.toLocaleDateString('en-US', {
+  //           year: 'numeric',
+  //           month: 'short',
+  //           day: 'numeric',
+  //           hour: '2-digit',
+  //           minute: '2-digit',
+  //         });
+  //       }
+  //       pdf.text(createdAtText, xPosition, yPosition);
 
-        yPosition += lineHeight + 2;
-      });
-    } else {
-      checkNewPage(sectionSpacing + lineHeight * 3);
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('User List', margin, yPosition);
-      yPosition += lineHeight + 5;
+  //       yPosition += lineHeight + 2;
+  //     });
+  //   } else {
+  //     checkNewPage(sectionSpacing + lineHeight * 3);
+  //     pdf.setFontSize(14);
+  //     pdf.setFont('helvetica', 'bold');
+  //     pdf.text('User List', margin, yPosition);
+  //     yPosition += lineHeight + 5;
 
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(150, 150, 150);
-      pdf.text('No data available', margin, yPosition);
-      pdf.setTextColor(0, 0, 0);
-    }
+  //     pdf.setFontSize(10);
+  //     pdf.setFont('helvetica', 'normal');
+  //     pdf.setTextColor(150, 150, 150);
+  //     pdf.text('No data available', margin, yPosition);
+  //     pdf.setTextColor(0, 0, 0);
+  //   }
 
-    const fileName = `user-management-${new Date().toISOString().split('T')[0]}.pdf`;
-    pdf.save(fileName);
-  };
+  //   const fileName = `user-management-${new Date().toISOString().split('T')[0]}.pdf`;
+  //   pdf.save(fileName);
+  // };
 
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
@@ -875,18 +875,18 @@ export default function UserManagementPage() {
 
         const logoUrl = (editFormData.logoUrl || '').trim();
         // ตรวจสอบลิงก์ Logo ก่อนบันทึก
-        if (logoUrl) {
-          const imgCheck = await validateImageUrl(logoUrl);
+        // if (logoUrl) {
+        //   const imgCheck = await validateImageUrl(logoUrl);
 
-          if (!imgCheck.valid) {
-            setEditMessage({
-              type: "error",
-              text: imgCheck.error,
-            });
-          setEditSaving(false);
-        return;
-          }
-        }
+        //   if (!imgCheck.valid) {
+        //     setEditMessage({
+        //       type: "error",
+        //       text: imgCheck.error,
+        //     });
+        //   setEditSaving(false);
+        // return;
+        //   }
+        // }
 
 
         const profilePayload = {
