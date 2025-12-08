@@ -129,7 +129,7 @@ export default function ClientLayout({ children }) {
                       loginLabel={t.loginCta}
                     />
                   }
-                  {['/admin-dashboard', '/admin-dashboard/problem-tag-management', '/admin-dashboard/user-management', '/admin-dashboard/user-sessions'].includes(pathName || '') &&
+                  {['/admin-dashboard', '/admin-dashboard/problem-tag-management', '/admin-dashboard/exhibitor-matching','/admin-dashboard/user-management', '/admin-dashboard/user-sessions'].includes(pathName || '') &&
                     <Sidebar />
                   }
                   {['/exhibitor-dashboard', '/exhibitor-profile'].includes(pathName || '') &&
