@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import translations, { japaneseTagLabels } from '../components/translations';
 import { sentForm } from './action';
 import { useLanguage } from '../contexts/LanguageProvider';
-import { createSesstion } from '@/lib/auth';
+import { createSesstion, lookSesstion } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
 
 const getTagLabelByLanguage = (name, languageCode) => {
   if (languageCode === 'JP') {
@@ -16,13 +16,20 @@ const getTagLabelByLanguage = (name, languageCode) => {
   return name;
 };
 
+// const look = async () =>{
+//   const router = useRouter();
+//   const lookCokie = await  lookSesstion();
+//   const myCookie = await createSesstion(lookCokie);
+//   if (myCookie === "/usermatching") return router.replace(myCookie);
+// }
 export default function UserPanelPage() {
   const router = useRouter();
-
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
+
+
 
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -32,8 +39,7 @@ export default function UserPanelPage() {
   const { language } = useLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const t = translations[selectedLanguage.code];
-  const myCookie = createSesstion
-  if (myCookie === "/usermatching") return router.replace(myCookie);
+  
 
   useEffect(() => {
     setSelectedLanguage(language);
