@@ -45,21 +45,7 @@ const translations = {
     patientsLabel: 'จำนวน',
     tableName: 'ปัญหา',
     tableContact: 'จำนวนที่เลือก',
-    // homepage management
-    pageTitle: 'Homepage Management',
-    heroSection: 'ส่วน Hero Banner',
-    headingLabel: 'หัวข้อหลัก',
-    descriptionLabel: 'คำอธิบาย',
-    exploreButtonLabel: 'ข้อความปุ่มสำรวจงาน',
-    loginCtaLabel: 'ข้อความปุ่มเข้าสู่ระบบ',
-    editButton: 'แก้ไข',
-    saveButton: 'บันทึก',
-    cancelButton: 'ยกเลิก',
-    saving: 'กำลังบันทึก...',
-    saveSuccess: 'บันทึกสำเร็จ',
-    saveError: 'เกิดข้อผิดพลาด',
-    loading: 'กำลังโหลด...',
-    lastUpdated: 'อัปเดตล่าสุด',
+
     //problem tag management
     logout: 'ออกจากระบบ',
     export: 'Export',
@@ -142,15 +128,15 @@ const translations = {
     // User Panel Registration Form
     title: 'ยินดีต้อนรับ',
     instruction: 'กรอกข้อมูลที่จำเป็นเพื่อดำเนินการต่อ',
-    fullName: 'ชื่อ-นามสกุล*',
+    fullName: 'ชื่อ-นามสกุล',
     fullNamePlaceholder: 'ชื่อ-นามสกุล',
     companyNamePlaceholder: 'ชื่อบริษัท',
-    position: 'ตำแหน่งงาน*',
+    position: 'ตำแหน่งงาน',
     positionPlaceholder: 'ตำแหน่งงาน',
     contactInfo: 'อีเมล / เบอร์โทรศัพท์ (อย่างน้อย 1 ช่องทาง)',
     contactPlaceholder: 'อีเมล / เบอร์โทรศัพท์',
     problemCategory: 'หมวดปัญหา',
-    pdpa: 'ข้าพเจ้ายินยอมตามนโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA)',
+    pdpa: 'ข้อมูลส่วนบุคคลที่ได้รับจากท่าน ทาง JETRO จะดำเนินการจัดเก็บและดูแลอย่างเข้มงวด',
     readPolicy: 'อ่านนโยบายได้ที่',
     register: 'ลงทะเบียน',
     pdpaRequired: 'กรุณายอมรับนโยบาย PDPA ก่อนส่งข้อมูล',
@@ -444,9 +430,9 @@ const translations = {
   JP: {
     // Homepage
     heading: '製造業向けDX・AIセミナー＆商談会 2025',
-    description: '最適なマッチングにより、セミナーおよび商談の価値向上を実現します。イベント情報および出展者情報は、こちらよりご覧いただけます。',
+    description: '事前に、皆様の課題に合った出展企業ブースをご案内いたします。ご入力いただいた個人情報は、JETROが厳重に保管・管理いたします。',
     exploreButton: '来場登録を行う',
-    loginCta: 'ログイン',
+    loginCta: '管理者ログイン',
     // Admin Dashboard
     dashboard: 'ダッシュボード',
     tabs: ['ダッシュボード', 'ユーザー管理', '問題タグ管理', 'ユーザーセッション'],
@@ -480,21 +466,7 @@ const translations = {
     filterContacted: '連絡済み',
     userContactsLabel: 'ユーザー連絡',
     exhibitorContactsLabel: '出展者連絡済み',
-    // homepage management
-    pageTitle: 'ホームページ管理',
-    heroSection: 'ヒーローバナー',
-    headingLabel: '見出し',
-    descriptionLabel: '説明',
-    exploreButtonLabel: '探索ボタンのテキスト',
-    loginCtaLabel: 'ログインボタンのテキスト',
-    editButton: '編集',
-    saveButton: '保存',
-    cancelButton: 'キャンセル',
-    saving: '保存中...',
-    saveSuccess: '保存しました',
-    saveError: 'エラーが発生しました',
-    loadingJP: '読み込み中...',
-    lastUpdated: '最終更新',
+
     //problem tag management
     pageTitleProblemTagManagement: '問題タグ管理',
     descriptionProblemTagManagement: 'マッチングの精度を高めるためにタグを管理します。',
@@ -548,7 +520,7 @@ const translations = {
     companyLogo: '会社ロゴ',
     companyDescription: '詳細情報',
     tagsTitle: '専門カテゴリ',
-    selectCategory: '問題カテゴリを選択',
+    selectCategory: '貴社の課題に最も近いものを選択',
     uploadLogo: 'ロゴをアップロード',
     logoRequirements: '最大5MBの画像ファイルに対応',
     validationCompany: '会社名を入力してください',
@@ -575,16 +547,16 @@ const translations = {
     // User Panel Registration Form
     title: 'ようこそ',
     instruction: '必要事項を入力して続行してください',
-    fullName: '氏名*',
+    fullName: '氏名',
     fullNamePlaceholder: '氏名',
     companyNamePlaceholder: '会社名',
-    position: '役職*',
+    position: '役職',
     positionPlaceholder: '役職',
-    contactInfo: 'メール / 電話番号 (少なくとも1つの連絡先)',
+    contactInfo: 'メール / 電話番号（いずれか1つ必須）',
     contactPlaceholder: 'メール / 電話番号',
     problemCategory: '問題カテゴリ',
-    pdpa: '個人情報保護方針（PDPA）に同意します',
-    readPolicy: 'ポリシーを読む',
+    pdpa: 'いただいた個人情報はジェトロが厳重に管理いたします。',
+    readPolicy: 'ポリシーを読む ',
     register: '登録',
     pdpaRequired: '送信する前にPDPAポリシーに同意してください',
     categoryRequired: '少なくとも1つの問題カテゴリを選択してください',
@@ -592,15 +564,15 @@ const translations = {
     submitError: '送信中にエラーが発生しました。もう一度お試しください。',
     back: '戻る',
 
-    headingHome: 'alt design office へようこそ',
+    headingHome: '製造業向けDX・AIセミナー＆商談会 2025',
     descriptionHome:
-      '最適なマッチングで展示体験を向上しましょう。注目イベントをここからチェック。',
+      '事前に、皆様の課題に合った出展企業ブースをご案内いたします。ご入力いただいた個人情報は、JETROが厳重に保管・管理いたします。',
     exploreButtonHome: '展示を探す',
     // PDPA Page
     pdpaTitle: 'プライバシーポリシーおよび個人情報保護方針（PDPA）',
     pdpaBack: '戻る',
     pdpaAcceptLabel: '本プライバシーポリシーおよびPDPAに基づく個人情報の取扱いに同意します。',
-    pdpaAcceptButton: '同意する',
+    pdpaAcceptButton: '戻る',
     pdpaContent: `
       <h2 class="text-xl font-bold mb-4">プライバシーポリシー</h2>
       <p class="mb-4">
@@ -849,8 +821,8 @@ const translations = {
     rating: '評価',
      backHome: 'ホームへ戻る', 
      //usermatching
-    titleUsermatching: '展示会マッチングシステム',
-    descriptionUsermatching:'ご関心に基づく出展者のご案内',
+    titleUsermatching: '商談会カラーマッチング結果',
+    descriptionUsermatching:'受付でお受け取りいただくネームプレートの色は、貴社の課題に対応する出展ブースの色と一致しています。',
     contactChannel: '連絡先',
   },
 };

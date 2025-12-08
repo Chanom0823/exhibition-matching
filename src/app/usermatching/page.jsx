@@ -207,16 +207,16 @@ export default function UserMatchingPage() {
 
   return (
     <div
-      className={`min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 `}
+      className={` bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 `}
     >
-      <div className="w-full max-w-[390px] sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
+      <div className="w-full max-w sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
       
 
         {/* Content */}
         <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <div className="text-center mb-4">
-            <h1 className="text-2xl font-semibold text-gray-900 leading-snug mb-2">{t.titleUsermatching}</h1>
-            <p className="text-sm text-gray-600">{t.descriptionUsermatching}</p>
+            <h1 className="text-3xl font-semibold text-gray-900 leading-snug mb-2">{t.titleUsermatching}</h1>
+            <p className="text-xl text-gray-600">{t.descriptionUsermatching}</p>
           </div>
 
           {/* Map Image */}
@@ -257,27 +257,8 @@ export default function UserMatchingPage() {
                   }}
                 >
                   <div className="flex items-center min-h-20 gap-4">
-                    {/* Circular Image */}
-                    <div className="w-[60px] h-[60px] rounded-full overflow-hidden shrink-0 border border-gray-200">
-                      {exhibitor.logoUrl? (
-                        <Image
-                          src={exhibitor?.logoUrl}
-                          alt={exhibitor?.companyName || t.storeNameC}
-                          width={60}
-                          height={60}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-gray-400">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
                     {/* Store Info and Actions */}
-                    <div className="flex  flex-col   justify-between min-h-20">
+                    <div className="flex  flex-col justify-center min-h-20">
                       <div className='flex flex-col'>
                         {/* Store Name */}
                         <div className="flex items-start justify-between  gap-2">

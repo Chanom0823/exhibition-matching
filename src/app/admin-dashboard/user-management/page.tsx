@@ -6,13 +6,34 @@ import localFont from 'next/font/local';
 import { useRouter } from 'next/navigation';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import jsPDF from 'jspdf';
 import ExportButtons from '@/app/components/ExportButtons';
 import translations from '@/app/components/translations';
 import { useLanguage } from '@/app/contexts/LanguageProvider';
 
+// ตรวจสอบว่าลิงก์รูปโหลดสำเร็จและมีขนาด ≥ 300px
+const validateImageUrl = (url) => {
+  return new Promise((resolve) => {
+    const img = new Image();
 
+    img.onload = () => {
+      if (img.naturalWidth >= 300 && img.naturalHeight >= 300) {
+        resolve({ valid: true });
+      } else {
+        resolve({
+          valid: false,
+          error: "รูปต้องมีขนาดขั้นต่ำ 300px ทั้งด้านกว้างและสูง",
+        });
+      }
+    };
+
+    img.onerror = () => {
+      resolve({ valid: false, error: "ไม่สามารถโหลดรูปจากลิงก์นี้ได้" });
+    };
+
+    img.src = url + "?cache=" + Date.now(); // ป้องกัน cache
+  });
+};
 
 const promptFont = localFont({
   src: [
@@ -35,8 +56,6 @@ const getInitialProfileForm = () => ({
   companyWebsite: '',
   companyDescription: '',
   logoUrl: '',
-  logo: null,
-  logoPreview: null,
 });
 
 const getInitialVisitorForm = () => ({
@@ -53,16 +72,17 @@ export default function UserManagementPage() {
     { code: 'JP', label: '日本語' },
   ];
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-  const languageDropdownRef = useRef(null);
+  const languageDropdownRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useState('userManagement');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-const {language, toggleLanguage} = useLanguage();
-const [selectedLanguage, setSelectedLanguage] = useState(language);
-const t = translations[selectedLanguage.code];
+  const { language, toggleLanguage } = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const t = translations[selectedLanguage.code];
 
-useEffect(() => {
-  setSelectedLanguage(language);
-}, [language]);
+  useEffect(() => {
+    setSelectedLanguage(language);
+  }, [language]);
+
   // Summary Cards data
   const [summaryData, setSummaryData] = useState({
     totalParticipants: 0,
@@ -72,27 +92,34 @@ useEffect(() => {
   });
 
   // Users table data
-  const [usersData, setUsersData] = useState({
+  const [usersData, setUsersData] = useState<{
+    users: any[];
+    loading: boolean;
+  }>({
     users: [],
     loading: true,
   });
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [deletingUserId, setDeletingUserId] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [roleFilter, setRoleFilter] = useState<'all' | 'visitors' | 'exhibitors'>('all');
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
-  const [editFormData, setEditFormData] = useState(getInitialProfileForm());
-  const [editCategories, setEditCategories] = useState(['']);
-  const [visitorFormData, setVisitorFormData] = useState(getInitialVisitorForm());
+  const [editTarget, setEditTarget] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState<any>(getInitialProfileForm());
+  const [editCategories, setEditCategories] = useState<string[]>(['']);
+  const [visitorFormData, setVisitorFormData] = useState<any>(getInitialVisitorForm());
   const [editLoading, setEditLoading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
-  const [editMessage, setEditMessage] = useState({ type: '', text: '' });
-  const [previewUserId, setPreviewUserId] = useState(null);
-  const [previewData, setPreviewData] = useState(null);
+  const [editMessage, setEditMessage] = useState<{ type: '' | 'error' | 'success'; text: string }>({
+    type: '',
+    text: '',
+  });
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [problemTags, setProblemTags] = useState([]);
-  const getTagOptions = (currentValue) => {
+  const [problemTags, setProblemTags] = useState<string[]>([]);
+
+  const getTagOptions = (currentValue: string) => {
     if (!currentValue) {
       return problemTags;
     }
@@ -109,10 +136,10 @@ useEffect(() => {
       }
     }
 
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
         languageDropdownRef.current &&
-        !languageDropdownRef.current.contains(event.target)
+        !languageDropdownRef.current.contains(event.target as Node)
       ) {
         setIsLanguageOpen(false);
       }
@@ -130,7 +157,7 @@ useEffect(() => {
         const tagsSnapshot = await getDocs(collection(db, 'problemTags'));
         const tags = tagsSnapshot.docs
           .map((docSnap) => docSnap.data()?.name?.trim())
-          .filter((name, index, self) => name && self.indexOf(name) === index);
+          .filter((name, index, self) => name && self.indexOf(name) === index) as string[];
         setProblemTags(tags);
       } catch (error) {
         console.error('Error loading problem tags:', error);
@@ -140,22 +167,18 @@ useEffect(() => {
     fetchProblemTags();
   }, []);
 
-
   // Fetch summary data from Firebase
   useEffect(() => {
     const updateSummaryData = async () => {
       try {
-        // Fetch total participants (from userPanelSubmissions)
         const submissionsRef = collection(db, 'userPanelSubmissions');
         const submissionsSnapshot = await getDocs(submissionsRef);
         const totalParticipants = submissionsSnapshot.size;
 
-        // Fetch total visitors (from users collection)
         const usersRef = collection(db, 'users');
         const usersSnapshot = await getDocs(usersRef);
         const totalVisitors = usersSnapshot.size;
 
-        // Fetch total exhibitors (from exhibitors collection where isComplete is true)
         const exhibitorsRef = collection(db, 'exhibitors');
         const exhibitorsSnapshot = await getDocs(exhibitorsRef);
         const totalExhibitors = exhibitorsSnapshot.docs.filter(
@@ -186,30 +209,25 @@ useEffect(() => {
   useEffect(() => {
     const fetchUsersData = async () => {
       try {
-        // Fetch both users and userPanelSubmissions
         const [usersSnapshot, submissionsSnapshot] = await Promise.all([
           getDocs(collection(db, 'users')),
           getDocs(collection(db, 'userPanelSubmissions')),
         ]);
 
-        // Helper function to normalize contact info (remove spaces, special chars, lowercase)
-        const normalizeContact = (contact) => {
+        const normalizeContact = (contact: string) => {
           if (!contact || contact === '-') return '';
-          // Remove all spaces, dashes, parentheses, plus signs, and convert to lowercase
           return String(contact).toLowerCase().trim().replace(/[\s\-\(\)\+]/g, '');
         };
 
-        // Helper function to normalize name (for matching by fullName)
-        const normalizeName = (name) => {
+        const normalizeName = (name: string) => {
           if (!name || name === '-') return '';
           return String(name).toLowerCase().trim().replace(/\s+/g, '');
         };
 
-        // Create maps of normalized contacts and names from userPanelSubmissions for quick lookup
-        const submissionsContacts = new Map();
-        const submissionsNames = new Map();
+        const submissionsContacts = new Map<string, any>();
+        const submissionsNames = new Map<string, any>();
         submissionsSnapshot.docs.forEach((docSnap) => {
-          const data = docSnap.data();
+          const data = docSnap.data() as any;
           if (data.contact) {
             const contact = normalizeContact(data.contact);
             if (contact) {
@@ -224,15 +242,15 @@ useEffect(() => {
           }
         });
 
-        const matchedSubmissionIds = new Set();
+        const matchedSubmissionIds = new Set<string>();
 
         const usersList = usersSnapshot.docs.map((docSnap) => {
-          const data = docSnap.data();
+          const data = docSnap.data() as any;
           const email = normalizeContact(data.email);
           const phoneNumber = normalizeContact(data.phoneNumber);
           const fullName = normalizeName(data.fullName);
-          
-          let matchedSubmission = null;
+
+          let matchedSubmission: any = null;
           if (email && submissionsContacts.has(email)) {
             matchedSubmission = submissionsContacts.get(email);
           } else if (phoneNumber && submissionsContacts.has(phoneNumber)) {
@@ -251,7 +269,9 @@ useEffect(() => {
             id: docSnap.id,
             username: data.username || '-',
             role: userRole,
-            createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)) : null,
+            createdAt: data.createdAt
+              ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
+              : null,
             email: data.email || '-',
             fullName: data.fullName || data.username || '-',
             visitorSubmissionId: matchedSubmission?.id || null,
@@ -263,7 +283,7 @@ useEffect(() => {
         const visitorOnlyEntries = submissionsSnapshot.docs
           .filter((docSnap) => !matchedSubmissionIds.has(docSnap.id))
           .map((docSnap) => {
-            const data = docSnap.data() || {};
+            const data = (docSnap.data() as any) || {};
             return {
               id: `visitor-${docSnap.id}`,
               username: data.fullName || data.companyName || data.contact || '-',
@@ -281,13 +301,12 @@ useEffect(() => {
             };
           });
 
-        // Sort by createdAt (newest first)
         const combinedUsers = [...usersList, ...visitorOnlyEntries];
         combinedUsers.sort((a, b) => {
           if (!a.createdAt && !b.createdAt) return 0;
           if (!a.createdAt) return 1;
           if (!b.createdAt) return -1;
-          return b.createdAt - a.createdAt;
+          return (b.createdAt as any) - (a.createdAt as any);
         });
 
         setUsersData({
@@ -306,7 +325,7 @@ useEffect(() => {
     fetchUsersData();
   }, []);
 
-  const handleLanguageSelect = (option) => {
+  const handleLanguageSelect = (option: { code: 'TH' | 'JP'; label: string }) => {
     setSelectedLanguage(option);
     if (typeof window !== 'undefined') {
       localStorage.setItem('selectedLanguage', option.code);
@@ -325,7 +344,7 @@ useEffect(() => {
     router.push('/login');
   };
 
-  const handleTabClick = (targetTab) => {
+  const handleTabClick = (targetTab: string) => {
     setActiveTab(targetTab);
     if (targetTab === 'dashboard') {
       router.push('/admin-dashboard');
@@ -337,16 +356,14 @@ useEffect(() => {
   };
 
   const handleExportPDF = () => {
-    // Use English translations for PDF export
     const pdfT = translations.EN;
-    
-    // Calculate filtered users for export
+
     const filteredUsersForExport = usersData.users.filter((user) => {
       if (roleFilter === 'visitors') return user.role === 'visitor';
       if (roleFilter === 'exhibitors') return user.role === 'exhibitor';
       return true;
     });
-    
+
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -357,8 +374,7 @@ useEffect(() => {
     const cardHeight = 25;
     const cardSpacing = 10;
 
-    // Helper function to add new page if needed
-    const checkNewPage = (requiredSpace) => {
+    const checkNewPage = (requiredSpace: number) => {
       if (yPosition + requiredSpace > pageHeight - margin) {
         pdf.addPage();
         yPosition = 20;
@@ -367,13 +383,11 @@ useEffect(() => {
       return false;
     };
 
-    // Title
     pdf.setFontSize(20);
     pdf.setFont('helvetica', 'bold');
     pdf.text(pdfT.userManagement, margin, yPosition);
     yPosition += lineHeight + 8;
 
-    // Date (English format)
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     const currentDate = new Date().toLocaleDateString('en-US', {
@@ -384,7 +398,6 @@ useEffect(() => {
     pdf.text(`Date: ${currentDate}`, margin, yPosition);
     yPosition += sectionSpacing + 5;
 
-    // Summary Cards Section (3 cards in a row)
     checkNewPage(cardHeight + 10);
     const cardWidth = (pageWidth - margin * 2 - cardSpacing * 2) / 3;
     const summaryCards = [
@@ -395,17 +408,15 @@ useEffect(() => {
 
     summaryCards.forEach((card, index) => {
       const xPos = margin + index * (cardWidth + cardSpacing);
-      
-      // Draw card background
+
       pdf.setDrawColor(200, 200, 200);
       pdf.setFillColor(255, 255, 255);
       pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, 'FD');
-      
-      // Card content
+
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'bold');
       pdf.text(card.value, xPos + 5, yPosition + 10);
-      
+
       pdf.setFontSize(8);
       pdf.setFont('helvetica', 'normal');
       const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
@@ -413,19 +424,18 @@ useEffect(() => {
     });
     yPosition += cardHeight + sectionSpacing;
 
-    // Filter information
     checkNewPage(lineHeight + 5);
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
-    const filterText = roleFilter === 'all' 
-      ? pdfT.filterAllUsers 
-      : roleFilter === 'visitors' 
-      ? pdfT.filterVisitors 
-      : pdfT.filterExhibitors;
+    const filterText =
+      roleFilter === 'all'
+        ? pdfT.filterAllUsers
+        : roleFilter === 'visitors'
+        ? pdfT.filterVisitors
+        : pdfT.filterExhibitors;
     pdf.text(`Filter: ${filterText}`, margin, yPosition);
     yPosition += sectionSpacing;
 
-    // Table Section
     if (filteredUsersForExport.length > 0) {
       checkNewPage(sectionSpacing + lineHeight * 3);
       pdf.setFontSize(14);
@@ -433,10 +443,9 @@ useEffect(() => {
       pdf.text('User List', margin, yPosition);
       yPosition += lineHeight + 5;
 
-      // Table Header with background
       pdf.setFillColor(240, 240, 240);
       pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, lineHeight + 4, 'F');
-      
+
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
       const colWidths = [15, 60, 50, 60];
@@ -449,35 +458,36 @@ useEffect(() => {
       });
       yPosition += lineHeight + 3;
 
-      // Table Rows
       pdf.setFont('helvetica', 'normal');
       pdf.setDrawColor(220, 220, 220);
       filteredUsersForExport.forEach((user, index) => {
         checkNewPage(lineHeight + 3);
-        
-        // Draw row border
+
         pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
-        
+
         xPosition = margin + 3;
-        
-        // No.
+
         pdf.text(String(index + 1), xPosition, yPosition);
         xPosition += colWidths[0];
 
-        // Username
-        const username = user.username.length > 25 ? user.username.substring(0, 22) + '...' : user.username;
+        const username =
+          user.username.length > 25 ? user.username.substring(0, 22) + '...' : user.username;
         pdf.text(username, xPosition, yPosition);
         xPosition += colWidths[1];
 
-        // Role
-        const roleText = user.role === 'visitor' ? 'Visitors' : user.role === 'exhibitor' ? 'Exhibitor' : user.role;
+        const roleText =
+          user.role === 'visitor'
+            ? 'Visitors'
+            : user.role === 'exhibitor'
+            ? 'Exhibitor'
+            : user.role;
         pdf.text(roleText, xPosition, yPosition);
         xPosition += colWidths[2];
 
-        // Created At
         let createdAtText = '-';
         if (user.createdAt) {
-          const date = user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
+          const date =
+            user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
           createdAtText = date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -487,7 +497,7 @@ useEffect(() => {
           });
         }
         pdf.text(createdAtText, xPosition, yPosition);
-        
+
         yPosition += lineHeight + 2;
       });
     } else {
@@ -496,7 +506,7 @@ useEffect(() => {
       pdf.setFont('helvetica', 'bold');
       pdf.text('User List', margin, yPosition);
       yPosition += lineHeight + 5;
-      
+
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(150, 150, 150);
@@ -504,7 +514,6 @@ useEffect(() => {
       pdf.setTextColor(0, 0, 0);
     }
 
-    // Save PDF
     const fileName = `user-management-${new Date().toISOString().split('T')[0]}.pdf`;
     pdf.save(fileName);
   };
@@ -525,14 +534,69 @@ useEffect(() => {
     setVisitorFormData(getInitialVisitorForm());
   };
 
-  const handleEditInputChange = (field, value) => {
-    setEditFormData((prev) => ({
+  const handleEditInputChange = (field: string, value: string) => {
+    // ใช้สำหรับ field ทั่วไป (ไม่รวม logoUrl)
+    setEditFormData((prev: any) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleEditCategoryChange = (index, value) => {
+  // ✅ ฟังก์ชันใหม่สำหรับจัดการ Logo URL โดยเฉพาะ
+  const handleLogoUrlChange = (value: string) => {
+    const trimmed = value.trim();
+
+    setEditFormData((prev: any) => ({
+      ...prev,
+      logoUrl: trimmed,
+    }));
+
+    // เคลียร์ข้อความ error/success เดิมก่อน
+    setEditMessage({ type: '', text: '' });
+
+    if (!trimmed) {
+      // ถ้าลบ URL ทิ้ง ไม่ต้องแจ้ง error
+      return;
+    }
+
+    // เช็กว่าเป็น URL ถูกต้องไหม
+    try {
+      // ถ้า new URL ล้มเหลว = URL ไม่ถูกต้อง
+      // eslint-disable-next-line no-new
+      new URL(trimmed);
+    } catch {
+      setEditMessage({
+        type: 'error',
+        text:
+          (t.logoUrlInvalid as string) ||
+          (selectedLanguage.code === 'TH'
+            ? 'ลิงก์โลโก้ไม่ถูกต้อง กรุณากรอก URL ที่ถูกต้อง'
+            : selectedLanguage.code === 'JP'
+            ? 'ロゴのURLが正しくありません。有効なURLを入力してください。'
+            : 'Logo URL is invalid. Please enter a valid URL.'),
+      });
+      return;
+    }
+
+    // ตัด query string แล้วเช็กนามสกุลไฟล์ว่าเป็นรูปไหม
+    const path = trimmed.split('?')[0].toLowerCase();
+    const isImageExt = /\.(png|jpe?g|webp|gif|svg)$/.test(path);
+
+    if (!isImageExt) {
+      setEditMessage({
+        type: 'error',
+        text:
+          (t.logoUrlNotImage as string) ||
+          (selectedLanguage.code === 'TH'
+            ? 'ลิงก์นี้ไม่ใช่ไฟล์รูปภาพ (.png, .jpg, .jpeg, .webp, .gif, .svg)'
+            : selectedLanguage.code === 'JP'
+            ? 'このリンクは画像ファイル（.png, .jpg, .jpeg, .webp, .gif, .svg）ではありません。'
+            : 'This URL does not look like an image file (.png, .jpg, .jpeg, .webp, .gif, .svg).'),
+      });
+    }
+  };
+
+  const handleEditCategoryChange = (index: number, value: string) => {
     setEditCategories((prev) => {
       const updated = [...prev];
       updated[index] = value;
@@ -540,7 +604,8 @@ useEffect(() => {
     });
   };
 
-  const handleEditLogoChange = (event) => {
+  // (โค้ดเดิมของ handleEditLogoChange ยังอยู่ แต่ไม่ได้ใช้งานแล้ว)
+  const handleEditLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -556,7 +621,7 @@ useEffect(() => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setEditFormData((prev) => ({
+      setEditFormData((prev: any) => ({
         ...prev,
         logo: file,
         logoPreview: reader.result,
@@ -569,15 +634,15 @@ useEffect(() => {
     }
   };
 
-  const handleVisitorInputChange = (field, value) => {
-    setVisitorFormData((prev) => ({
+  const handleVisitorInputChange = (field: string, value: string) => {
+    setVisitorFormData((prev: any) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleVisitorCategoryChange = (index, value) => {
-    setVisitorFormData((prev) => {
+  const handleVisitorCategoryChange = (index: number, value: string) => {
+    setVisitorFormData((prev: any) => {
       const categories = [...prev.categories];
       categories[index] = value;
       return {
@@ -587,7 +652,7 @@ useEffect(() => {
     });
   };
 
-  const handleTogglePreview = async (user) => {
+  const handleTogglePreview = async (user: any) => {
     if (previewUserId === user.id) {
       setPreviewUserId(null);
       setPreviewData(null);
@@ -604,7 +669,9 @@ useEffect(() => {
         if (user.visitorSubmissionData) {
           setPreviewData({ type: 'visitor', payload: user.visitorSubmissionData });
         } else if (user.visitorSubmissionId) {
-          const submissionSnap = await getDoc(doc(db, 'userPanelSubmissions', user.visitorSubmissionId));
+          const submissionSnap = await getDoc(
+            doc(db, 'userPanelSubmissions', user.visitorSubmissionId)
+          );
           if (submissionSnap.exists()) {
             setPreviewData({ type: 'visitor', payload: submissionSnap.data() });
           } else {
@@ -637,7 +704,7 @@ useEffect(() => {
     }
   };
 
-  const openEditModal = async (user) => {
+  const openEditModal = async (user: any) => {
     if (!user) return;
     setEditTarget(user);
     setIsEditModalOpen(true);
@@ -653,14 +720,12 @@ useEffect(() => {
           const submissionRef = doc(db, 'userPanelSubmissions', user.visitorSubmissionId);
           const submissionSnap = await getDoc(submissionRef);
           if (submissionSnap.exists()) {
-            const submissionData = submissionSnap.data();
+            const submissionData = submissionSnap.data() as any;
             setVisitorFormData({
               fullName: submissionData.fullName || user.fullName || user.username || '',
               companyName: submissionData.companyName || '',
               contact: submissionData.contact || user.email || '',
-              categories: [
-                submissionData.categories?.[0] || '',
-              ],
+              categories: [submissionData.categories?.[0] || ''],
             });
           } else {
             setVisitorFormData({
@@ -685,7 +750,7 @@ useEffect(() => {
       const profileSnap = await getDoc(profileRef);
 
       if (profileSnap.exists()) {
-        const data = profileSnap.data();
+        const data = profileSnap.data() as any;
         setEditFormData({
           companyName: data.companyName || '',
           taxId: data.taxId || '',
@@ -706,7 +771,7 @@ useEffect(() => {
           setEditCategories(filledCategories.slice(0, 1));
         }
       } else {
-        setEditFormData((prev) => ({
+        setEditFormData((prev: any) => ({
           ...prev,
           companyEmail: user.email || '',
           companyName: user.fullName || user.username || '',
@@ -752,7 +817,9 @@ useEffect(() => {
           setEditSaving(false);
           return;
         }
-        if (visitorFormData.categories.filter((cat) => cat && cat.trim() !== '').length === 0) {
+        if (
+          visitorFormData.categories.filter((cat: string) => cat && cat.trim() !== '').length === 0
+        ) {
           setEditMessage({ type: 'error', text: t.visitorValidationCategory });
           setEditSaving(false);
           return;
@@ -763,16 +830,20 @@ useEffect(() => {
           fullName: visitorFormData.fullName.trim(),
           companyName: visitorFormData.companyName.trim(),
           contact: visitorFormData.contact.trim(),
-          categories: visitorFormData.categories.filter((cat) => cat && cat.trim() !== ''),
+          categories: visitorFormData.categories.filter(
+            (cat: string) => cat && cat.trim() !== ''
+          ),
           updatedAt: new Date().toISOString(),
           language: selectedLanguage.code,
         };
 
         if (submissionId) {
-          await setDoc(doc(db, 'userPanelSubmissions', submissionId), submissionPayload, { merge: true });
+          await setDoc(doc(db, 'userPanelSubmissions', submissionId), submissionPayload, {
+            merge: true,
+          });
         } else {
-          const newDoc = await addDoc(collection(db, 'userPanelSubmissions'), submissionPayload);
-          submissionId = newDoc.id;
+          const newDocRef = await addDoc(collection(db, 'userPanelSubmissions'), submissionPayload);
+          submissionId = newDocRef.id;
         }
 
         setUsersData((prev) => ({
@@ -802,22 +873,30 @@ useEffect(() => {
           return;
         }
 
-        let logoUrl = editFormData.logoUrl;
+        const logoUrl = (editFormData.logoUrl || '').trim();
+        // ตรวจสอบลิงก์ Logo ก่อนบันทึก
+        if (logoUrl) {
+          const imgCheck = await validateImageUrl(logoUrl);
 
-        if (editFormData.logo) {
-          const logoRef = ref(storage, `exhibitors/${editTarget.id}/logo/${Date.now()}_${editFormData.logo.name}`);
-          await uploadBytes(logoRef, editFormData.logo);
-          logoUrl = await getDownloadURL(logoRef);
+          if (!imgCheck.valid) {
+            setEditMessage({
+              type: "error",
+              text: imgCheck.error,
+            });
+          setEditSaving(false);
+        return;
+          }
         }
+
 
         const profilePayload = {
           companyName: editFormData.companyName.trim(),
-          taxId: editFormData.taxId.trim(),
-          branchId: editFormData.branchId.trim(),
-          companyPhone: editFormData.companyPhone.trim(),
-          companyEmail: editFormData.companyEmail.trim(),
-          website: editFormData.companyWebsite.trim(),
-          companyDescription: editFormData.companyDescription.trim(),
+          taxId: (editFormData.taxId || '').trim(),
+          branchId: (editFormData.branchId || '').trim(),
+          companyPhone: (editFormData.companyPhone || '').trim(),
+          companyEmail: (editFormData.companyEmail || '').trim(),
+          website: (editFormData.companyWebsite || '').trim(),
+          companyDescription: (editFormData.companyDescription || '').trim(),
           logoUrl,
           categories: editCategories.filter((cat) => cat && cat.trim() !== ''),
           updatedAt: new Date().toISOString(),
@@ -825,16 +904,17 @@ useEffect(() => {
         };
 
         await setDoc(doc(db, 'exhibitors', editTarget.id), profilePayload, { merge: true });
-
-        setEditFormData((prev) => ({
-          ...prev,
-          logo: null,
-          logoUrl,
-          logoPreview: logoUrl || prev.logoPreview,
-        }));
-        setEditMessage({ type: 'success', text: t.editSuccess });
+        setEditMessage({
+          type: 'success',
+          text:
+            selectedLanguage.code === 'TH'
+              ? 'บันทึกข้อมูลผู้จัดแสดงสินค้าเรียบร้อยแล้ว'
+              : selectedLanguage.code === 'JP'
+              ? '出展者情報を保存しました'
+              : 'Exhibitor profile has been saved.',
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving edited profile:', error);
       setEditMessage({
         type: 'error',
@@ -853,7 +933,7 @@ useEffect(() => {
     }
   };
 
-  const openDeleteModal = (user) => {
+  const openDeleteModal = (user: any) => {
     if (!user) return;
     setDeleteTarget(user);
     setIsDeleteModalOpen(true);
@@ -899,7 +979,6 @@ useEffect(() => {
   return (
     <div className={`min-h-screen bg-[#f5f5f5] flex ${currentFontClass}`}>
       <div className="w-full max-w-[390px] md:max-w-[1440px] mx-auto flex relative">
-        {/* Mobile Sidebar Overlay */}
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -907,16 +986,11 @@ useEffect(() => {
           />
         )}
 
-        {/* Left Sidebar */}
-
-
-        {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          {/* Top Header */}
           <header className="px-4 md:px-10 py-4 flex items-center justify-between">
-            {/* Page Title */}
-            <h1 className="text-4xl font-bold text-gray-900 whitespace-nowrap">{t.userManagement}</h1>
-            {/* Mobile Menu Button */}
+            <h1 className="text-4xl font-bold text-gray-900 whitespace-nowrap">
+              {t.userManagement}
+            </h1>
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -926,11 +1000,11 @@ useEffect(() => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            
+
             <div className="flex items-end justify-end w-full">
               <div className="relative" ref={languageDropdownRef}>
                 <div className="flex items-end justify-end gap-3 cursor-pointer">
-                  <ExportButtons 
+                  <ExportButtons
                     exportPdfLabel={`${t.export} PDF`}
                     exportExcelLabel={`${t.export} Excel`}
                     summaryData={summaryData}
@@ -1000,11 +1074,8 @@ useEffect(() => {
             </div>
           </header>
 
-          {/* Main Content */}
           <main className="flex-1 overflow-auto p-4 md:p-4 bg-[#f5f5f5]">
-            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
-              {/* Total Participants */}
               <div className="bg-white p-6 shadow-sm relative rounded-l-2xl">
                 <div className="absolute top-4 right-4">
                   <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
@@ -1016,21 +1087,31 @@ useEffect(() => {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                     <svg width="24" height="24" fill="none" viewBox="0 0 24 24" className="text-gray-800">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      <path
+                        d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
                       <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" />
+                      <path
+                        d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
                     </svg>
                   </div>
                   <div>
                     <h3 className="text-3xl font-bold text-gray-900 mb-1">
-                      {summaryData.loading ? '...' : (summaryData.totalParticipants ?? 0).toLocaleString()}
+                      {summaryData.loading
+                        ? '...'
+                        : (summaryData.totalParticipants ?? 0).toLocaleString()}
                     </h3>
                     <p className="text-sm text-gray-600">{t.totalParticipants}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Total Visitors */}
               <div className="bg-white p-6 shadow-sm relative">
                 <div className="absolute top-4 right-4">
                   <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
@@ -1042,8 +1123,16 @@ useEffect(() => {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                     <svg width="24" height="24" fill="none" viewBox="0 0 24 24" className="text-gray-800">
-                      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke="currentColor" strokeWidth="2" />
-                      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke="currentColor" strokeWidth="2" />
+                      <path
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
                     </svg>
                   </div>
                   <div>
@@ -1055,7 +1144,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Total Exhibitors */}
               <div className="bg-white p-6 shadow-sm relative rounded-r-2xl">
                 <div className="absolute top-4 right-4">
                   <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
@@ -1067,14 +1155,34 @@ useEffect(() => {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                     <svg width="24" height="24" fill="none" viewBox="0 0 24 24" className="text-gray-800">
-                      <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M17 21v-8H7v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M7 3v5h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M17 21v-8H7v8"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M7 3v5h8"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </div>
                   <div>
                     <h3 className="text-3xl font-bold text-gray-900 mb-1">
-                      {summaryData.loading ? '...' : (summaryData.totalExhibitors ?? 0).toLocaleString()}
+                      {summaryData.loading
+                        ? '...'
+                        : (summaryData.totalExhibitors ?? 0).toLocaleString()}
                     </h3>
                     <p className="text-sm text-gray-600">{t.totalExhibitors}</p>
                   </div>
@@ -1082,7 +1190,6 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* User Management Content - Table */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex flex-wrap gap-3 mb-4">
                 <button
@@ -1153,9 +1260,7 @@ useEffect(() => {
                       {filteredUsers.map((user, index) => (
                         <Fragment key={user.id}>
                           <tr className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-3 px-4 text-sm text-gray-900">
-                              {index + 1}
-                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-900">{index + 1}</td>
                             <td className="py-3 px-4 text-sm text-gray-900 w-2/5 min-w-[220px] whitespace-normal break-words">
                               {user.username}
                             </td>
@@ -1252,37 +1357,67 @@ useEffect(() => {
                             <tr className="border-b border-gray-100">
                               <td colSpan={5} className="bg-gray-50 px-4 py-4">
                                 {previewLoading ? (
-                                  <div className="text-sm text-gray-500">{selectedLanguage.code === 'TH' ? t.loading : t.loadingJP}</div>
+                                  <div className="text-sm text-gray-500">
+                                    {selectedLanguage.code === 'TH' ? t.loading : t.loadingJP}
+                                  </div>
                                 ) : !previewData ? (
                                   <div className="text-sm text-gray-500">{t.previewNoData}</div>
                                 ) : previewData.type === 'visitor' ? (
                                   <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">{selectedLanguage.code === 'TH' ? t.previewVisitorSection : t.previewVisitorSectionJP  }</h4>
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                                      {selectedLanguage.code === 'TH'
+                                        ? t.previewVisitorSection
+                                        : t.previewVisitorSectionJP}
+                                    </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
                                       <div>
-                                        <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorFullName : t.visitorFullNameJP}</p>
-                                        <p className="font-medium">{previewData.payload?.fullName || '-'}</p>
+                                        <p className="text-gray-500">
+                                          {selectedLanguage.code === 'TH'
+                                            ? t.visitorFullName
+                                            : t.visitorFullNameJP}
+                                        </p>
+                                        <p className="font-medium">
+                                          {previewData.payload?.fullName || '-'}
+                                        </p>
                                       </div>
                                       <div>
-                                        <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorCompanyName : t.visitorCompanyNameJP}</p>
-                                        <p className="font-medium">{previewData.payload?.companyName || '-'}</p>
+                                        <p className="text-gray-500">
+                                          {selectedLanguage.code === 'TH'
+                                            ? t.visitorCompanyName
+                                            : t.visitorCompanyNameJP}
+                                        </p>
+                                        <p className="font-medium">
+                                          {previewData.payload?.companyName || '-'}
+                                        </p>
                                       </div>
                                       <div>
-                                        <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.previewContact : t.previewContactJP}</p>
-                                        <p className="font-medium">{previewData.payload?.contact || '-'}</p>
+                                        <p className="text-gray-500">
+                                          {selectedLanguage.code === 'TH'
+                                            ? t.previewContact
+                                            : t.previewContactJP}
+                                        </p>
+                                        <p className="font-medium">
+                                          {previewData.payload?.contact || '-'}
+                                        </p>
                                       </div>
                                       <div>
-                                        <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.visitorCategoriesLabel : t.visitorCategoriesLabelJP}</p>
+                                        <p className="text-gray-500">
+                                          {selectedLanguage.code === 'TH'
+                                            ? t.visitorCategoriesLabel
+                                            : t.visitorCategoriesLabelJP}
+                                        </p>
                                         <div className="flex flex-wrap gap-1 mt-1">
                                           {(previewData.payload?.categories || []).length > 0 ? (
-                                            previewData.payload.categories.map((category, idx) => (
-                                              <span
-                                                key={`${user.id}-visitor-cat-${idx}`}
-                                                className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs"
-                                              >
-                                                {category}
-                                              </span>
-                                            ))
+                                            previewData.payload.categories.map(
+                                              (category: string, idx: number) => (
+                                                <span
+                                                  key={`${user.id}-visitor-cat-${idx}`}
+                                                  className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs"
+                                                >
+                                                  {category}
+                                                </span>
+                                              )
+                                            )
                                           ) : (
                                             <span className="text-xs text-gray-400">-</span>
                                           )}
@@ -1292,43 +1427,81 @@ useEffect(() => {
                                   </div>
                                 ) : (
                                   <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">{selectedLanguage.code === 'TH' ? t.previewExhibitorSection : t.previewExhibitorSectionJP}</h4>
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                                      {selectedLanguage.code === 'TH'
+                                        ? t.previewExhibitorSection
+                                        : t.previewExhibitorSectionJP}
+                                    </h4>
                                     {previewData.payload ? (
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
                                         <div>
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyName : t.companyNameJP}</p>
-                                          <p className="font-medium">{previewData.payload.companyName || '-'}</p>
+                                          <p className="text-gray-500">
+                                            {selectedLanguage.code === 'TH'
+                                              ? t.companyName
+                                              : t.companyNameJP}
+                                          </p>
+                                          <p className="font-medium">
+                                            {previewData.payload.companyName || '-'}
+                                          </p>
                                         </div>
                                         <div>
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyEmail : t.companyEmailJP}</p>
-                                          <p className="font-medium">{previewData.payload.companyEmail || '-'}</p>
+                                          <p className="text-gray-500">
+                                            {selectedLanguage.code === 'TH'
+                                              ? t.companyEmail
+                                              : t.companyEmailJP}
+                                          </p>
+                                          <p className="font-medium">
+                                            {previewData.payload.companyEmail || '-'}
+                                          </p>
                                         </div>
                                         <div>
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyPhone : t.companyPhoneJP}</p>
-                                          <p className="font-medium">{previewData.payload.companyPhone || '-'}</p>
+                                          <p className="text-gray-500">
+                                            {selectedLanguage.code === 'TH'
+                                              ? t.companyPhone
+                                              : t.companyPhoneJP}
+                                          </p>
+                                          <p className="font-medium">
+                                            {previewData.payload.companyPhone || '-'}
+                                          </p>
                                         </div>
                                         <div>
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyWebsite : t.companyWebsiteJP}</p>
-                                          <p className="font-medium">{previewData.payload.website || '-'}</p>
+                                          <p className="text-gray-500">
+                                            {selectedLanguage.code === 'TH'
+                                              ? t.companyWebsite
+                                              : t.companyWebsiteJP}
+                                          </p>
+                                          <p className="font-medium">
+                                            {previewData.payload.website || '-'}
+                                          </p>
                                         </div>
                                         <div className="md:col-span-2">
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyDescription : t.companyDescriptionJP}</p>
+                                          <p className="text-gray-500">
+                                            {selectedLanguage.code === 'TH'
+                                              ? t.companyDescription
+                                              : t.companyDescriptionJP}
+                                          </p>
                                           <p className="font-medium mt-1 text-gray-700">
                                             {previewData.payload.companyDescription || '-'}
                                           </p>
                                         </div>
                                         <div className="md:col-span-2">
-                                          <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.tagsTitle : t.tagsTitleJP}</p>
+                                          <p className="text-gray-500">
+                                            {selectedLanguage.code === 'TH'
+                                              ? t.tagsTitle
+                                              : t.tagsTitleJP}
+                                          </p>
                                           <div className="flex flex-wrap gap-1 mt-1">
                                             {(previewData.payload.categories || []).length > 0 ? (
-                                              previewData.payload.categories.map((category, idx) => (
-                                                <span
-                                                  key={`${user.id}-exhibitor-cat-${idx}`}
-                                                  className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs"
-                                                >
-                                                  {category}
-                                                </span>
-                                              ))
+                                              previewData.payload.categories.map(
+                                                (category: string, idx: number) => (
+                                                  <span
+                                                    key={`${user.id}-exhibitor-cat-${idx}`}
+                                                    className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs"
+                                                  >
+                                                    {category}
+                                                  </span>
+                                                )
+                                              )
                                             ) : (
                                               <span className="text-xs text-gray-400">-</span>
                                             )}
@@ -1336,7 +1509,11 @@ useEffect(() => {
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="text-sm text-gray-500">{selectedLanguage.code === 'TH' ? t.previewNoData : t.previewNoDataJP}</div>
+                                      <div className="text-sm text-gray-500">
+                                        {selectedLanguage.code === 'TH'
+                                          ? t.previewNoData
+                                          : t.previewNoDataJP}
+                                      </div>
                                     )}
                                   </div>
                                 )}
@@ -1381,7 +1558,10 @@ useEffect(() => {
                 <div className="max-w-3xl mx-auto space-y-6">
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="visitor-fullName">
+                      <label
+                        className="block text-sm font-medium text-gray-600 mb-1"
+                        htmlFor="visitor-fullName"
+                      >
                         {t.visitorFullName}
                       </label>
                       <input
@@ -1394,7 +1574,10 @@ useEffect(() => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="visitor-companyName">
+                      <label
+                        className="block text-sm font-medium text-gray-600 mb-1"
+                        htmlFor="visitor-companyName"
+                      >
                         {t.visitorCompanyName}
                       </label>
                       <input
@@ -1407,7 +1590,10 @@ useEffect(() => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="visitor-contact">
+                      <label
+                        className="block text-sm font-medium text-gray-600 mb-1"
+                        htmlFor="visitor-contact"
+                      >
                         {t.visitorContact}
                       </label>
                       <input
@@ -1452,46 +1638,51 @@ useEffect(() => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col items-center gap-4">
                     <div className="w-32 h-32 rounded-full border border-dashed border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center">
-                      {editFormData.logoPreview ? (
+                      {editFormData.logoUrl ? (
                         <Image
-                          src={editFormData.logoPreview}
+                          src={editFormData.logoUrl}
                           alt={editFormData.companyName || 'Company Logo'}
                           width={128}
                           height={128}
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-                          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M14 14l1.586-1.586a2 2 0 012.828 0L20 14" strokeLinecap="round" strokeLinejoin="round" />
+                        <svg
+                          width="48"
+                          height="48"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#9ca3af"
+                          strokeWidth="1.5"
+                        >
+                          <path
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M14 14l1.586-1.586a2 2 0 012.828 0L20 14"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
                           <circle cx="8.5" cy="7.5" r="1.75" />
                         </svg>
                       )}
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-medium text-gray-900">{editFormData.companyName || '-'}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {editFormData.companyName || '-'}
+                      </p>
                       <p className="text-xs text-gray-500">{editTarget?.email || ''}</p>
                     </div>
-                    <label
-                      htmlFor="edit-logo-upload"
-                      className="w-full text-center px-4 py-2 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-600 cursor-pointer hover:border-gray-400 transition"
-                    >
-                      {t.uploadLogo}
-                    </label>
-                    <input
-                      id="edit-logo-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleEditLogoChange}
-                      disabled={editSaving}
-                    />
-                    <p className="text-xs text-gray-500 text-center">{t.logoRequirements}</p>
                   </div>
                   <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="edit-companyName">
+                        <label
+                          className="block text-sm font-medium text-gray-600 mb-1"
+                          htmlFor="edit-companyName"
+                        >
                           {t.companyName}
                         </label>
                         <input
@@ -1504,7 +1695,10 @@ useEffect(() => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="edit-taxId">
+                        <label
+                          className="block text-sm font-medium text-gray-600 mb-1"
+                          htmlFor="edit-taxId"
+                        >
                           {t.taxId}
                         </label>
                         <input
@@ -1519,7 +1713,10 @@ useEffect(() => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="edit-companyPhone">
+                        <label
+                          className="block text-sm font-medium text-gray-600 mb-1"
+                          htmlFor="edit-companyPhone"
+                        >
                           {t.companyPhone}
                         </label>
                         <input
@@ -1532,7 +1729,10 @@ useEffect(() => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="edit-branchId">
+                        <label
+                          className="block text-sm font-medium text-gray-600 mb-1"
+                          htmlFor="edit-branchId"
+                        >
                           {t.branchId}
                         </label>
                         <input
@@ -1545,7 +1745,10 @@ useEffect(() => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="edit-companyEmail">
+                        <label
+                          className="block text-sm font-medium text-gray-600 mb-1"
+                          htmlFor="edit-companyEmail"
+                        >
                           {t.companyEmail}
                         </label>
                         <input
@@ -1560,33 +1763,69 @@ useEffect(() => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="edit-companyWebsite">
+                        <label
+                          className="block text-sm font-medium text-gray-600 mb-1"
+                          htmlFor="edit-companyWebsite"
+                        >
                           {t.companyWebsite}
                         </label>
                         <input
                           id="edit-companyWebsite"
                           type="text"
                           value={editFormData.companyWebsite}
-                          onChange={(e) => handleEditInputChange('companyWebsite', e.target.value)}
+                          onChange={(e) =>
+                            handleEditInputChange('companyWebsite', e.target.value)
+                          }
                           className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                           disabled={editSaving}
                         />
                       </div>
+
+                      {/* ช่องกรอกลิงก์โลโก้ */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1" htmlFor="edit-companyDescription">
+                        <label
+                          className="block text-sm font-medium text-gray-600 mb-1"
+                          htmlFor="edit-logoUrl"
+                        >
+                          {t.companyLogoUrl || 'Logo URL'}
+                        </label>
+                        <input
+                          id="edit-logoUrl"
+                          type="text"
+                          placeholder="https://example.com/logo.png"
+                          value={editFormData.logoUrl}
+                          onChange={(e) => handleLogoUrlChange(e.target.value)}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+                          disabled={editSaving}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {t.logoRequirementsUrl ||
+                            'กรอกลิงก์รูปภาพ (ต้องเป็นลิงก์ไฟล์ .png, .jpg, .jpeg, .webp, .gif, .svg ที่เข้าถึงได้สาธารณะ)'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label
+                          className="block text-sm font-medium text-gray-600 mb-1"
+                          htmlFor="edit-companyDescription"
+                        >
                           {t.companyDescription}
                         </label>
                         <textarea
                           id="edit-companyDescription"
                           value={editFormData.companyDescription}
-                          onChange={(e) => handleEditInputChange('companyDescription', e.target.value)}
+                          onChange={(e) =>
+                            handleEditInputChange('companyDescription', e.target.value)
+                          }
                           className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 min-h-[80px]"
                           disabled={editSaving}
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-2">{t.tagsTitle}</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-2">
+                        {t.tagsTitle}
+                      </label>
                       <div className="space-y-2">
                         {[0].map((index) => {
                           const currentValue = editCategories[index] || '';
@@ -1687,4 +1926,3 @@ useEffect(() => {
     </div>
   );
 }
-

@@ -14,7 +14,7 @@ const UserPanelPDPA = (props: props) => {
   const { isActionCared, toggleActionCared } = useActionCared();
   return (
     <div className="flex flex-col gap-1">
-      {isActionCared && <div className="w-full h-full bg-white  top-0 lg:top-5 absolute z-1">
+      {isActionCared && <div className="w-72 h-72 bg-white  top-0 lg:top-5 absolute z-1">
         <button type="button"
           onClick={() => {
             //  router.push('/pdpa')
@@ -22,7 +22,7 @@ const UserPanelPDPA = (props: props) => {
           }}
           className="flex lg:ml-12  relative z-5 text-xl items-center gap-2 text-gray-700 hover:text-gray-900 transition"
         >
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <svg width="72" height="72" fill="none" viewBox="0 0 72 72">
             <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           {props.back}
@@ -38,12 +38,11 @@ const UserPanelPDPA = (props: props) => {
             //  router.push('/pdpa')
             toggleActionCared(true)
           }}
-          className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 hover:underline text-left"
+          className="text-xs sm:text-lg text-gray-700 hover:text-gray-900 hover:underline text-left"
         >
           {props.pdpa}
         </button>
       </div>
-      <p className="text-xs text-gray-500 ml-6">{props.readPolicy}</p>
     </div>
   )
 }
