@@ -1,17 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import localFont from 'next/font/local';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import translations, { japaneseTagLabels } from '../components/translations';
 import { sentForm } from './action';
-import UserPanelPDPA from '../components/ีuser-panels/UserPanelPDPA';
-import { useConsent } from '../contexts/pdpa';
 import { useLanguage } from '../contexts/LanguageProvider';
-
+import { createSesstion, lookSesstion } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
 
 const getTagLabelByLanguage = (name, languageCode) => {
   if (languageCode === 'JP') {
@@ -20,34 +16,46 @@ const getTagLabelByLanguage = (name, languageCode) => {
   return name;
 };
 
+// const look = async () =>{
+//   const router = useRouter();
+//   const lookCokie = await  lookSesstion();
+//   const myCookie = await createSesstion(lookCokie);
+//   if (myCookie === "/usermatching") return router.replace(myCookie);
+// }
 export default function UserPanelPage() {
   const router = useRouter();
   const languageOptions = [
     { code: 'TH', label: 'ภาษาไทย' },
     { code: 'JP', label: '日本語' },
   ];
+
+
+
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const languageDropdownRef = useRef(null);
   const categoryDropdownRef = useRef(null);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const { isAccepted, toggleConsent } = useConsent();
-  const { language, toggleLanguage } = useLanguage();
+
+  const { language } = useLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const t = translations[selectedLanguage.code];
+  
 
   useEffect(() => {
     setSelectedLanguage(language);
-  }, [language])
+  }, [language]);
 
   const [formData, setFormData] = useState({
     fullName: '',
     companyName: '',
     contact: '',
     position: '',
-    categories: ['',''],
+    categories: ['', ''],
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
+
   const fallbackProblemTags = [
     { name: 'Smart Farming', description: '' },
     { name: 'Green Energy', description: '' },
@@ -55,13 +63,21 @@ export default function UserPanelPage() {
     { name: 'Supply Chain', description: '' },
     { name: 'Smart City', description: '' },
   ];
+
   const [problemTags, setProblemTags] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(true);
 
+  // init language from localStorage + click outside dropdowns
   useEffect(() => {
-    const storedLanguage = typeof window !== 'undefined' ? localStorage.getItem('selectedLanguage') : null;
+    const storedLanguage =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('selectedLanguage')
+        : null;
+
     if (storedLanguage) {
-      const foundOption = languageOptions.find((option) => option.code === storedLanguage);
+      const foundOption = languageOptions.find(
+        (option) => option.code === storedLanguage
+      );
       if (foundOption) {
         setSelectedLanguage(foundOption);
       }
@@ -88,6 +104,7 @@ export default function UserPanelPage() {
     };
   }, []);
 
+  // fetch problem tags
   useEffect(() => {
     const fetchProblemTags = async () => {
       try {
@@ -98,7 +115,7 @@ export default function UserPanelPage() {
           const name = data.name?.trim();
           if (name) {
             tagsMap.set(name, {
-              name: name,
+              name,
               description: data.description?.trim() || '',
             });
           }
@@ -112,16 +129,9 @@ export default function UserPanelPage() {
         setTagsLoading(false);
       }
     };
+
     fetchProblemTags();
   }, []);
-
-  const handleLanguageSelect = (option) => {
-    setSelectedLanguage(option);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('selectedLanguage', option.code);
-    }
-    setIsLanguageOpen(false);
-  };
 
   const handleChange = (e) => {
     setFormData({
@@ -148,42 +158,56 @@ export default function UserPanelPage() {
       categories: newCategories,
     });
   };
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setIsSubmitting(true)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('userInterests', JSON.stringify(e.selectedCategories));
-      }
-      const formData = new FormData(e.currentTarget);
-      // 2. ส่งค่า isActionCared ไปให้ Server Action เป็นพารามิเตอร์ที่ 2
-      const result = await sentForm(formData, isAccepted);
-      if (result) {
-        router.replace('/usermatching');
-      } else {
-        setIsSubmitting(false)
-      }
-    };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitMessage('');
+    setIsSubmitting(true);
+
+    // ✅ บังคับให้เลือก Problem Category อย่างน้อย 1 อัน
+    const primaryCategory = formData.categories[0];
+    if (!primaryCategory) {
+      setSubmitMessage(t.categoryRequired || 'กรุณาเลือกหมวดหมู่ปัญหา');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const formDataObj = new FormData(e.currentTarget);
+
+    const result = await sentForm(formDataObj, true);
+
+    if (result) {
+      router.replace('/usermatching');
+    } else {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className={`relative z-0 min-h-screen bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 `}>
+    <div className="relative z-0 bg-white flex items-center justify-center p-3 sm:p-4 md:p-6">
       <div className="w-full max-w-[390px] lg:max-w-xl sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
-        {/* Header with Logo and Language Selector */}
-        {/* Main Content */}
         <main className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3 sm:gap-4">
             {/* Title */}
             <div className="text-center mb-2">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">{t.title}</h1>
-              <p className="text-xs sm:text-sm text-gray-600 px-2">{t.instruction}</p>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+                {t.title}
+              </h1>
+              <p className="text-xs sm:text-xl text-gray-900 font-medium px-2">
+                {t.instruction}
+              </p>
             </div>
 
             {/* Form Fields */}
             <div className="flex flex-col gap-3 sm:gap-4">
               {/* Full Name */}
               <div>
-                <label htmlFor="fullName" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
+                <label
+                  htmlFor="fullName"
+                  className="block text-xs sm:text-lg text-gray-700 mb-1.5 font-bold"
+                >
                   {t.fullName}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="fullName"
@@ -199,8 +223,12 @@ export default function UserPanelPage() {
 
               {/* Company Name */}
               <div>
-                <label htmlFor="companyName" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
+                <label
+                  htmlFor="companyName"
+                  className="block text-xs sm:text-lg text-gray-700 mb-1.5 font-bold"
+                >
                   {t.companyName}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="companyName"
@@ -216,8 +244,12 @@ export default function UserPanelPage() {
 
               {/* Position */}
               <div>
-                <label htmlFor="position" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
+                <label
+                  htmlFor="position"
+                  className="block text-xs sm:text-lg text-gray-700 mb-1.5 font-bold"
+                >
                   {t.position}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="position"
@@ -233,8 +265,12 @@ export default function UserPanelPage() {
 
               {/* Contact Info */}
               <div>
-                <label htmlFor="contact" className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
+                <label
+                  htmlFor="contact"
+                  className="block text-xs sm:text-lg text-gray-700 mb-1.5 font-bold"
+                >
                   {t.contactInfo}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="contact"
@@ -249,19 +285,23 @@ export default function UserPanelPage() {
 
               {/* Problem Categories */}
               <div>
-                <label className="block text-xs sm:text-sm text-gray-700 mb-1.5 font-medium">
+                <label className="block text-xs sm:text-lg text-gray-700 mb-1.5 font-bold">
                   {t.problemCategory}
+                  <span className="text-red-500">*</span>
                 </label>
                 <div className="flex flex-col gap-2">
-                 {[0].map((index) => {
+                  {[0].map((index) => {
                     const selectedCategory = formData.categories[index];
-                    const selectedTag = problemTags.find((tag) => tag.name === selectedCategory);
+                    const selectedTag = problemTags.find(
+                      (tag) => tag.name === selectedCategory
+                    );
                     return (
                       <div key={index} className="flex flex-col gap-1.5">
                         <select
                           value={selectedCategory}
                           name="selectedCategories"
                           onChange={(e) => handleCategoryChange(index, e.target.value)}
+                          required
                           className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none text-gray-900 text-sm sm:text-base appearance-none bg-white"
                           style={{
                             backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
@@ -272,14 +312,17 @@ export default function UserPanelPage() {
                           }}
                         >
                           <option value="">
-                            {tagsLoading && problemTags.length === 0 ? 'Loading...' : t.selectCategory}
+                            {tagsLoading && problemTags.length === 0
+                              ? 'Loading...'
+                              : t.selectCategory}
                           </option>
                           {problemTags.map((tag) => (
-                            <option key={`${tag.name}-${index}`}  value={tag.name}>
+                            <option key={`${tag.name}-${index}`} value={tag.name}>
                               {getTagLabelByLanguage(tag.name, selectedLanguage.code)}
                             </option>
                           ))}
                         </select>
+
                         {selectedTag && selectedTag.description && (
                           <p className="text-xs sm:text-sm text-gray-600 px-3 sm:px-4 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
                             {selectedTag.description}
@@ -291,7 +334,10 @@ export default function UserPanelPage() {
                 </div>
               </div>
 
-              <UserPanelPDPA pdpa={t.pdpa} readPolicy={t.readPolicy} back={t.back} selectedLanguage={selectedLanguage} />
+              {/* PDPA Text */}
+              <p className="text-[10px] sm:text-lg text-gray-500 leading-snug mt-1">
+                {t.pdpa}
+              </p>
 
               {/* Submit Button */}
               <button
@@ -301,10 +347,14 @@ export default function UserPanelPage() {
               >
                 {isSubmitting ? '...' : t.register}
               </button>
+
               {submitMessage && (
                 <p
-                  className={`text-xs sm:text-sm mt-2 ${submitMessage === t.submitSuccess ? 'text-green-600' : 'text-red-600'
-                    }`}
+                  className={`text-xs sm:text-sm mt-2 ${
+                    submitMessage === t.submitSuccess
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                  }`}
                 >
                   {submitMessage}
                 </p>
@@ -313,7 +363,6 @@ export default function UserPanelPage() {
           </form>
         </main>
       </div>
-
     </div>
   );
 }

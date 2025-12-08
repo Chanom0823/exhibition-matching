@@ -13,7 +13,7 @@ const ButtonPDPA = (props: Props) => {
         toggleConsent(e.target.checked)
         console.log(e.target.checked)
       }}
-      className={`mt-1 w-3.5 h-3.5 sm:w-4 sm:h-4 border-gray-300 rounded text-gray-900 focus:ring-gray-900 `
+      className={`mt-1 w-3.5 h-3.5 sm:w-6 sm:h-6 border-gray-300 rounded text-gray-900 focus:ring-gray-900 `
       }
     />
   )

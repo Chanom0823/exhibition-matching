@@ -3,7 +3,6 @@
 import { createSesstion, lookSesstion } from "@/lib/auth";
 import { db } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { redirect } from "next/navigation";
 
 export async function sentForm(formData: FormData, isAccepted: boolean) {
   const trimmedFullName = formData.get('fullName');
