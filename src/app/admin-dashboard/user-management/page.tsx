@@ -332,7 +332,7 @@ export default function UserManagementPage() {
     }
     setIsLanguageOpen(false);
   };
-
+//
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('isLoggedIn');
