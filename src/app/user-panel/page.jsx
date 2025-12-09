@@ -318,7 +318,7 @@ export default function UserPanelPage() {
                         </select>
 
                         {selectedTag && selectedTag.description && (
-                          <p className="text-xs sm:text-sm text-gray-900 px-3 sm:px-4 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-[15px] sm:text-sm text-gray-900 px-3 sm:px-4 py-1.5 bg-gray-50 rounded-lg border border-gray-200 font-bold">
                             {selectedTag.description}
                           </p>
                         )}
@@ -329,7 +329,7 @@ export default function UserPanelPage() {
               </div>
 
               {/* PDPA Text */}
-              <p className="text-[10px] sm:text-lg text-gray-900 leading-snug mt-1 font-bold">
+              <p className="text-[13px] sm:text-lg text-gray-900 leading-snug mt-1 font-bold">
                 {t.pdpa}
               </p>
 
