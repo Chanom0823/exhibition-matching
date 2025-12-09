@@ -58,7 +58,7 @@ export default function MainNavbar({ languageOptions, onLanguageSelect, loginLab
         {!['/usermatching', '/user-panel', '/login'].includes(pathName || '') && (
           <Link
             href="/login"
-            className="bg-gray-800 text-white rounded-lg w-[68px] h-[35px] md:w-35 md:h-10 text-sm md:text-base flex items-center justify-center hover:bg-gray-700 transition"
+            className="bg-gray-800 text-white rounded-lg w-[70px] h-[35px] md:w-[100px] md:h-[40px] text-sm md:text-base flex items-center justify-center hover:bg-gray-700 transition"
           >
             {t.loginCta}
           </Link>

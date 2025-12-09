@@ -51,12 +51,12 @@ export default function HomePage() {
   return (
     <>
         {/* Hero Content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 lg:px-12 text-center gap-4 md:gap-6 pt-20 md:pt-0">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 lg:px-12 text-center gap-4 md:gap-6 pt-0 md:pt-0">
           <div className="max-w-3xl  mx-auto">
             <h1 className="text-xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-snug md:leading-tight mb-4 md:mb-6">
               {headingContent}
             </h1>
-            <p className="text-sm md:text-lg lg:text-xl text-gray-600 mb-6 md:mb-8 max-w-xl mx-auto">
+            <p className="text-sm md:text-lg lg:text-xl text-gray-900 mb-6 md:mb-8 max-w-xl mx-auto">
               {descriptionContent}
             </p>
             <Link
