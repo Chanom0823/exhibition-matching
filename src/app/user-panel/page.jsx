@@ -18,12 +18,6 @@ const getTagLabelByLanguage = (name, languageCode) => {
 
 export default function UserPanelPage() {
   const router = useRouter();
-  const languageOptions = [
-    { code: 'TH', label: 'ภาษาไทย' },
-    { code: 'JP', label: '日本語' },
-  ];
-
-
 
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -60,43 +54,6 @@ export default function UserPanelPage() {
 
   const [problemTags, setProblemTags] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(true);
-
-  // init language from localStorage + click outside dropdowns
-  useEffect(() => {
-    const storedLanguage =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('selectedLanguage')
-        : null;
-
-    if (storedLanguage) {
-      const foundOption = languageOptions.find(
-        (option) => option.code === storedLanguage
-      );
-      if (foundOption) {
-        setSelectedLanguage(foundOption);
-      }
-    }
-
-    const handleClickOutside = (event) => {
-      if (
-        languageDropdownRef.current &&
-        !languageDropdownRef.current.contains(event.target)
-      ) {
-        setIsLanguageOpen(false);
-      }
-      if (
-        categoryDropdownRef.current &&
-        !categoryDropdownRef.current.contains(event.target)
-      ) {
-        setIsCategoryOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   // fetch problem tags
   useEffect(() => {
