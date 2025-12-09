@@ -33,7 +33,7 @@ export default function UserPanelPage() {
   const { language } = useLanguage();
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const t = translations[selectedLanguage.code];
-  
+
 
   useEffect(() => {
     setSelectedLanguage(language);
@@ -344,11 +344,10 @@ export default function UserPanelPage() {
 
               {submitMessage && (
                 <p
-                  className={`text-xs sm:text-sm mt-2 ${
-                    submitMessage === t.submitSuccess
+                  className={`text-xs sm:text-sm mt-2 ${submitMessage === t.submitSuccess
                       ? 'text-green-600'
                       : 'text-red-600'
-                  }`}
+                    }`}
                 >
                   {submitMessage}
                 </p>
