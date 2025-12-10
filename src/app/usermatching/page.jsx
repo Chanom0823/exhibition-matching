@@ -139,9 +139,6 @@ export default function UserMatchingPage() {
     });
   }
 
-
-
-
   const titleContent = t.titleLine2 ? (
     <>
       {t.titleLine1}
