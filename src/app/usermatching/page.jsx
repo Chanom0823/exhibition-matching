@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { lookSesstion } from '@/lib/auth';
 import { useLanguage } from '../contexts/LanguageProvider';
 import translations from '../components/translations';
+import { queryMatching } from './action';
 
 // Decide readable text color based on background color
 const getTextColorFromBg = (hex) => {
@@ -58,45 +59,32 @@ export default function UserMatchingPage() {
   };
 
   useEffect(() => {
-    const loadExhibitors = async () => {
-      setLoading(true);
-      try {
-        const visitorId = await lookSesstion();
-        
-        const visitorDocRef = doc(db, 'userPanelSubmissions', visitorId);
-        const visitorSnap = await getDoc(visitorDocRef);
-        let visitorInterests = [];
+  const loadExhibitors = async () => {
+   setLoading(true);
+   
+   try {
+    // 1. เรียกใช้ Server Action และรับค่าที่ส่งกลับมา
+    const result = await queryMatching(); 
 
-        if (visitorSnap.exists()) {
-          const data = visitorSnap.data();
-          visitorInterests = data.categories || [];
-        }
-        const exhibitorsRef = collection(db, 'exhibitors');
-        const q = query(exhibitorsRef, where('categories', 'array-contains-any', visitorInterests));
-        const querySnapshot = await getDocs(q);
+    // 2. ตรวจสอบว่าผลลัพธ์เป็น Error Object ไหม
+    if (result && result instanceof Error) {
+     console.error('Error fetching exhibitors:', result);
+     // อาจจะแสดงข้อความ Error ให้ผู้ใช้เห็น
+    } else {
+     // 3. ถ้าไม่ใช่ Error และมีข้อมูล
+     setExhibitors(result || []); // ใช้งานค่าที่ส่งกลับมา
+    }
+   } catch (err) {
+    // จัดการ Error ที่เกิดระหว่างการเรียกใช้ (ถ้ามี)
+    console.error('An unexpected error occurred:', err);
+   } finally {
+    // สุดท้าย ตั้งค่า Loading เป็น false เสมอ
+    setLoading(false);
+   }
+  };
 
-        const exhibitorsData = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-
-          // Only include exhibitors that have been saved (have companyName and isComplete flag)
-          if (data.isComplete && data.companyName && data.categories && data.categories.length > 0) {
-            exhibitorsData.push({
-              id: doc.id,
-              ...data,
-            });
-          }
-        });
-        setExhibitors(exhibitorsData);
-      } catch (error) {
-        console.error('Error loading exhibitors:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadExhibitors();
-  }, []);
+  loadExhibitors();
+ }, []);
 
   useEffect(() => {
     const loadProblemTags = async () => {
@@ -194,6 +182,7 @@ export default function UserMatchingPage() {
               height={200}
               loading="eager"
               className="w-full h-auto rounded-lg"
+              priority
             />
           </div>
 
