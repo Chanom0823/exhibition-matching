@@ -20,6 +20,7 @@ type Props = {
 const MENU_CONFIG = [
   { key: 'Dashboard', icon: '/dashboard.png', path: '/admin-dashboard' },
   { key: 'UserManagement', icon: '/user.png', path: '/admin-dashboard/user-management' },
+  { key: 'VisitorMatching', icon: '/visitor.png', path: '/admin-dashboard/visitor-matching' },
   { key: 'ExhibitorMatching', icon: '/exbihitor.png', path: '/admin-dashboard/exhibitor-matching' },
   { key: 'ProblemTagManagement', icon: '/file.png', path: '/admin-dashboard/problem-tag-management' },
   { key: 'UserSessions', icon: '/time.png', path: '/admin-dashboard/user-sessions' },
