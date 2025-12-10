@@ -1,3 +1,5 @@
+import SearchFilter from "./SearchFilter";
+
 export const japaneseTagLabels = {
   'ด้านสิ่งแวดล้อม และการดำเนินงานตามหลัก ESG': '環境・ESG',
   'การจัดการด้านสิ่งแวดล้อม / การประหยัดพลังงาน / การตอบโจทย์ ESG ยังดำเนินไปไม่ดี':
@@ -124,7 +126,8 @@ const translations = {
     previewContact: 'ช่องทางติดต่อ',
     previewNoData: 'ไม่พบข้อมูลการลงทะเบียน',
     //exhibitor-matching
-    exhibitorMatching: 'Exhibitor Matching',
+    exhibitormatching: 'Exhibitor-Matching',
+    visitormatching: 'Visitor-Matching',
     // User Panel Registration Form
     title: 'ยินดีต้อนรับ',
     instruction: 'กรอกข้อมูลที่จำเป็นเพื่อดำเนินการต่อ',
@@ -543,7 +546,8 @@ const translations = {
     previewContact: '連絡先',
     previewNoDataJP: '登録情報が見つかりません',
     //exhibitor-matching
-    exhibitorMatching: '出展者マッチング機能',
+    exhibitormatching: '出展者マッチング機能',
+    visitormatching: '来場者マッチング機能',
     // User Panel Registration Form
     title: 'ようこそ',
     instruction: '必要事項を入力して続行してください',

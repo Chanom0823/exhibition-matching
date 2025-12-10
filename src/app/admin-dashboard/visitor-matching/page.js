@@ -360,176 +360,6 @@ export default function UserManagementPage() {
     }
   };
 
-  
-  //   // Use English translations for PDF export
-  //   const pdfT = translations.EN;
-
-  //   // Calculate filtered users for export
-  //   const filteredUsersForExport = usersData.users.filter((user) => {
-  //     if (roleFilter === 'visitors') return user.role === 'visitor';
-  //     if (roleFilter === 'exhibitors') return user.role === 'exhibitor';
-  //     return true;
-  //   });
-
-  //   const pdf = new jsPDF();
-  //   const pageWidth = pdf.internal.pageSize.getWidth();
-  //   const pageHeight = pdf.internal.pageSize.getHeight();
-  //   let yPosition = 20;
-  //   const margin = 20;
-  //   const lineHeight = 7;
-  //   const sectionSpacing = 15;
-  //   const cardHeight = 25;
-  //   const cardSpacing = 10;
-
-  //   // Helper function to add new page if needed
-  //   const checkNewPage = (requiredSpace) => {
-  //     if (yPosition + requiredSpace > pageHeight - margin) {
-  //       pdf.addPage();
-  //       yPosition = 20;
-  //       return true;
-  //     }
-  //     return false;
-  //   };
-
-  //   // Title
-  //   pdf.setFontSize(20);
-  //   pdf.setFont('helvetica', 'bold');
-  //   pdf.text(pdfT.userManagement, margin, yPosition);
-  //   yPosition += lineHeight + 8;
-
-  //   // Date (English format)
-  //   pdf.setFontSize(10);
-  //   pdf.setFont('helvetica', 'normal');
-  //   const currentDate = new Date().toLocaleDateString('en-US', {
-  //     year: 'numeric',
-  //     month: 'long',
-  //     day: 'numeric',
-  //   });
-  //   pdf.text(`Date: ${currentDate}`, margin, yPosition);
-  //   yPosition += sectionSpacing + 5;
-
-  //   // Summary Cards Section (3 cards in a row)
-  //   checkNewPage(cardHeight + 10);
-  //   const cardWidth = (pageWidth - margin * 2 - cardSpacing * 2) / 3;
-  //   const summaryCards = [
-  //     { label: pdfT.totalParticipants, value: summaryData.totalParticipants.toLocaleString() },
-  //     { label: pdfT.totalVisitors, value: summaryData.totalVisitors.toLocaleString() },
-  //     { label: pdfT.totalExhibitors, value: summaryData.totalExhibitors.toLocaleString() },
-  //   ];
-
-  //   summaryCards.forEach((card, index) => {
-  //     const xPos = margin + index * (cardWidth + cardSpacing);
-
-  //     // Draw card background
-  //     pdf.setDrawColor(200, 200, 200);
-  //     pdf.setFillColor(255, 255, 255);
-  //     pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, 'FD');
-
-  //     // Card content
-  //     pdf.setFontSize(12);
-  //     pdf.setFont('helvetica', 'bold');
-  //     pdf.text(card.value, xPos + 5, yPosition + 10);
-
-  //     pdf.setFontSize(8);
-  //     pdf.setFont('helvetica', 'normal');
-  //     const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
-  //     pdf.text(labelLines, xPos + 5, yPosition + 16);
-  //   });
-  //   yPosition += cardHeight + sectionSpacing;
-
-  //   // Filter information
-  //   checkNewPage(lineHeight + 5);
-  //   pdf.setFontSize(10);
-  //   pdf.setFont('helvetica', 'normal');
-  //   const filterText = roleFilter === 'all'
-  //     ? pdfT.filterAllUsers
-  //     : roleFilter === 'visitors'
-  //       ? pdfT.filterVisitors
-  //       : pdfT.filterExhibitors;
-  //   pdf.text(`Filter: ${filterText}`, margin, yPosition);
-  //   yPosition += sectionSpacing;
-
-  //   // Table Section
-  //   if (filteredUsersForExport.length > 0) {
-  //     checkNewPage(sectionSpacing + lineHeight * 3);
-  //     pdf.setFontSize(14);
-  //     pdf.setFont('helvetica', 'bold');
-  //     pdf.text('User List', margin, yPosition);
-  //     yPosition += lineHeight + 5;
-
-  //     // Table Header with background
-  //     pdf.setFillColor(240, 240, 240);
-  //     pdf.rect(margin, yPosition - 5, pageWidth - margin * 2, lineHeight + 4, 'F');
-
-  //     pdf.setFontSize(10);
-  //     pdf.setFont('helvetica', 'bold');
-  //     const colWidths = [15, 60, 50, 60];
-  //     const headers = [pdfT.tableNo, pdfT.tableUsername, pdfT.tableRole, pdfT.tableCreatedAt];
-  //     let xPosition = margin + 3;
-
-  //     headers.forEach((header, index) => {
-  //       pdf.text(header, xPosition, yPosition);
-  //       xPosition += colWidths[index];
-  //     });
-  //     yPosition += lineHeight + 3;
-
-  //     // Table Rows
-  //     pdf.setFont('helvetica', 'normal');
-  //     pdf.setDrawColor(220, 220, 220);
-  //     filteredUsersForExport.forEach((user, index) => {
-  //       checkNewPage(lineHeight + 3);
-
-  //       // Draw row border
-  //       pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
-
-  //       xPosition = margin + 3;
-
-  //       // No.
-  //       pdf.text(String(index + 1), xPosition, yPosition);
-  //       xPosition += colWidths[0];
-
-  //       // Username
-  //       const username = user.username.length > 25 ? user.username.substring(0, 22) + '...' : user.username;
-  //       pdf.text(username, xPosition, yPosition);
-  //       xPosition += colWidths[1];
-
-  //       // Role
-  //       const roleText = user.role === 'visitor' ? 'Visitors' : user.role === 'exhibitor' ? 'Exhibitor' : user.role;
-  //       pdf.text(roleText, xPosition, yPosition);
-  //       xPosition += colWidths[2];
-
-  //       // Created At
-  //       let createdAtText = '-';
-  //       if (user.createdAt) {
-  //         const date = user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
-  //         createdAtText = date.toLocaleDateString('en-US', {
-  //           year: 'numeric',
-  //           month: 'short',
-  //           day: 'numeric',
-  //           hour: '2-digit',
-  //           minute: '2-digit',
-  //         });
-  //       }
-  //       pdf.text(createdAtText, xPosition, yPosition);
-
-  //       yPosition += lineHeight + 2;
-  //     });
-  //   } else {
-  //     checkNewPage(sectionSpacing + lineHeight * 3);
-  //     pdf.setFontSize(14);
-  //     pdf.setFont('helvetica', 'bold');
-  //     pdf.text('User List', margin, yPosition);
-  //     yPosition += lineHeight + 5;
-
-  //     pdf.setFontSize(10);
-  //     pdf.setFont('helvetica', 'normal');
-  //     pdf.setTextColor(150, 150, 150);
-  //     pdf.text('No data available', margin, yPosition);
-  //     pdf.setTextColor(0, 0, 0);
-  //   }
-
-  // };
-
   const currentFontClass =
     selectedLanguage.code === 'JP' ? sawarabiFont.className : promptFont.className;
 
@@ -985,7 +815,7 @@ export default function UserManagementPage() {
           {/* Top Header */}
           <header className="px-4 md:px-10 py-4 flex items-center justify-between">
             {/* Page Title */}
-            <h1 className="text-4xl font-bold text-gray-900 whitespace-nowrap">{t.exhibitormatching}</h1>
+            <h1 className="text-4xl font-bold text-gray-900 whitespace-nowrap">{t.visitormatching}</h1>
             {/* Mobile Menu Button */}
             <button
               type="button"
@@ -1101,8 +931,11 @@ export default function UserManagementPage() {
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                           {selectedLanguage.code === 'TH' ? t.tableNo : t.tableNoJP}
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-2/5 min-w-[220px]">
-                          {selectedLanguage.code === 'TH' ? t.tableUsername : t.tableUsernameJP}
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-1/6 min-w-[220px]">
+                          {selectedLanguage.code === 'TH' ? t.fullName : t.fullNameJP}
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-1/6 min-w-[220px]">
+                          {selectedLanguage.code === 'TH' ? t.companyNamePlaceholder : t.companyNamePlaceholderJP}
                         </th>
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                           {t.tagColorLabel}
@@ -1214,29 +1047,29 @@ export default function UserManagementPage() {
                                       {previewData.payload ? (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-800">
                                           <div>
-                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyName : t.companyName}</p>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyName : t.companyNameJP}</p>
                                             <p className="font-medium">{previewData.payload.companyName || '-'}</p>
                                           </div>
                                           <div>
-                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyEmail : t.companyEmail}</p>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyEmail : t.companyEmailJP}</p>
                                             <p className="font-medium">{previewData.payload.companyEmail || '-'}</p>
                                           </div>
                                           <div>
-                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyPhone : t.companyPhone}</p>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyPhone : t.companyPhoneJP}</p>
                                             <p className="font-medium">{previewData.payload.companyPhone || '-'}</p>
                                           </div>
                                           <div>
-                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyWebsite : t.companyWebsite}</p>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyWebsite : t.companyWebsiteJP}</p>
                                             <p className="font-medium">{previewData.payload.website || '-'}</p>
                                           </div>
                                           <div className="md:col-span-2">
-                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyDescription : t.companyDescription}</p>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.companyDescription : t.companyDescriptionJP}</p>
                                             <p className="font-medium mt-1 text-gray-700">
                                               {previewData.payload.companyDescription || '-'}
                                             </p>
                                           </div>
                                           <div className="md:col-span-2">
-                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.tagsTitle : t.tagsTitle}</p>
+                                            <p className="text-gray-500">{selectedLanguage.code === 'TH' ? t.tagsTitle : t.tagsTitleJP}</p>
                                             <div className="flex flex-wrap gap-1 mt-1">
                                               {(previewData.payload.categories || []).length > 0 ? (
                                                 previewData.payload.categories.map((category, idx) => (

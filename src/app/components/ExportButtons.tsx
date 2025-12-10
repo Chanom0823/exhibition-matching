@@ -94,334 +94,334 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     }
   };
 
-  // ฟังก์ชัน Export เป็น PDF
-  const handleExportPDF = async () => {
-    // Check required data based on export type
-    if (exportType === 'userManagement') {
-      if (!usersData || !summaryData || !translations) {
-        return;
-      }
-    } else {
-      if (!summaryData || !comparisonData || !categoryData || !tableData || !translations) {
-        return;
-      }
-    }
+  // // ฟังก์ชัน Export เป็น PDF
+  // const handleExportPDF = async () => {
+  //   // Check required data based on export type
+  //   if (exportType === 'userManagement') {
+  //     if (!usersData || !summaryData || !translations) {
+  //       return;
+  //     }
+  //   } else {
+  //     if (!summaryData || !comparisonData || !categoryData || !tableData || !translations) {
+  //       return;
+  //     }
+  //   }
 
-    // import แบบ dynamic ป้องกัน error window is not defined
-    const jsPDF = (await import("jspdf")).default;
-    const autoTable = (await import("jspdf-autotable")).default;
+  //   // import แบบ dynamic ป้องกัน error window is not defined
+  //   const jsPDF = (await import("jspdf")).default;
+  //   const autoTable = (await import("jspdf-autotable")).default;
 
-    const pdf = new jsPDF();
+  //   const pdf = new jsPDF();
     
-    // Determine language
-    const langCode = selectedLanguage?.code || "TH";
-    const isJapanese = langCode === "JP";
-    const isThai = langCode === "TH";
+  //   // Determine language
+  //   const langCode = selectedLanguage?.code || "TH";
+  //   const isJapanese = langCode === "JP";
+  //   const isThai = langCode === "TH";
     
-    // Load and add fonts to jsPDF based on language
-    let useCustomFont = false;
-    let fontFamily = "helvetica";
-    let sawarabiLoaded = false;
-    let promptLoaded = false;
+  //   // Load and add fonts to jsPDF based on language
+  //   let useCustomFont = false;
+  //   let fontFamily = "helvetica";
+  //   let sawarabiLoaded = false;
+  //   let promptLoaded = false;
     
-    try {
-      // Always load SawarabiGothic font for Japanese support
-      try {
-        const sawarabiBase64 = await loadFontAsBase64("/fonts/SawarabiGothic-Regular.ttf");
-        pdf.addFileToVFS("SawarabiGothic-Regular.ttf", sawarabiBase64);
-        pdf.addFont("SawarabiGothic-Regular.ttf", "SawarabiGothic", "normal");
-        sawarabiLoaded = true;
-      } catch (error) {
-        console.error("Error loading SawarabiGothic font:", error);
-      }
+  //   try {
+  //     // Always load SawarabiGothic font for Japanese support
+  //     try {
+  //       const sawarabiBase64 = await loadFontAsBase64("/fonts/SawarabiGothic-Regular.ttf");
+  //       pdf.addFileToVFS("SawarabiGothic-Regular.ttf", sawarabiBase64);
+  //       pdf.addFont("SawarabiGothic-Regular.ttf", "SawarabiGothic", "normal");
+  //       sawarabiLoaded = true;
+  //     } catch (error) {
+  //       console.error("Error loading SawarabiGothic font:", error);
+  //     }
 
-      if (isJapanese && sawarabiLoaded) {
-        // Use SawarabiGothic for Japanese
-        fontFamily = "SawarabiGothic";
-        useCustomFont = true;
-      } else if (isThai) {
-        // Load Prompt fonts for Thai
-        try {
-          const promptRegularBase64 = await loadFontAsBase64("/fonts/Prompt-Regular.ttf");
-          const promptMediumBase64 = await loadFontAsBase64("/fonts/Prompt-Medium.ttf");
-          const promptBoldBase64 = await loadFontAsBase64("/fonts/Prompt-Bold.ttf");
+  //     if (isJapanese && sawarabiLoaded) {
+  //       // Use SawarabiGothic for Japanese
+  //       fontFamily = "SawarabiGothic";
+  //       useCustomFont = true;
+  //     } else if (isThai) {
+  //       // Load Prompt fonts for Thai
+  //       try {
+  //         const promptRegularBase64 = await loadFontAsBase64("/fonts/Prompt-Regular.ttf");
+  //         const promptMediumBase64 = await loadFontAsBase64("/fonts/Prompt-Medium.ttf");
+  //         const promptBoldBase64 = await loadFontAsBase64("/fonts/Prompt-Bold.ttf");
 
-          pdf.addFileToVFS("Prompt-Regular.ttf", promptRegularBase64);
-          pdf.addFileToVFS("Prompt-Medium.ttf", promptMediumBase64);
-          pdf.addFileToVFS("Prompt-Bold.ttf", promptBoldBase64);
+  //         pdf.addFileToVFS("Prompt-Regular.ttf", promptRegularBase64);
+  //         pdf.addFileToVFS("Prompt-Medium.ttf", promptMediumBase64);
+  //         pdf.addFileToVFS("Prompt-Bold.ttf", promptBoldBase64);
 
-          pdf.addFont("Prompt-Regular.ttf", "Prompt", "normal");
-          pdf.addFont("Prompt-Medium.ttf", "Prompt", "normal");
-          pdf.addFont("Prompt-Bold.ttf", "Prompt", "bold");
-          promptLoaded = true;
-          fontFamily = "Prompt";
-          useCustomFont = true;
-        } catch (error) {
-          console.error("Error loading Prompt fonts:", error);
-        }
-      }
+  //         pdf.addFont("Prompt-Regular.ttf", "Prompt", "normal");
+  //         pdf.addFont("Prompt-Medium.ttf", "Prompt", "normal");
+  //         pdf.addFont("Prompt-Bold.ttf", "Prompt", "bold");
+  //         promptLoaded = true;
+  //         fontFamily = "Prompt";
+  //         useCustomFont = true;
+  //       } catch (error) {
+  //         console.error("Error loading Prompt fonts:", error);
+  //       }
+  //     }
       
-      if (useCustomFont) {
-        pdf.setFont(fontFamily, "normal");
-      }
-    } catch (error) {
-      console.error("Error loading fonts, falling back to default:", error);
-      useCustomFont = false;
-      fontFamily = "helvetica";
-    }
+  //     if (useCustomFont) {
+  //       pdf.setFont(fontFamily, "normal");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error loading fonts, falling back to default:", error);
+  //     useCustomFont = false;
+  //     fontFamily = "helvetica";
+  //   }
 
-    // Check if custom font is available
-    const fontList = pdf.getFontList();
-    if (useCustomFont) {
-      const fontKey = isJapanese ? "SawarabiGothic" : "Prompt";
-      useCustomFont = fontList && (fontList[fontKey] !== undefined || fontList[fontKey.toLowerCase()] !== undefined);
-    }
+  //   // Check if custom font is available
+  //   const fontList = pdf.getFontList();
+  //   if (useCustomFont) {
+  //     const fontKey = isJapanese ? "SawarabiGothic" : "Prompt";
+  //     useCustomFont = fontList && (fontList[fontKey] !== undefined || fontList[fontKey.toLowerCase()] !== undefined);
+  //   }
 
-    // Use translations based on selected language
-    let pdfT;
-    if (isJapanese && useCustomFont && translations?.JP) {
-      pdfT = translations.JP;
-    } else if (isThai && useCustomFont && translations?.TH) {
-      pdfT = translations.TH;
-    } else {
-      // Fallback to English
-      pdfT = {
-        dashboard: "Dashboard",
-        totalParticipants: "Total Participants",
-        totalVisitors: "Total Visitors",
-        totalExhibitors: "Total Exhibitors",
-        trendTitle: "Exhibitors vs Visitors Comparison",
-        tableNo: "No.",
-        tableName: "Problem",
-        tableContact: "Count",
-      };
-    }
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    let yPosition = 20;
-    const margin = 20;
-    const lineHeight = 7;
-    const sectionSpacing = 15;
-    const cardHeight = 25;
-    const cardSpacing = 10;
+  //   // Use translations based on selected language
+  //   let pdfT;
+  //   if (isJapanese && useCustomFont && translations?.JP) {
+  //     pdfT = translations.JP;
+  //   } else if (isThai && useCustomFont && translations?.TH) {
+  //     pdfT = translations.TH;
+  //   } else {
+  //     // Fallback to English
+  //     pdfT = {
+  //       dashboard: "Dashboard",
+  //       totalParticipants: "Total Participants",
+  //       totalVisitors: "Total Visitors",
+  //       totalExhibitors: "Total Exhibitors",
+  //       trendTitle: "Exhibitors vs Visitors Comparison",
+  //       tableNo: "No.",
+  //       tableName: "Problem",
+  //       tableContact: "Count",
+  //     };
+  //   }
+  //   const pageWidth = pdf.internal.pageSize.getWidth();
+  //   const pageHeight = pdf.internal.pageSize.getHeight();
+  //   let yPosition = 20;
+  //   const margin = 20;
+  //   const lineHeight = 7;
+  //   const sectionSpacing = 15;
+  //   const cardHeight = 25;
+  //   const cardSpacing = 10;
 
-    // Helper function to add new page if needed
-    const checkNewPage = (requiredSpace: number) => {
-      if (yPosition + requiredSpace > pageHeight - margin) {
-        pdf.addPage();
-        yPosition = 20;
-        return true;
-      }
-      return false;
-    };
+  //   // Helper function to add new page if needed
+  //   const checkNewPage = (requiredSpace: number) => {
+  //     if (yPosition + requiredSpace > pageHeight - margin) {
+  //       pdf.addPage();
+  //       yPosition = 20;
+  //       return true;
+  //     }
+  //     return false;
+  //   };
 
-    // Set font based on availability
-    const fontStyle = "bold";
+  //   // Set font based on availability
+  //   const fontStyle = "bold";
 
-    // Title
-    pdf.setFontSize(20);
-    pdf.setFont(fontFamily, fontStyle);
-    pdf.text(pdfT.dashboard || "Dashboard", margin, yPosition);
-    yPosition += lineHeight + 8;
+  //   // Title
+  //   pdf.setFontSize(20);
+  //   pdf.setFont(fontFamily, fontStyle);
+  //   pdf.text(pdfT.dashboard || "Dashboard", margin, yPosition);
+  //   yPosition += lineHeight + 8;
 
-    // Date
-    pdf.setFontSize(10);
-    pdf.setFont(fontFamily, "normal");
-    const currentDate = new Date().toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    pdf.text(`Date: ${currentDate}`, margin, yPosition);
-    yPosition += sectionSpacing + 5;
+  //   // Date
+  //   pdf.setFontSize(10);
+  //   pdf.setFont(fontFamily, "normal");
+  //   const currentDate = new Date().toLocaleDateString("en-US", {
+  //     year: "numeric",
+  //     month: "long",
+  //     day: "numeric",
+  //   });
+  //   pdf.text(`Date: ${currentDate}`, margin, yPosition);
+  //   yPosition += sectionSpacing + 5;
 
-    // Summary Cards Section
-    checkNewPage(cardHeight + 10);
-    const cardWidth = (pageWidth - margin * 2 - cardSpacing * 2) / 3;
-    const summaryCards = [
-      {
-        label: pdfT.totalParticipants || "Total Participants",
-        value: summaryData.totalParticipants.toLocaleString(),
-      },
-      {
-        label: pdfT.totalVisitors || "Total Visitors",
-        value: summaryData.totalVisitors.toLocaleString(),
-      },
-      {
-        label: pdfT.totalExhibitors || "Total Exhibitors",
-        value: summaryData.totalExhibitors.toLocaleString(),
-      },
-    ];
+  //   // Summary Cards Section
+  //   checkNewPage(cardHeight + 10);
+  //   const cardWidth = (pageWidth - margin * 2 - cardSpacing * 2) / 3;
+  //   const summaryCards = [
+  //     {
+  //       label: pdfT.totalParticipants || "Total Participants",
+  //       value: summaryData.totalParticipants.toLocaleString(),
+  //     },
+  //     {
+  //       label: pdfT.totalVisitors || "Total Visitors",
+  //       value: summaryData.totalVisitors.toLocaleString(),
+  //     },
+  //     {
+  //       label: pdfT.totalExhibitors || "Total Exhibitors",
+  //       value: summaryData.totalExhibitors.toLocaleString(),
+  //     },
+  //   ];
 
-    summaryCards.forEach((card, index) => {
-      const xPos = margin + index * (cardWidth + cardSpacing);
+  //   summaryCards.forEach((card, index) => {
+  //     const xPos = margin + index * (cardWidth + cardSpacing);
 
-      // Draw card background
-      pdf.setDrawColor(200, 200, 200);
-      pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, "FD");
+  //     // Draw card background
+  //     pdf.setDrawColor(200, 200, 200);
+  //     pdf.setFillColor(255, 255, 255);
+  //     pdf.roundedRect(xPos, yPosition, cardWidth, cardHeight, 2, 2, "FD");
 
-      // Card content
-      pdf.setFontSize(12);
-      pdf.setFont(fontFamily, "bold");
-      pdf.text(card.value, xPos + 5, yPosition + 10);
+  //     // Card content
+  //     pdf.setFontSize(12);
+  //     pdf.setFont(fontFamily, "bold");
+  //     pdf.text(card.value, xPos + 5, yPosition + 10);
 
-      pdf.setFontSize(8);
-      pdf.setFont(fontFamily, "normal");
-      const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
-      pdf.text(labelLines, xPos + 5, yPosition + 16);
-    });
-    yPosition += cardHeight + sectionSpacing;
+  //     pdf.setFontSize(8);
+  //     pdf.setFont(fontFamily, "normal");
+  //     const labelLines = pdf.splitTextToSize(card.label, cardWidth - 10);
+  //     pdf.text(labelLines, xPos + 5, yPosition + 16);
+  //   });
+  //   yPosition += cardHeight + sectionSpacing;
 
-    // Table Section - Different content based on export type
-    if (exportType === 'userManagement') {
-      // User Management Table
-      checkNewPage(sectionSpacing + lineHeight * 8);
-      pdf.setFontSize(14);
-      pdf.setFont(fontFamily, "bold");
+  //   // Table Section - Different content based on export type
+  //   if (exportType === 'userManagement') {
+  //     // User Management Table
+  //     checkNewPage(sectionSpacing + lineHeight * 8);
+  //     pdf.setFontSize(14);
+  //     pdf.setFont(fontFamily, "bold");
       
-      let tableTitle = "User Management";
-      if (isJapanese && useCustomFont) {
-        tableTitle = "ユーザー管理";
-      } else if (isThai && useCustomFont) {
-        tableTitle = "การจัดการผู้ใช้";
-      }
+  //     let tableTitle = "User Management";
+  //     if (isJapanese && useCustomFont) {
+  //       tableTitle = "ユーザー管理";
+  //     } else if (isThai && useCustomFont) {
+  //       tableTitle = "การจัดการผู้ใช้";
+  //     }
       
-      pdf.text(tableTitle, margin, yPosition);
-      yPosition += lineHeight + 8;
+  //     pdf.text(tableTitle, margin, yPosition);
+  //     yPosition += lineHeight + 8;
 
-      // Filter users based on roleFilter
-      let filteredUsers = usersData || [];
-      if (roleFilter === 'visitors') {
-        filteredUsers = filteredUsers.filter((user) => user.role === 'visitor');
-      } else if (roleFilter === 'exhibitors') {
-        filteredUsers = filteredUsers.filter((user) => user.role === 'exhibitor');
-      }
+  //     // Filter users based on roleFilter
+  //     let filteredUsers = usersData || [];
+  //     if (roleFilter === 'visitors') {
+  //       filteredUsers = filteredUsers.filter((user) => user.role === 'visitor');
+  //     } else if (roleFilter === 'exhibitors') {
+  //       filteredUsers = filteredUsers.filter((user) => user.role === 'exhibitor');
+  //     }
 
-      // Prepare table data
-      const userTableData = filteredUsers.map((user, index) => [
-        index + 1,
-        user.username || user.fullName || '-',
-        user.role || '-',
-        user.email || '-',
-        user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-',
-      ]);
+  //     // Prepare table data
+  //     const userTableData = filteredUsers.map((user, index) => [
+  //       index + 1,
+  //       user.username || user.fullName || '-',
+  //       user.role || '-',
+  //       user.email || '-',
+  //       user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-',
+  //     ]);
 
-      let tableHeaders = [["No.", "Username", "Role", "Email", "Created At"]];
-      if (isJapanese && useCustomFont) {
-        tableHeaders = [["番号", "ユーザー名", "役割", "メール", "作成日"]];
-      } else if (isThai && useCustomFont) {
-        tableHeaders = [["ลำดับ", "ชื่อผู้ใช้", "สิทธิ์", "อีเมล", "วันที่สร้าง"]];
-      }
+  //     let tableHeaders = [["No.", "Username", "Role", "Email", "Created At"]];
+  //     if (isJapanese && useCustomFont) {
+  //       tableHeaders = [["番号", "ユーザー名", "役割", "メール", "作成日"]];
+  //     } else if (isThai && useCustomFont) {
+  //       tableHeaders = [["ลำดับ", "ชื่อผู้ใช้", "สิทธิ์", "อีเมล", "วันที่สร้าง"]];
+  //     }
 
-      // @ts-ignore - autoTable types may not be complete
-      autoTable(pdf, {
-        head: tableHeaders,
-        body: userTableData,
-        startY: yPosition,
-        margin: { left: margin, right: margin },
-        styles: {
-          fontSize: 9,
-          cellPadding: 3,
-          font: useCustomFont ? fontFamily : "helvetica",
-        },
-        headStyles: {
-          fillColor: [30, 41, 57],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-          halign: "center",
-          font: useCustomFont ? fontFamily : "helvetica",
-        },
-        bodyStyles: {
-          fillColor: [255, 255, 255],
-          textColor: [0, 0, 0],
-          font: useCustomFont ? fontFamily : "helvetica",
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245],
-        },
-        columnStyles: {
-          0: { halign: "center", cellWidth: 22 },
-          1: { halign: "left", cellWidth: "auto" },
-          2: { halign: "center", cellWidth: 50 },
-          3: { halign: "left", cellWidth: "auto" },
-          4: { halign: "center", cellWidth: 60 },
-        },
-        theme: "striped",
-      });
-    } else if (categoryData && categoryData.length > 0) {
-      // Dashboard Table - Top 5 Problems
-      checkNewPage(sectionSpacing + lineHeight * 8);
-      pdf.setFontSize(14);
-      pdf.setFont(fontFamily, "bold");
+  //     // @ts-ignore - autoTable types may not be complete
+  //     autoTable(pdf, {
+  //       head: tableHeaders,
+  //       body: userTableData,
+  //       startY: yPosition,
+  //       margin: { left: margin, right: margin },
+  //       styles: {
+  //         fontSize: 9,
+  //         cellPadding: 3,
+  //         font: useCustomFont ? fontFamily : "helvetica",
+  //       },
+  //       headStyles: {
+  //         fillColor: [30, 41, 57],
+  //         textColor: [255, 255, 255],
+  //         fontStyle: "bold",
+  //         halign: "center",
+  //         font: useCustomFont ? fontFamily : "helvetica",
+  //       },
+  //       bodyStyles: {
+  //         fillColor: [255, 255, 255],
+  //         textColor: [0, 0, 0],
+  //         font: useCustomFont ? fontFamily : "helvetica",
+  //       },
+  //       alternateRowStyles: {
+  //         fillColor: [245, 245, 245],
+  //       },
+  //       columnStyles: {
+  //         0: { halign: "center", cellWidth: 22 },
+  //         1: { halign: "left", cellWidth: "auto" },
+  //         2: { halign: "center", cellWidth: 50 },
+  //         3: { halign: "left", cellWidth: "auto" },
+  //         4: { halign: "center", cellWidth: 60 },
+  //       },
+  //       theme: "striped",
+  //     });
+  //   } else if (categoryData && categoryData.length > 0) {
+  //     // Dashboard Table - Top 5 Problems
+  //     checkNewPage(sectionSpacing + lineHeight * 8);
+  //     pdf.setFontSize(14);
+  //     pdf.setFont(fontFamily, "bold");
       
-      let tableTitle = "Top 5 Problems";
-      if (isJapanese && useCustomFont) {
-        tableTitle = "問題トップ5";
-      } else if (isThai && useCustomFont) {
-        tableTitle = "ปัญหายอดนิยม 5 อันดับแรก";
-      }
+  //     let tableTitle = "Top 5 Problems";
+  //     if (isJapanese && useCustomFont) {
+  //       tableTitle = "問題トップ5";
+  //     } else if (isThai && useCustomFont) {
+  //       tableTitle = "ปัญหายอดนิยม 5 อันดับแรก";
+  //     }
       
-      pdf.text(tableTitle, margin, yPosition);
-      yPosition += lineHeight + 8;
+  //     pdf.text(tableTitle, margin, yPosition);
+  //     yPosition += lineHeight + 8;
 
-      // Use autoTable for better table formatting
-      const tableData = categoryData.slice(0, 5).map((category, index) => [
-        index + 1,
-        category.name === "Others" 
-          ? (isJapanese ? "その他" : isThai ? "อื่นๆ" : "Others")
-          : category.name,
-        category.count.toString(),
-      ]);
+  //     // Use autoTable for better table formatting
+  //     const tableData = categoryData.slice(0, 5).map((category, index) => [
+  //       index + 1,
+  //       category.name === "Others" 
+  //         ? (isJapanese ? "その他" : isThai ? "อื่นๆ" : "Others")
+  //         : category.name,
+  //       category.count.toString(),
+  //     ]);
 
-      let tableHeaders = [["No.", "Problem Name", "Count"]];
-      if (isJapanese && useCustomFont) {
-        tableHeaders = [["番号", "問題名", "数"]];
-      } else if (isThai && useCustomFont) {
-        tableHeaders = [["ลำดับ", "ชื่อปัญหา", "จำนวน"]];
-      }
+  //     let tableHeaders = [["No.", "Problem Name", "Count"]];
+  //     if (isJapanese && useCustomFont) {
+  //       tableHeaders = [["番号", "問題名", "数"]];
+  //     } else if (isThai && useCustomFont) {
+  //       tableHeaders = [["ลำดับ", "ชื่อปัญหา", "จำนวน"]];
+  //     }
 
-      // @ts-ignore - autoTable types may not be complete
-      autoTable(pdf, {
-        head: tableHeaders,
-        body: tableData,
-        startY: yPosition,
-        margin: { left: margin, right: margin },
-        styles: {
-          fontSize: 10,
-          cellPadding: 3,
-          font: useCustomFont ? fontFamily : "helvetica",
-        },
-        headStyles: {
-          fillColor: [30, 41, 57],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-          halign: "center",
-          font: useCustomFont ? fontFamily : "helvetica",
-        },
-        bodyStyles: {
-          fillColor: [255, 255, 255],
-          textColor: [0, 0, 0],
-          font: useCustomFont ? fontFamily : "helvetica",
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245],
-        },
-        columnStyles: {
-          0: { halign: "center", cellWidth: 22 },
-          1: { halign: "left", cellWidth: "auto" },
-          2: { halign: "center", cellWidth: 50 },
-        },
-        theme: "striped",
-      });
-    }
+  //     // @ts-ignore - autoTable types may not be complete
+  //     autoTable(pdf, {
+  //       head: tableHeaders,
+  //       body: tableData,
+  //       startY: yPosition,
+  //       margin: { left: margin, right: margin },
+  //       styles: {
+  //         fontSize: 10,
+  //         cellPadding: 3,
+  //         font: useCustomFont ? fontFamily : "helvetica",
+  //       },
+  //       headStyles: {
+  //         fillColor: [30, 41, 57],
+  //         textColor: [255, 255, 255],
+  //         fontStyle: "bold",
+  //         halign: "center",
+  //         font: useCustomFont ? fontFamily : "helvetica",
+  //       },
+  //       bodyStyles: {
+  //         fillColor: [255, 255, 255],
+  //         textColor: [0, 0, 0],
+  //         font: useCustomFont ? fontFamily : "helvetica",
+  //       },
+  //       alternateRowStyles: {
+  //         fillColor: [245, 245, 245],
+  //       },
+  //       columnStyles: {
+  //         0: { halign: "center", cellWidth: 22 },
+  //         1: { halign: "left", cellWidth: "auto" },
+  //         2: { halign: "center", cellWidth: 50 },
+  //       },
+  //       theme: "striped",
+  //     });
+  //   }
 
-    // Save PDF
-    const fileName = exportType === 'userManagement' 
-      ? `user-management-${new Date().toISOString().split("T")[0]}.pdf`
-      : `admin-dashboard-${new Date().toISOString().split("T")[0]}.pdf`;
-    pdf.save(fileName);
-  };
+  //   // Save PDF
+  //   const fileName = exportType === 'userManagement' 
+  //     ? `user-management-${new Date().toISOString().split("T")[0]}.pdf`
+  //     : `admin-dashboard-${new Date().toISOString().split("T")[0]}.pdf`;
+  //   pdf.save(fileName);
+  // };
 
   // ฟังก์ชัน Export เป็น Excel
   const handleExportExcel = async () => {
@@ -611,7 +611,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
 
   return (
     <>
-      <button
+      {/* <button
         type="button"
         onClick={handleExportPDF}
         className="bg-gray-800 text-white rounded-lg px-3 h-[36px] flex items-center justify-center gap-2 hover:bg-gray-700 transition"
@@ -626,7 +626,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
           className="w-[18px] h-[18px] brightness-0 invert"
         />
         <span className="text-sm">{exportPdfLabel}</span>
-      </button>
+      </button> */}
       <button
         type="button"
         onClick={handleExportExcel}
