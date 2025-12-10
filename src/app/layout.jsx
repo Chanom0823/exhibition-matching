@@ -119,7 +119,7 @@ export default function ClientLayout({ children }) {
             <PDPAProvider>
               <main>
                 <div
-                  className={`min-h-screen  bg-white flex   justify-center
+                  className={`min-h-screen bg-white flex   justify-center
                   ${path === '/' || path === '/user-panel' || path === '/usermatching' || path === '/login' ? 'flex-col items-center' : 'flex-row'}  
                   ${currentFontClass}
                   `}>
