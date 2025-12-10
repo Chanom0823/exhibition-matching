@@ -153,7 +153,7 @@ export default function UserMatchingPage() {
     <div
       className={` bg-white flex items-center justify-center p-3 h-fit sm:p-4 md:p-6 `}
     >
-      <div className="w-full max-w sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative sm:shadow-none overflow-y-auto">
+      <div className="w-full  sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative sm:shadow-none overflow-y-auto">
         {/* Content */}
         <div className="h-fit bg-white flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <div className="text-center mb-4">
