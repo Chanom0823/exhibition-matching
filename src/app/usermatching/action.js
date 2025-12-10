@@ -4,6 +4,29 @@ import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firesto
 import { db } from '@/lib/firebase';
 import { lookSesstion } from '@/lib/auth';
 
+
+export async function loadProblemTag() {
+  try {
+    const tagsSnapshot = await getDocs(collection(db, 'problemTags'));
+    const tagMap = new Map();
+    tagsSnapshot.docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      const name = data?.name?.trim();
+      if (!name) return;
+      const color = (data?.color || '#e5e7eb').trim();
+      const key = name.toLowerCase();
+      if (!tagMap.has(key)) {
+        tagMap.set(key, { name, color });
+      }
+    });
+     return Array.from(tagMap.values());
+  } catch (error) {
+    console.error('Error loading exhibitors:', error);
+    return error;
+  }
+};
+
+
 export async function queryMatching() {
   try {
     const visitorId = await lookSesstion();
