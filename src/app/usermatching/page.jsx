@@ -154,7 +154,7 @@ export default function UserMatchingPage() {
 
   return (
     <div
-      className={` bg-white flex items-center justify-center p-3 sm:p-4 md:p-6 `}
+      className={` bg-white flex items-center justify-center p-3 h-fit sm:p-4 md:p-6 `}
     >
       <div className="w-full max-w sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
         {/* Content */}
