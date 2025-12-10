@@ -39,7 +39,7 @@
     "src/lib/auth.js",
     "src/app/admin-dashboard/problem-tag-management/page.js",
     "src/app/user-panel/page.jsx"
-, "src/app/usermatching/page.jsx"  ],
+, "src/app/usermatching/page.jsx", "src/app/usermatching/action.js"  ],
   "exclude": [
     "node_modules"
   ]
