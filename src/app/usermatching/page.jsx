@@ -153,9 +153,9 @@ export default function UserMatchingPage() {
     <div
       className={` bg-white flex items-center justify-center p-3 h-fit sm:p-4 md:p-6 `}
     >
-      <div className="w-full max-w sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative shadow-sm sm:shadow-none overflow-y-auto">
+      <div className="w-full max-w sm:max-w-[450px] md:max-w-[500px] min-h-screen sm:min-h-[600px] md:min-h-[700px] bg-white flex flex-col relative sm:shadow-none overflow-y-auto">
         {/* Content */}
-        <div className="flex-1 flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
+        <div className="h-fit bg-white flex flex-col px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <div className="text-center mb-4">
             <h1 className="text-3xl font-semibold text-gray-900 leading-snug mb-2">{t.titleUsermatching}</h1>
             <p className="text-xl text-gray-600">{t.descriptionUsermatching}</p>
@@ -180,7 +180,7 @@ export default function UserMatchingPage() {
               {selectedLanguage.code === 'TH' ? 'กำลังโหลด...' : selectedLanguage.code === 'EN' ? 'Loading...' : '読み込み中...'}
             </div>
           ) : filteredExhibitors.length > 0 ? (
-            <div className="relative  w-full">
+            <div className="relative w-full bg-white">
               {filteredExhibitors.map((exhibitor) => (
                 <div
                   key={exhibitor.id}
